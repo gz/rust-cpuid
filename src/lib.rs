@@ -1,4 +1,17 @@
+#![feature(no_std)]
+#![feature(core)]
 #![feature(asm)]
+#![no_std]
+
+#![crate_name = "raw-cpuid"]
+#![crate_type = "lib"]
+
+#[macro_use]
+extern crate core;
+
+#[cfg(test)]
+#[macro_use]
+extern crate std;
 
 const MAX_ENTRIES: usize = 32;
 
@@ -20,9 +33,10 @@ impl CpuId {
         let mut cpu = CpuId{ values: [ CpuIdResult{ eax: 0, ebx: 0, ecx: 0, edx: 0}; MAX_ENTRIES] };
 
         unsafe {
-            let mut res: CpuIdResult = CpuIdResult{eax: 0, ebx: 0, ecx: 0, edx: 0};
+            let mut res: CpuIdResult;
             res = cpuid(0x0);
             cpu.values[0] = res;
+            assert!( (res.eax as usize) < MAX_ENTRIES);
             for i in 1..(res.eax as usize) {
                 res = cpuid(i as u32);
                 cpu.values[i] = res;
@@ -44,15 +58,6 @@ pub unsafe fn cpuid(eax: u32) -> CpuIdResult {
     res
 }
 
-#[test]
-fn it_works() {
-    unsafe {
-        let mut tuple: CpuIdResult;
-        tuple = cpuid(0x0);
-    }
-}
-
-
 fn to_bytes(val: u32) -> [u8; 4] {
     let mut res: [u8; 4] = [0; 4];
 
@@ -66,7 +71,7 @@ fn to_bytes(val: u32) -> [u8; 4] {
 fn to_str(t: [u8; 4]) -> [char; 4] {
     let mut arr: [char; 4] = ['\0'; 4];
     for i in 0..4 {
-        arr[i] = (t[i] as char);
+        arr[i] = t[i] as char;
     }
 
     arr
@@ -77,9 +82,8 @@ fn genuine_intel() {
     let cpu: CpuId = CpuId::new();
 
     let b = to_str(to_bytes(cpu.values[0].ebx));
-    println!("{:?}", b);
-    let d = to_str(to_bytes(cpu.values[0].edx));
-    println!("{:?}", d);
-    let c = to_str(to_bytes(cpu.values[0].ecx));
-    println!("{:?}", c);
+    assert!(b[0] == 'G');
+    assert!(b[1] == 'e');
+    assert!(b[2] == 'n');
+    assert!(b[3] == 'u');
 }

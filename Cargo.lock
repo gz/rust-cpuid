@@ -1,4 +1,4 @@
 [root]
-name = "cpuid"
+name = "raw-cpuid"
 version = "0.0.1"
 
