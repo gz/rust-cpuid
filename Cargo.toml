@@ -1,5 +1,12 @@
 [package]
-
-name = "cpuid"
+name = "raw-cpuid"
 version = "0.0.1"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
+
+description = "Library to read CPUID instruction data."
+repository = "https://github.com/gz/rust-cpuid"
+
+readme = "README.md"
+keywords = ["kernel", "os", "cpuid", "x86"]
+license = "MIT"
+
