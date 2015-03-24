@@ -16,7 +16,7 @@ extern crate std;
 const MAX_ENTRIES: usize = 32;
 
 #[derive(Debug)]
-struct CpuId {
+pub struct CpuId {
     values: [CpuIdResult; MAX_ENTRIES]
 }
 
