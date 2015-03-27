@@ -3,7 +3,7 @@
 #![feature(asm)]
 #![no_std]
 
-#![crate_name = "raw-cpuid"]
+#![crate_name = "raw_cpuid"]
 #![crate_type = "lib"]
 
 #[macro_use]
