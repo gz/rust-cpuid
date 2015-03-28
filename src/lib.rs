@@ -22,10 +22,10 @@ pub struct CpuId {
 
 #[derive(Debug, Copy)]
 pub struct CpuIdResult {
-    eax: u32,
-    ebx: u32,
-    ecx: u32,
-    edx: u32
+    pub eax: u32,
+    pub ebx: u32,
+    pub ecx: u32,
+    pub edx: u32
 }
 
 impl CpuId {
@@ -33,17 +33,18 @@ impl CpuId {
         let mut cpu = CpuId{ values: [ CpuIdResult{ eax: 0, ebx: 0, ecx: 0, edx: 0}; MAX_ENTRIES] };
 
         unsafe {
-            let mut res: CpuIdResult;
-            res = cpuid(0x0);
-            cpu.values[0] = res;
-            assert!( (res.eax as usize) < MAX_ENTRIES);
-            for i in 1..(res.eax as usize) {
-                res = cpuid(i as u32);
-                cpu.values[i] = res;
+            cpu.values[0] = cpuid(0x0);
+            assert!( (cpu.values[0].eax as usize) < MAX_ENTRIES);
+            for i in 1..(cpu.values[0].eax as usize) {
+                cpu.values[i] = cpuid(i as u32);
             }
         }
 
         cpu
+    }
+
+    pub fn get(&self, eax: usize) -> &CpuIdResult {
+        return &self.values[eax];
     }
 }
 
