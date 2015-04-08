@@ -20,7 +20,7 @@ pub struct CpuId {
     values: [CpuIdResult; MAX_ENTRIES]
 }
 
-#[derive(Debug, Copy)]
+#[derive(Debug, Copy, Clone)]
 pub struct CpuIdResult {
     pub eax: u32,
     pub ebx: u32,
