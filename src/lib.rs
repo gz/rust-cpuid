@@ -7,6 +7,9 @@
 #[macro_use]
 extern crate core;
 
+#[macro_use]
+extern crate bitflags;
+
 #[cfg(test)]
 #[macro_use]
 extern crate std;
@@ -22,6 +25,12 @@ use core::str;
 use core::mem::{transmute};
 use core::fmt;
 use core::slice;
+
+#[cfg(not(test))]
+mod std {
+    pub use core::ops;
+    pub use core::option;
+}
 
 const MAX_ENTRIES: usize = 32;
 
@@ -118,7 +127,7 @@ impl CpuId {
 
     pub fn get_feature_information(&self) -> CpuIdFeatureInfo {
         let res = cpuid!(1);
-        CpuIdFeatureInfo{eax: res.eax, ebx: res.ebx, ecx: res.ecx, edx: res.edx}
+        CpuIdFeatureInfo{eax: res.eax, ebx: res.ebx, ecx: FeatureInfoEcx { bits: res.ecx }, edx: res.edx}
     }
 
 }
@@ -148,8 +157,41 @@ impl fmt::Display for CpuIdVendorInfo {
 pub struct CpuIdFeatureInfo {
     pub eax: u32,
     pub ebx: u32,
-    pub ecx: u32,
+    pub ecx: FeatureInfoEcx,
     pub edx: u32
+}
+
+bitflags! {
+    flags FeatureInfoEcx: u32 {
+        const FINFO_ECX_SSE3 = 1 << 0,
+        const FINFO_ECX_PCLMULQDQ = 1 << 1,
+        const FINFO_ECX_DTES64 = 1 << 2,
+        const FINFO_ECX_MONITOR = 1 << 3,
+        const FINFO_ECX_DS_CPL = 1 << 4,
+        const FINFO_ECX_VMX  = 1 << 5,
+        const FINFO_ECX_SMX = 1 << 6,
+        const FINFO_ECX_EIST = 1 << 7,
+        const FINFO_ECX_TM2 = 1 << 8,
+        const FINFO_ECX_SSSE3 = 1 << 9,
+        const FINFO_ECX_CNXT_ID = 1 << 10,
+        const FINFO_ECX_SDBG  = 1 << 11,
+        const FINFO_ECX_FMA = 1 << 12,
+        const FINFO_ECX_CMPXCHG16B = 1 << 13,
+        const FINFO_ECX_XTPR = 1 << 14,
+        const FINFO_ECX_PDCM = 1 << 15,
+        const FINFO_ECX_PCID = 1 << 17,
+        const FINFO_ECX_DCA = 1 << 18,
+        const FINFO_ECX_SSE41 = 1 << 19,
+        const FINFO_ECX_SSE42 = 1 << 20,
+        const FINFO_ECX_X2APIC = 1 << 21,
+        const FINFO_ECX_MOVBE = 1 << 22,
+        const FINFO_ECX_POPCNT = 1 << 23,
+        const FINFO_ECX_TSC_DEADLINE = 1 << 24,
+        const FINFO_ECX_AESNI = 1 << 25,
+        const FINFO_ECX_XSAVE = 1 << 26,
+        const FINFO_ECX_OSXSAVE = 1 << 27,
+        const FINFO_ECX_AVX = 1 << 28
+    }
 }
 
 impl CpuIdFeatureInfo {

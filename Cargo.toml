@@ -1,6 +1,6 @@
 [package]
 name = "raw-cpuid"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 
 description = "Library to read CPUID instruction data."
@@ -10,3 +10,5 @@ readme = "README.md"
 keywords = ["kernel", "os", "cpuid", "x86"]
 license = "MIT"
 
+[dependencies]
+bitflags = "0.1.0"
