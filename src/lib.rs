@@ -1,4 +1,4 @@
-#![feature(no_std, core, core_prelude, asm, raw)]
+#![feature(no_std, prelude_import, core, core_prelude, asm, raw)]
 #![no_std]
 
 #![crate_name = "raw_cpuid"]
