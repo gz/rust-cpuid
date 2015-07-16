@@ -1,6 +1,6 @@
 env:
   global:
-    - secure: JpMs+oQzbGmrPThZhdD8jjRysaxUH+OOVUWd1YuH9An7czQyXPijnG4UVwnXaBqvLmf0qFQQLiXE9z3wBSYjFCTFf6FbBaUm1UmxMsH+boAOqSfseaGlfUL3VMncuGfHLhLNkiQQ+Xz4HQnza3QReA/mdVKalSD/Q8oj+QubbP4=
+    - secure: ezgD4eZXLE6OU7/YaxLDmwYQTr7EUqduHAQeTTDW+kROR/tLzDoSETu3HXcELqxRZpgR/cZSUmpLC/Pv7my9I6M7gNHbi/bHgycRROYwEoZfAUtwMo68uppEXKoGknnpksPK9SC9rJa+ofElPN1RrvR+n6OWS1GNl+c4KwWg56U=
 language: rust
 rust: nightly
 os:
