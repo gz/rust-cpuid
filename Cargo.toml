@@ -1,10 +1,11 @@
 [package]
 name = "raw-cpuid"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 
-description = "Library to read CPUID instruction data."
+description = "A library to parse the x86 cpuid instruction, written in rust with no external dependencies. In addition, this library can be used in no_std code and relies only on libcore."
 repository = "https://github.com/gz/rust-cpuid"
+documentation = "http://gz.github.io/rust-cpuid/raw_cpuid/"
 
 readme = "README.md"
 keywords = ["kernel", "os", "cpuid", "x86"]
