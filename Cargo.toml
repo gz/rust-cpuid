@@ -1,6 +1,6 @@
 [package]
 name = "raw-cpuid"
-version = "0.0.5"
+version = "0.1.0"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 
 description = "Library to read CPUID instruction data."
