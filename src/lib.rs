@@ -174,12 +174,14 @@ impl CpuId {
     }
 }
 
+#[derive(Debug)]
 pub struct CpuIdVendorInfo {
     pub ebx: u32,
     pub ecx: u32,
     pub edx: u32,
 }
 
+#[derive(Debug)]
 pub struct CpuIdCacheInfo {
     pub eax: u32,
     pub ebx: u32,
@@ -190,7 +192,7 @@ pub struct CpuIdCacheInfo {
 impl CpuIdCacheInfo {
     pub fn iter<'a>(&'a self) -> CacheInfoIter<'a> {
         CacheInfoIter{
-            current: 0,
+            current: 1,
             regs: self
         }
     }
@@ -221,6 +223,10 @@ impl<'a> Iterator for CacheInfoIter<'a> {
         };
 
         let byte = as_bytes(&reg)[byte_index as usize];
+        if (byte == 0) {
+            self.current += 1;
+            return self.next();
+        }
 
         for cache_info in CACHE_INFO_TABLE.into_iter() {
             if cache_info.num == byte {
@@ -233,7 +239,7 @@ impl<'a> Iterator for CacheInfoIter<'a> {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 enum CacheInfoType {
     GENERAL,
     CACHE,
@@ -243,7 +249,7 @@ enum CacheInfoType {
     PREFETCH
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct CacheInfo{
     num: u8,
     typ: CacheInfoType,
@@ -744,15 +750,20 @@ fn feature_info() {
     assert!(finfo.ecx.contains(CPU_FEATURE_SSE41));
 }
 
-#[cfg(test)]
 #[test]
 fn cache_info() {
-    let cpu: CpuId = CpuId;
-    let cinfos = cpu.get_cache_information();
-
-    for cache in cinfos.iter() {
-        if cache.num != 0x0 {
-            println!("{}", cache);
+    let cpuid: CpuId = CpuId;
+    let cinfos = CpuIdCacheInfo { eax: 1979931137, ebx: 15774463, ecx: 0, edx: 13238272 };
+    for (idx, cache) in cinfos.iter().enumerate() {
+        match idx {
+            0 => assert!(cache.num == 0xff),
+            1 => assert!(cache.num == 0x5a),
+            2 => assert!(cache.num == 0xb2),
+            3 => assert!(cache.num == 0x03),
+            4 => assert!(cache.num == 0xf0),
+            5 => assert!(cache.num == 0xca),
+            6 => assert!(cache.num == 0x76),
+            _ => unreachable!(),
         }
     }
 }
