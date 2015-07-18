@@ -211,6 +211,10 @@ impl CpuId {
                                     ecx: res.ecx,
                                     edx: res.edx }
     }
+
+    pub fn get_extended_topology_info(&self) -> CpuIdExtendedTopologyIter {
+        CpuIdExtendedTopologyIter { level: 0 }
+    }
 }
 
 #[derive(Debug)]
@@ -1013,6 +1017,84 @@ bitflags! {
     }
 }
 
+#[derive(Debug)]
+pub struct CpuIdExtendedTopologyIter {
+    level: u32
+}
+
+#[derive(Debug)]
+pub struct ExtendedTopologyLevel {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    edx: u32
+}
+
+impl ExtendedTopologyLevel {
+
+    /// Number of logical processors at this level type.
+    /// The number reflects configuration as shipped.
+    pub fn processors(&self) -> u16 {
+        get_bits(self.ebx, 0, 15) as u16
+    }
+
+    /// Level number.
+    pub fn level_number(&self) -> u8 {
+        get_bits(self.ecx, 0, 7) as u8
+    }
+
+    // Level type.
+    pub fn level_type(&self) -> TopologyType {
+        match get_bits(self.ecx, 8, 15) {
+            0 => TopologyType::INVALID,
+            1 => TopologyType::SMT,
+            2 => TopologyType::CORE,
+            _ => unreachable!()
+        }
+    }
+
+    /// x2APIC ID the current logical processor. (Bits 31-00)
+    pub fn x2apic_id(&self) -> u32 {
+        self.edx
+    }
+
+    /// Number of bits to shift right on x2APIC ID to get a unique topology ID of the next level type. (Bits 04-00)
+    /// All logical processors with the same next level ID share current level.
+    pub fn shift_right_for_next_apic_id(&self) -> u32 {
+        get_bits(self.eax, 0, 4)
+    }
+
+}
+
+#[derive(PartialEq, Eq)]
+#[derive(Debug)]
+pub enum TopologyType {
+    INVALID = 0,
+    SMT = 1,
+    CORE = 2,
+}
+
+impl Iterator for CpuIdExtendedTopologyIter {
+    type Item = ExtendedTopologyLevel;
+
+    fn next(&mut self) -> Option<ExtendedTopologyLevel> {
+        let res = cpuid!(11, self.level);
+        self.level += 1;
+
+        let et = ExtendedTopologyLevel{
+            eax: res.eax,
+            ebx: res.ebx,
+            ecx: res.ecx,
+            edx: res.edx
+        };
+
+        match et.level_type() {
+            TopologyType::INVALID => None,
+            _ => Some(et)
+        }
+    }
+}
+
 
 #[test]
 fn genuine_intel() {
@@ -1228,4 +1310,24 @@ fn performance_monitoring_info() {
     assert!(!pm.ebx.contains(CPU_FEATURE_LL_CACHE_MISS_EV_UNAVAILABLE));
     assert!(!pm.ebx.contains(CPU_FEATURE_BRANCH_INST_RET_EV_UNAVAILABLE));
     assert!(!pm.ebx.contains(CPU_FEATURE_BRANCH_MISPRED_EV_UNAVAILABLE));
+}
+
+
+#[cfg(test)]
+#[test]
+fn extended_topology_info() {
+    let l1 = ExtendedTopologyLevel { eax: 1, ebx: 2, ecx: 256, edx: 3 };
+    let l2 = ExtendedTopologyLevel { eax: 4, ebx: 4, ecx: 513, edx: 3 };
+
+    assert!(l1.processors() == 2);
+    assert!(l1.level_number() == 0);
+    assert!(l1.level_type() == TopologyType::SMT);
+    assert!(l1.x2apic_id() == 3);
+    assert!(l1.shift_right_for_next_apic_id() == 1);
+
+    assert!(l2.processors() == 4);
+    assert!(l2.level_number() == 1);
+    assert!(l2.level_type() == TopologyType::CORE);
+    assert!(l2.x2apic_id() == 3);
+    assert!(l2.shift_right_for_next_apic_id() == 4);
 }
