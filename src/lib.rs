@@ -150,12 +150,13 @@ impl CpuId {
         }
     }
 
-    pub fn get_cache_info(&self) -> CpuIdCacheInfo {
+    pub fn get_cache_info(&self) -> CpuIdCacheInfoIter {
         let res = cpuid!(2);
-        CpuIdCacheInfo { eax: res.eax,
-                         ebx: res.ebx,
-                         ecx: res.ecx,
-                         edx: res.edx }
+        CpuIdCacheInfoIter { current: 1,
+                             eax: res.eax,
+                             ebx: res.ebx,
+                             ecx: res.ecx,
+                             edx: res.edx }
     }
 
     pub fn get_cache_parameters(&self) -> CpuIdCacheParameterIter {
@@ -214,43 +215,29 @@ pub struct CpuIdVendorInfo {
 }
 
 #[derive(Debug)]
-pub struct CpuIdCacheInfo {
+pub struct CpuIdCacheInfoIter {
+    current: u32,
     pub eax: u32,
     pub ebx: u32,
     pub ecx: u32,
     pub edx: u32,
 }
 
-impl CpuIdCacheInfo {
-    pub fn iter<'a>(&'a self) -> CacheInfoIter<'a> {
-        CacheInfoIter{
-            current: 1,
-            regs: self
-        }
-    }
-}
-
-pub struct CacheInfoIter<'a> {
-    current: u32,
-    regs: &'a CpuIdCacheInfo
-}
-
-impl<'a> Iterator for CacheInfoIter<'a> {
+impl Iterator for CpuIdCacheInfoIter {
     type Item = CacheInfo;
 
     fn next(&mut self) -> Option<CacheInfo> {
         if self.current >= 4*4 {
             return None;
         }
-
         let reg_index = self.current % 4;
         let byte_index = self.current / 4;
 
         let reg = match reg_index {
-            0 => self.regs.eax,
-            1 => self.regs.ebx,
-            2 => self.regs.ecx,
-            3 => self.regs.edx,
+            0 => self.eax,
+            1 => self.ebx,
+            2 => self.ecx,
+            3 => self.edx,
             _ => unreachable!()
         };
 
@@ -272,7 +259,7 @@ impl<'a> Iterator for CacheInfoIter<'a> {
 }
 
 #[derive(Copy, Clone, Debug)]
-enum CacheInfoType {
+pub enum CacheInfoType {
     GENERAL,
     CACHE,
     TLB,
@@ -283,9 +270,9 @@ enum CacheInfoType {
 
 #[derive(Copy, Clone, Debug)]
 pub struct CacheInfo{
-    num: u8,
-    typ: CacheInfoType,
-    desc: &'static str
+    pub num: u8,
+    pub typ: CacheInfoType,
+    pub desc: &'static str
 }
 
 impl fmt::Display for CacheInfo {
@@ -1102,8 +1089,8 @@ fn feature_info() {
 
 #[test]
 fn cache_info() {
-    let cinfos = CpuIdCacheInfo { eax: 1979931137, ebx: 15774463, ecx: 0, edx: 13238272 };
-    for (idx, cache) in cinfos.iter().enumerate() {
+    let cinfos = CpuIdCacheInfoIter { current: 1, eax: 1979931137, ebx: 15774463, ecx: 0, edx: 13238272 };
+    for (idx, cache) in cinfos.enumerate() {
         match idx {
             0 => assert!(cache.num == 0xff),
             1 => assert!(cache.num == 0x5a),
