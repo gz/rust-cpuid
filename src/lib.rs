@@ -136,86 +136,86 @@ pub struct CpuIdResult {
 
 impl CpuId {
 
-    pub fn get_vendor_info(&self) -> CpuIdVendorInfo {
+    pub fn get_vendor_info(&self) -> VendorInfo {
         let res = cpuid!(0);
-        CpuIdVendorInfo { ebx: res.ebx, ecx: res.ecx, edx: res.edx }
+        VendorInfo { ebx: res.ebx, ecx: res.ecx, edx: res.edx }
     }
 
-    pub fn get_feature_info(&self) -> CpuIdFeatureInfo {
+    pub fn get_feature_info(&self) -> FeatureInfo {
         let res = cpuid!(1);
-        CpuIdFeatureInfo { eax: res.eax,
+        FeatureInfo { eax: res.eax,
                            ebx: res.ebx,
                            ecx: FeatureInfoEcx { bits: res.ecx },
                            edx: FeatureInfoEdx { bits: res.edx },
         }
     }
 
-    pub fn get_cache_info(&self) -> CpuIdCacheInfoIter {
+    pub fn get_cache_info(&self) -> CacheInfoIter {
         let res = cpuid!(2);
-        CpuIdCacheInfoIter { current: 1,
+        CacheInfoIter { current: 1,
                              eax: res.eax,
                              ebx: res.ebx,
                              ecx: res.ecx,
                              edx: res.edx }
     }
 
-    pub fn get_cache_parameters(&self) -> CpuIdCacheParameterIter {
-        CpuIdCacheParameterIter { current: 0 }
+    pub fn get_cache_parameters(&self) -> CacheParametersIter {
+        CacheParametersIter { current: 0 }
     }
 
-    pub fn get_monitor_mwait_info(&self) -> CpuIdMonitorMwait {
+    pub fn get_monitor_mwait_info(&self) -> MonitorMwaitInfo {
         let res = cpuid!(5);
-        CpuIdMonitorMwait { eax: res.eax,
+        MonitorMwaitInfo { eax: res.eax,
                             ebx: res.ebx,
                             ecx: res.ecx,
                             edx: res.edx }
     }
 
-    pub fn get_thermal_power_info(&self) -> CpuIdThermalPower {
+    pub fn get_thermal_power_info(&self) -> ThermalPowerInfo {
         let res = cpuid!(6);
-        CpuIdThermalPower { eax: ThermalPowerFeaturesEax { bits: res.eax },
+        ThermalPowerInfo { eax: ThermalPowerFeaturesEax { bits: res.eax },
                             ebx: res.ebx,
                             ecx: ThermalPowerFeaturesEcx { bits: res.ecx },
                             edx: res.edx }
     }
 
-    pub fn get_extended_feature_info(&self) -> CpuIdExtendedFeature {
+    pub fn get_extended_feature_info(&self) -> ExtendedFeatures {
         let res = cpuid!(7);
         assert!(res.eax == 0);
-        CpuIdExtendedFeature { eax: res.eax,
+        ExtendedFeatures { eax: res.eax,
                                ebx: ExtendedFeaturesEbx { bits: res.ebx },
                                ecx: res.ecx,
                                edx: res.edx }
 
     }
 
-    pub fn get_direct_cache_access_info(&self) -> CpuIdDirectCacheAccess {
+    pub fn get_direct_cache_access_info(&self) -> DirectCacheAccessInfo {
         let res = cpuid!(9);
-        CpuIdDirectCacheAccess{ eax: res.eax }
+        DirectCacheAccessInfo{ eax: res.eax }
     }
 
-    pub fn get_performance_monitoring_info(&self) -> CpuIdPerformanceMonitoring {
+    pub fn get_performance_monitoring_info(&self) -> PerformanceMonitoringInfo {
         let res = cpuid!(10);
-        CpuIdPerformanceMonitoring{ eax: res.eax,
+        PerformanceMonitoringInfo{ eax: res.eax,
                                     ebx: PerformanceMonitoringFeaturesEbx{ bits: res.ebx },
                                     ecx: res.ecx,
                                     edx: res.edx }
     }
 
-    pub fn get_extended_topology_info(&self) -> CpuIdExtendedTopologyIter {
-        CpuIdExtendedTopologyIter { level: 0 }
+    pub fn get_extended_topology_info(&self) -> ExtendedTopologyIter {
+        ExtendedTopologyIter { level: 0 }
     }
 }
 
 #[derive(Debug)]
-pub struct CpuIdVendorInfo {
+pub struct VendorInfo {
     pub ebx: u32,
     pub ecx: u32,
     pub edx: u32,
 }
 
 #[derive(Debug)]
-pub struct CpuIdCacheInfoIter {
+pub struct CacheInfoIter {
     current: u32,
     pub eax: u32,
     pub ebx: u32,
@@ -223,7 +223,7 @@ pub struct CpuIdCacheInfoIter {
     pub edx: u32,
 }
 
-impl Iterator for CpuIdCacheInfoIter {
+impl Iterator for CacheInfoIter {
     type Item = CacheInfo;
 
     fn next(&mut self) -> Option<CacheInfo> {
@@ -396,7 +396,7 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 103] = [
     CacheInfo{num: 0xFF, typ: CacheInfoType::GENERAL, desc: "CPUID leaf 2 does not report cache descriptor information, use CPUID leaf 4 to query cache parameters"},
 ];
 
-impl fmt::Display for CpuIdVendorInfo {
+impl fmt::Display for VendorInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         unsafe {
             write!(f, "{}{}{}",
@@ -408,7 +408,7 @@ impl fmt::Display for CpuIdVendorInfo {
 }
 
 #[derive(Debug)]
-pub struct CpuIdFeatureInfo {
+pub struct FeatureInfo {
     pub eax: u32,
     pub ebx: u32,
     pub ecx: FeatureInfoEcx,
@@ -544,7 +544,7 @@ bitflags! {
 
 
 
-impl CpuIdFeatureInfo {
+impl FeatureInfo {
 
     /// Version Information: Extended Family
     pub fn extended_family_id(&self) -> u8 {
@@ -592,11 +592,11 @@ impl CpuIdFeatureInfo {
     }
 }
 
-pub struct CpuIdCacheParameterIter {
+pub struct CacheParametersIter {
     current: u32,
 }
 
-impl Iterator for CpuIdCacheParameterIter {
+impl Iterator for CacheParametersIter {
     type Item = CacheParameter;
 
     fn next(&mut self) -> Option<CacheParameter> {
@@ -720,14 +720,14 @@ impl CacheParameter {
 }
 
 #[derive(Debug)]
-pub struct CpuIdMonitorMwait {
+pub struct MonitorMwaitInfo {
     eax: u32,
     ebx: u32,
     ecx: u32,
     edx: u32
 }
 
-impl CpuIdMonitorMwait {
+impl MonitorMwaitInfo {
 
     /// Smallest monitor-line size in bytes (default is processor's monitor granularity)
     pub fn smallest_monitor_line(&self) -> u16 {
@@ -792,7 +792,7 @@ impl CpuIdMonitorMwait {
 }
 
 #[derive(Debug)]
-pub struct CpuIdThermalPower {
+pub struct ThermalPowerInfo {
     eax: ThermalPowerFeaturesEax,
     ebx: u32,
     ecx: ThermalPowerFeaturesEcx,
@@ -834,7 +834,7 @@ bitflags! {
     }
 }
 
-impl CpuIdThermalPower {
+impl ThermalPowerInfo {
 
     /// Number of Interrupt Thresholds in Digital Thermal Sensor
     pub fn dts_irq_threshold(&self) -> u8 {
@@ -844,7 +844,7 @@ impl CpuIdThermalPower {
 }
 
 #[derive(Debug)]
-pub struct CpuIdExtendedFeature {
+pub struct ExtendedFeatures {
     eax: u32,
     ebx: ExtendedFeaturesEbx,
     ecx: u32,
@@ -896,11 +896,11 @@ bitflags! {
 }
 
 #[derive(Debug)]
-pub struct CpuIdDirectCacheAccess {
+pub struct DirectCacheAccessInfo {
     eax: u32
 }
 
-impl CpuIdDirectCacheAccess {
+impl DirectCacheAccessInfo {
 
     /// Value of bits [31:0] of IA32_PLATFORM_DCA_CAP MSR (address 1F8H)
     pub fn get_dca_cap_value(&self) -> u32 {
@@ -910,14 +910,14 @@ impl CpuIdDirectCacheAccess {
 
 
 #[derive(Debug)]
-pub struct CpuIdPerformanceMonitoring {
+pub struct PerformanceMonitoringInfo {
     eax: u32,
     ebx: PerformanceMonitoringFeaturesEbx,
     ecx: u32,
     edx: u32
 }
 
-impl CpuIdPerformanceMonitoring {
+impl PerformanceMonitoringInfo {
 
     /// Version ID of architectural performance monitoring. (Bits 07 - 00)
     pub fn version_id(&self) -> u8 {
@@ -977,7 +977,7 @@ bitflags! {
 }
 
 #[derive(Debug)]
-pub struct CpuIdExtendedTopologyIter {
+pub struct ExtendedTopologyIter {
     level: u32
 }
 
@@ -1033,7 +1033,7 @@ pub enum TopologyType {
     CORE = 2,
 }
 
-impl Iterator for CpuIdExtendedTopologyIter {
+impl Iterator for ExtendedTopologyIter {
     type Item = ExtendedTopologyLevel;
 
     fn next(&mut self) -> Option<ExtendedTopologyLevel> {
@@ -1068,7 +1068,7 @@ fn genuine_intel() {
 
 #[test]
 fn feature_info() {
-    let finfo = CpuIdFeatureInfo {
+    let finfo = FeatureInfo {
         eax: 198313,
         ebx: 34605056,
         ecx: FeatureInfoEcx { bits: 2109399999 },
@@ -1089,7 +1089,7 @@ fn feature_info() {
 
 #[test]
 fn cache_info() {
-    let cinfos = CpuIdCacheInfoIter { current: 1, eax: 1979931137, ebx: 15774463, ecx: 0, edx: 13238272 };
+    let cinfos = CacheInfoIter { current: 1, eax: 1979931137, ebx: 15774463, ecx: 0, edx: 13238272 };
     for (idx, cache) in cinfos.enumerate() {
         match idx {
             0 => assert!(cache.num == 0xff),
@@ -1185,7 +1185,7 @@ fn cache_parameters() {
 
 #[test]
 fn monitor_mwait_features() {
-    let mmfeatures = CpuIdMonitorMwait { eax: 64, ebx: 64, ecx: 3, edx: 135456 };
+    let mmfeatures = MonitorMwaitInfo { eax: 64, ebx: 64, ecx: 3, edx: 135456 };
     assert!(mmfeatures.smallest_monitor_line() == 64);
     assert!(mmfeatures.largest_monitor_line() == 64);
     assert!(mmfeatures.extensions_supported());
@@ -1202,7 +1202,7 @@ fn monitor_mwait_features() {
 
 #[test]
 fn thermal_power_features() {
-    let tpfeatures = CpuIdThermalPower { eax: ThermalPowerFeaturesEax { bits: 119 }, ebx: 2, ecx: ThermalPowerFeaturesEcx { bits: 9 }, edx: 0 };
+    let tpfeatures = ThermalPowerInfo { eax: ThermalPowerFeaturesEax { bits: 119 }, ebx: 2, ecx: ThermalPowerFeaturesEcx { bits: 9 }, edx: 0 };
 
     assert!(tpfeatures.eax.contains(CPU_FEATURE_DTS));
     assert!(tpfeatures.eax.contains(CPU_FEATURE_TURBO_BOOST));
@@ -1219,7 +1219,7 @@ fn thermal_power_features() {
 
 #[test]
 fn extended_features() {
-    let tpfeatures = CpuIdExtendedFeature { eax: 0, ebx: ExtendedFeaturesEbx { bits: 641 }, ecx: 0, edx: 0 };
+    let tpfeatures = ExtendedFeatures { eax: 0, ebx: ExtendedFeaturesEbx { bits: 641 }, ecx: 0, edx: 0 };
 
     assert!(tpfeatures.eax == 0);
 
@@ -1240,14 +1240,14 @@ fn extended_features() {
 
 #[test]
 fn direct_cache_access_info() {
-    let dca = CpuIdDirectCacheAccess { eax: 0x1 };
+    let dca = DirectCacheAccessInfo { eax: 0x1 };
     assert!(dca.get_dca_cap_value() == 0x1);
 }
 
 #[test]
 fn performance_monitoring_info() {
     let cpuid = CpuId;
-    let pm = CpuIdPerformanceMonitoring { eax: 120587267, ebx: PerformanceMonitoringFeaturesEbx { bits: 0 }, ecx: 0, edx: 1539 };
+    let pm = PerformanceMonitoringInfo { eax: 120587267, ebx: PerformanceMonitoringFeaturesEbx { bits: 0 }, ecx: 0, edx: 1539 };
 
     assert!(pm.version_id() == 3);
     assert!(pm.number_of_counters() == 4);
