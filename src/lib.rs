@@ -136,12 +136,12 @@ pub struct CpuIdResult {
 
 impl CpuId {
 
-    pub fn get_vendor_information(&self) -> CpuIdVendorInfo {
+    pub fn get_vendor_info(&self) -> CpuIdVendorInfo {
         let res = cpuid!(0);
         CpuIdVendorInfo { ebx: res.ebx, ecx: res.ecx, edx: res.edx }
     }
 
-    pub fn get_feature_information(&self) -> CpuIdFeatureInfo {
+    pub fn get_feature_info(&self) -> CpuIdFeatureInfo {
         let res = cpuid!(1);
         CpuIdFeatureInfo { eax: res.eax,
                            ebx: res.ebx,
@@ -150,7 +150,7 @@ impl CpuId {
         }
     }
 
-    pub fn get_cache_information(&self) -> CpuIdCacheInfo {
+    pub fn get_cache_info(&self) -> CpuIdCacheInfo {
         let res = cpuid!(2);
         CpuIdCacheInfo { eax: res.eax,
                          ebx: res.ebx,
@@ -171,6 +171,45 @@ impl CpuId {
         }
 
         cache
+    }
+
+    pub fn get_monitor_mwait_info(&self) -> CpuIdMonitorMwait {
+        let res = cpuid!(5);
+        CpuIdMonitorMwait { eax: res.eax,
+                            ebx: res.ebx,
+                            ecx: res.ecx,
+                            edx: res.edx }
+    }
+
+    pub fn get_thermal_power_info(&self) -> CpuIdThermalPower {
+        let res = cpuid!(6);
+        CpuIdThermalPower { eax: ThermalPowerFeaturesEax { bits: res.eax },
+                            ebx: res.ebx,
+                            ecx: ThermalPowerFeaturesEcx { bits: res.ecx },
+                            edx: res.edx }
+    }
+
+    pub fn get_extended_feature_info(&self) -> CpuIdExtendedFeature {
+        let res = cpuid!(7);
+        assert!(res.eax == 0);
+        CpuIdExtendedFeature { eax: res.eax,
+                               ebx: ExtendedFeaturesEbx { bits: res.ebx },
+                               ecx: res.ecx,
+                               edx: res.edx }
+
+    }
+
+    pub fn get_direct_cache_access_info(&self) -> CpuIdDirectCacheAccess {
+        let res = cpuid!(9);
+        CpuIdDirectCacheAccess{ eax: res.eax }
+    }
+
+    pub fn get_performance_monitoring_info(&self) -> CpuIdPerformanceMonitoring {
+        let res = cpuid!(10);
+        CpuIdPerformanceMonitoring{ eax: res.eax,
+                                    ebx: PerformanceMonitoringFeaturesEbx{ bits: res.ebx },
+                                    ecx: res.ecx,
+                                    edx: res.edx }
     }
 }
 
@@ -223,7 +262,7 @@ impl<'a> Iterator for CacheInfoIter<'a> {
         };
 
         let byte = as_bytes(&reg)[byte_index as usize];
-        if (byte == 0) {
+        if byte == 0 {
             self.current += 1;
             return self.next();
         }
@@ -651,41 +690,41 @@ impl CacheParameter {
         (get_bits(self.eax, 26, 31) + 1) as usize
     }
 
-    /// Bits 11-00: System Coherency Line Size
+    /// System Coherency Line Size (Bits 11-00)
     pub fn coherency_line_size(&self) -> usize {
         (get_bits(self.ebx, 0, 11) + 1) as usize
     }
 
-    /// Bits 21-12: Physical Line partitions
+    /// Physical Line partitions (Bits 21-12)
     pub fn physical_line_partitions(&self) -> usize {
         (get_bits(self.ebx, 12, 21) + 1) as usize
     }
 
-    /// Bits 31-22: Ways of associativity
+    /// Ways of associativity (Bits 31-22)
     pub fn associativity(&self) -> usize {
         (get_bits(self.ebx, 22, 31) + 1) as usize
     }
 
-    /// Bits 31-00: Number of Sets
+    /// Number of Sets (Bits 31-00)
     pub fn sets(&self) -> usize{
         (self.ecx + 1) as usize
     }
 
-    /// Bit 0: Write-Back Invalidate/Invalidate
+    /// Write-Back Invalidate/Invalidate (Bit 0)
     /// False: WBINVD/INVD from threads sharing this cache acts upon lower level caches for threads sharing this cache.
     /// True: WBINVD/INVD is not guaranteed to act upon lower level caches of non-originating threads sharing this cache.
     pub fn is_write_back_invalidate(&self) -> bool {
         get_bits(self.edx, 0, 0) == 1
     }
 
-    /// Bit 1: Cache Inclusiveness
+    /// Cache Inclusiveness (Bit 1)
     /// False: Cache is not inclusive of lower cache levels.
     /// True: Cache is inclusive of lower cache levels.
     pub fn is_inclusive(&self) -> bool {
         get_bits(self.edx, 1, 1) == 1
     }
 
-    /// Bit 2: Complex Cache Indexing
+    /// Complex Cache Indexing (Bit 2)
     /// False: Direct mapped cache.
     /// True: A complex function is used to index the cache, potentially using all address bits.
     pub fn has_complex_indexing(&self) -> bool {
@@ -698,7 +737,6 @@ pub struct CacheParametersIter<'a> {
     params: &'a CpuIdCacheParameters
 }
 
-#[cfg(test)]
 impl<'a> Iterator for CacheParametersIter<'a> {
     type Item = &'a CacheParameter;
 
@@ -718,10 +756,268 @@ impl<'a> Iterator for CacheParametersIter<'a> {
     }
 }
 
+#[derive(Debug)]
+pub struct CpuIdMonitorMwait {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    edx: u32
+}
+
+impl CpuIdMonitorMwait {
+
+    /// Smallest monitor-line size in bytes (default is processor's monitor granularity)
+    pub fn smallest_monitor_line(&self) -> u16 {
+        get_bits(self.eax, 0, 15) as u16
+    }
+
+    /// Largest monitor-line size in bytes (default is processor's monitor granularity
+    pub fn largest_monitor_line(&self) -> u16 {
+        get_bits(self.ebx, 0, 15) as u16
+    }
+
+    ///  Enumeration of Monitor-Mwait extensions (beyond EAX and EBX registers) supported
+    pub fn extensions_supported(&self) -> bool {
+        get_bits(self.ecx, 0, 0) == 1
+    }
+
+    ///  Supports treating interrupts as break-event for MWAIT, even when interrupts disabled
+    pub fn interrupts_as_break_event(&self) -> bool {
+        get_bits(self.ecx, 1, 1) == 1
+    }
+
+    /// Number of C0 sub C-states supported using MWAIT (Bits 03 - 00)
+    pub fn supported_c0_states(&self) -> u16 {
+        get_bits(self.edx, 0, 3) as u16
+    }
+
+    /// Number of C1 sub C-states supported using MWAIT (Bits 07 - 04)
+    pub fn supported_c1_states(&self) -> u16 {
+        get_bits(self.edx, 4, 7) as u16
+    }
+
+    /// Number of C2 sub C-states supported using MWAIT (Bits 11 - 08)
+    pub fn supported_c2_states(&self) -> u16 {
+        get_bits(self.edx, 8, 11) as u16
+    }
+
+    /// Number of C3 sub C-states supported using MWAIT (Bits 15 - 12)
+    pub fn supported_c3_states(&self) -> u16 {
+        get_bits(self.edx, 12, 15) as u16
+    }
+
+    /// Number of C4 sub C-states supported using MWAIT (Bits 19 - 16)
+    pub fn supported_c4_states(&self) -> u16 {
+        get_bits(self.edx, 16, 19) as u16
+    }
+
+    /// Number of C5 sub C-states supported using MWAIT (Bits 23 - 20)
+    pub fn supported_c5_states(&self) -> u16 {
+        get_bits(self.edx, 20, 23) as u16
+    }
+
+    /// Number of C6 sub C-states supported using MWAIT (Bits 27 - 24)
+    pub fn supported_c6_states(&self) -> u16 {
+        get_bits(self.edx, 24, 27) as u16
+    }
+
+    /// Number of C7 sub C-states supported using MWAIT (Bits 31 - 28)
+    pub fn supported_c7_states(&self) -> u16 {
+        get_bits(self.edx, 28, 31) as u16
+    }
+
+}
+
+#[derive(Debug)]
+pub struct CpuIdThermalPower {
+    eax: ThermalPowerFeaturesEax,
+    ebx: u32,
+    ecx: ThermalPowerFeaturesEcx,
+    edx: u32
+}
+
+bitflags! {
+    #[derive(Debug)]
+    flags ThermalPowerFeaturesEax: u32 {
+
+        /// Digital temperature sensor is supported if set. (Bit 00)
+        const CPU_FEATURE_DTS = 1 << 0,
+
+        /// Intel Turbo Boost Technology Available (see description of IA32_MISC_ENABLE[38]). (Bit 01)
+        const CPU_FEATURE_TURBO_BOOST = 1 << 1,
+
+        /// ARAT. APIC-Timer-always-running feature is supported if set. (Bit 02)
+        const CPU_FEATURE_ARAT = 1 << 2,
+
+        /// PLN. Power limit notification controls are supported if set. (Bit 04)
+        const CPU_FEATURE_PLN = 1 << 4,
+
+        /// ECMD. Clock modulation duty cycle extension is supported if set. (Bit 05)
+        const CPU_FEATURE_ECMD = 1 << 5,
+
+        /// PTM. Package thermal management is supported if set. (Bit 06)
+        const CPU_FEATURE_PTM = 1 << 6,
+    }
+}
+
+bitflags! {
+    #[derive(Debug)]
+    flags ThermalPowerFeaturesEcx: u32 {
+        /// Hardware Coordination Feedback Capability (Presence of IA32_MPERF and IA32_APERF). The capability to provide a measure of delivered processor performance (since last reset of the counters), as a percentage of expected processor performance at frequency specified in CPUID Brand String Bits 02 - 01
+        const CPU_FEATURE_HW_COORD_FEEDBACK = 1 << 0,
+
+        /// The processor supports performance-energy bias preference if CPUID.06H:ECX.SETBH[bit 3] is set and it also implies the presence of a new architectural MSR called IA32_ENERGY_PERF_BIAS (1B0H)
+        const CPU_FEATURE_ENERGY_BIAS_PREF = 1 << 3,
+    }
+}
+
+impl CpuIdThermalPower {
+
+    /// Number of Interrupt Thresholds in Digital Thermal Sensor
+    pub fn dts_irq_threshold(&self) -> u8 {
+        get_bits(self.ebx, 0, 3) as u8
+    }
+
+}
+
+#[derive(Debug)]
+pub struct CpuIdExtendedFeature {
+    eax: u32,
+    ebx: ExtendedFeaturesEbx,
+    ecx: u32,
+    edx: u32
+}
+
+
+bitflags! {
+    #[derive(Debug)]
+    flags ExtendedFeaturesEbx: u32 {
+
+        /// FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1. (Bit 00)
+        const CPU_FEATURE_FSGSBASE = 1 << 0,
+
+        /// IA32_TSC_ADJUST MSR is supported if 1. (Bit 01)
+        const CPU_FEATURE_ADJUST_MSR = 1 << 1,
+
+        /// BMI1 (Bit 03)
+        const CPU_FEATURE_BMI1 = 1 << 3,
+
+        /// HLE (Bit 04)
+        const CPU_FEATURE_HLE = 1 << 4,
+
+        /// AVX2 (Bit 05)
+        const CPU_FEATURE_AVX2 = 1 << 5,
+
+        /// SMEP. Supports Supervisor-Mode Execution Prevention if 1. (Bit 07)
+        const CPU_FEATURE_SMEP = 1 << 7,
+
+        /// BMI2 (Bit 08)
+        const CPU_FEATURE_BMI2 = 1 << 8,
+
+        /// Supports Enhanced REP MOVSB/STOSB if 1. (Bit 09)
+        const CPU_FEATURE_REP_MOVSB_STOSB = 1 << 9,
+
+        /// INVPCID. If 1, supports INVPCID instruction for system software that manages process-context identifiers. (Bit 10)
+        const CPU_FEATURE_INVPCID = 1 << 10,
+
+        /// RTM (Bit 11)
+        const CPU_FEATURE_RTM = 1 << 11,
+
+        /// Supports Quality of Service Monitoring (QM) capability if 1. (Bit 12)
+        const CPU_FEATURE_QM = 1 << 12,
+
+        /// Deprecates FPU CS and FPU DS values if 1. (Bit 13)
+        const CPU_FEATURE_DEPRECATE_FPU_CS_DS = 1 << 13,
+
+    }
+}
+
+#[derive(Debug)]
+pub struct CpuIdDirectCacheAccess {
+    eax: u32
+}
+
+impl CpuIdDirectCacheAccess {
+
+    /// Value of bits [31:0] of IA32_PLATFORM_DCA_CAP MSR (address 1F8H)
+    pub fn get_dca_cap_value(&self) -> u32 {
+        self.eax
+    }
+}
+
+
+#[derive(Debug)]
+pub struct CpuIdPerformanceMonitoring {
+    eax: u32,
+    ebx: PerformanceMonitoringFeaturesEbx,
+    ecx: u32,
+    edx: u32
+}
+
+impl CpuIdPerformanceMonitoring {
+
+    /// Version ID of architectural performance monitoring. (Bits 07 - 00)
+    pub fn version_id(&self) -> u8 {
+        get_bits(self.eax, 0, 7) as u8
+    }
+
+    /// Number of general-purpose performance monitoring counter per logical processor. (Bits 15- 08)
+    pub fn number_of_counters(&self) -> u8 {
+        get_bits(self.eax, 8, 15) as u8
+    }
+
+    /// Bit width of general-purpose, performance monitoring counter. (Bits 23 - 16)
+    pub fn counter_bit_width(&self) -> u8 {
+        get_bits(self.eax, 16, 23) as u8
+    }
+
+    /// Length of EBX bit vector to enumerate architectural performance monitoring events. (Bits 31 - 24)
+    pub fn ebx_length(&self) -> u8 {
+        get_bits(self.eax, 24, 31) as u8
+    }
+
+    /// Number of fixed-function performance counters (if Version ID > 1). (Bits 04 - 00)
+    pub fn fixed_function_counters(&self) -> u8 {
+        get_bits(self.edx, 0, 4) as u8
+    }
+
+    /// Bit width of fixed-function performance counters (if Version ID > 1). (Bits 12- 05)
+    pub fn fixed_function_counters_bit_width(&self) -> u8 {
+        get_bits(self.edx, 5, 12) as u8
+    }
+}
+
+bitflags! {
+    #[derive(Debug)]
+    flags PerformanceMonitoringFeaturesEbx: u32 {
+        /// Core cycle event not available if 1. (Bit 0)
+        const CPU_FEATURE_CORE_CYC_EV_UNAVAILABLE = 1 << 0,
+
+        /// Instruction retired event not available if 1. (Bit 01)
+        const CPU_FEATURE_INST_RET_UNAVAILABLE = 1 << 1,
+
+        /// Reference cycles event not available if 1. (Bit 02)
+        const CPU_FEATURE_REF_CYC_EV_UNAVAILABLE = 1 << 2,
+
+        /// Last-level cache reference event not available if 1. (Bit 03)
+        const CPU_FEATURE_CACHE_REF_EV_UNAVAILABLE = 1 << 3,
+
+        /// Last-level cache misses event not available if 1. (Bit 04)
+        const CPU_FEATURE_LL_CACHE_MISS_EV_UNAVAILABLE = 1 << 4,
+
+        /// Branch instruction retired event not available if 1. (Bit 05)
+        const CPU_FEATURE_BRANCH_INST_RET_EV_UNAVAILABLE = 1 << 5,
+
+        /// Branch mispredict retired event not available if 1. (Bit 06)
+        const CPU_FEATURE_BRANCH_MISPRED_EV_UNAVAILABLE = 1 << 6,
+    }
+}
+
+
 #[test]
 fn genuine_intel() {
     let cpu: CpuId = CpuId;
-    let vinfo = cpu.get_vendor_information();
+    let vinfo = cpu.get_vendor_info();
 
     // GenuineIntel
     assert!(vinfo.ebx == 0x756e6547);
@@ -752,7 +1048,6 @@ fn feature_info() {
 
 #[test]
 fn cache_info() {
-    let cpuid: CpuId = CpuId;
     let cinfos = CpuIdCacheInfo { eax: 1979931137, ebx: 15774463, ecx: 0, edx: 13238272 };
     for (idx, cache) in cinfos.iter().enumerate() {
         match idx {
@@ -768,10 +1063,8 @@ fn cache_info() {
     }
 }
 
-#[cfg(test)]
 #[test]
 fn cache_parameters() {
-    let cpu: CpuId = CpuId;
     let cparams = CpuIdCacheParameters {
         caches: [
             CacheParameter { eax: 469778721, ebx: 29360191, ecx: 63, edx: 0 },
@@ -853,4 +1146,86 @@ fn cache_parameters() {
             _ => unreachable!()
         }
     }
+}
+
+#[test]
+fn monitor_mwait_features() {
+    let mmfeatures = CpuIdMonitorMwait { eax: 64, ebx: 64, ecx: 3, edx: 135456 };
+    assert!(mmfeatures.smallest_monitor_line() == 64);
+    assert!(mmfeatures.largest_monitor_line() == 64);
+    assert!(mmfeatures.extensions_supported());
+    assert!(mmfeatures.interrupts_as_break_event());
+    assert!(mmfeatures.supported_c0_states() == 0);
+    assert!(mmfeatures.supported_c1_states() == 2);
+    assert!(mmfeatures.supported_c2_states() == 1);
+    assert!(mmfeatures.supported_c3_states() == 1);
+    assert!(mmfeatures.supported_c4_states() == 2);
+    assert!(mmfeatures.supported_c5_states() == 0);
+    assert!(mmfeatures.supported_c6_states() == 0);
+    assert!(mmfeatures.supported_c7_states() == 0);
+}
+
+#[test]
+fn thermal_power_features() {
+    let tpfeatures = CpuIdThermalPower { eax: ThermalPowerFeaturesEax { bits: 119 }, ebx: 2, ecx: ThermalPowerFeaturesEcx { bits: 9 }, edx: 0 };
+
+    assert!(tpfeatures.eax.contains(CPU_FEATURE_DTS));
+    assert!(tpfeatures.eax.contains(CPU_FEATURE_TURBO_BOOST));
+    assert!(tpfeatures.eax.contains(CPU_FEATURE_ARAT));
+    assert!(tpfeatures.eax.contains(CPU_FEATURE_PLN));
+    assert!(tpfeatures.eax.contains(CPU_FEATURE_ECMD));
+    assert!(tpfeatures.eax.contains(CPU_FEATURE_PTM));
+
+    assert!(tpfeatures.ecx.contains(CPU_FEATURE_HW_COORD_FEEDBACK));
+    assert!(tpfeatures.ecx.contains(CPU_FEATURE_ENERGY_BIAS_PREF));
+
+    assert!(tpfeatures.dts_irq_threshold() == 0x2);
+}
+
+#[test]
+fn extended_features() {
+    let tpfeatures = CpuIdExtendedFeature { eax: 0, ebx: ExtendedFeaturesEbx { bits: 641 }, ecx: 0, edx: 0 };
+
+    assert!(tpfeatures.eax == 0);
+
+    assert!(tpfeatures.ebx.contains(CPU_FEATURE_FSGSBASE));
+    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_ADJUST_MSR));
+    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_BMI1));
+    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_HLE));
+    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_AVX2));
+    assert!(tpfeatures.ebx.contains(CPU_FEATURE_SMEP));
+    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_BMI2));
+    assert!(tpfeatures.ebx.contains(CPU_FEATURE_REP_MOVSB_STOSB));
+    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_INVPCID));
+    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_RTM));
+    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_QM));
+    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_DEPRECATE_FPU_CS_DS));
+
+}
+
+#[test]
+fn direct_cache_access_info() {
+    let dca = CpuIdDirectCacheAccess { eax: 0x1 };
+    assert!(dca.get_dca_cap_value() == 0x1);
+}
+
+#[test]
+fn performance_monitoring_info() {
+    let cpuid = CpuId;
+    let pm = CpuIdPerformanceMonitoring { eax: 120587267, ebx: PerformanceMonitoringFeaturesEbx { bits: 0 }, ecx: 0, edx: 1539 };
+
+    assert!(pm.version_id() == 3);
+    assert!(pm.number_of_counters() == 4);
+    assert!(pm.counter_bit_width() == 48);
+    assert!(pm.ebx_length() == 7);
+    assert!(pm.fixed_function_counters() == 3);
+    assert!(pm.fixed_function_counters_bit_width() == 48);
+
+    assert!(!pm.ebx.contains(CPU_FEATURE_CORE_CYC_EV_UNAVAILABLE));
+    assert!(!pm.ebx.contains(CPU_FEATURE_INST_RET_UNAVAILABLE));
+    assert!(!pm.ebx.contains(CPU_FEATURE_REF_CYC_EV_UNAVAILABLE));
+    assert!(!pm.ebx.contains(CPU_FEATURE_CACHE_REF_EV_UNAVAILABLE));
+    assert!(!pm.ebx.contains(CPU_FEATURE_LL_CACHE_MISS_EV_UNAVAILABLE));
+    assert!(!pm.ebx.contains(CPU_FEATURE_BRANCH_INST_RET_EV_UNAVAILABLE));
+    assert!(!pm.ebx.contains(CPU_FEATURE_BRANCH_MISPRED_EV_UNAVAILABLE));
 }
