@@ -1,6 +1,6 @@
 [package]
 name = "raw-cpuid"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 
 description = "A library to parse the x86 cpuid instruction, written in rust with no external dependencies. In addition, this library can be used in no_std code and relies only on libcore."

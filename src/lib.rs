@@ -158,19 +158,8 @@ impl CpuId {
                          edx: res.edx }
     }
 
-    pub fn get_cache_parameters(&self) -> CpuIdCacheParameters {
-
-        let mut cache = CpuIdCacheParameters::default();
-        for i in 0..MAX_CACHE_PARAMETER_ENTRIES {
-            let res = cpuid!(4, i);
-
-            cache.caches[i].eax = res.eax;
-            cache.caches[i].ebx = res.ebx;
-            cache.caches[i].ecx = res.ecx;
-            cache.caches[i].edx = res.edx;
-        }
-
-        cache
+    pub fn get_cache_parameters(&self) -> CpuIdCacheParameterIter {
+        CpuIdCacheParameterIter { current: 0 }
     }
 
     pub fn get_monitor_mwait_info(&self) -> CpuIdMonitorMwait {
@@ -616,22 +605,29 @@ impl CpuIdFeatureInfo {
     }
 }
 
-const MAX_CACHE_PARAMETER_ENTRIES: usize = 10;
-
-pub struct CpuIdCacheParameters {
-    caches: [CacheParameter; MAX_CACHE_PARAMETER_ENTRIES]
+pub struct CpuIdCacheParameterIter {
+    current: u32,
 }
 
-impl CpuIdCacheParameters {
-    pub fn iter(&self) -> CacheParametersIter {
-        CacheParametersIter{ params: self, current: 0 }
-    }
-}
+impl Iterator for CpuIdCacheParameterIter {
+    type Item = CacheParameter;
 
-impl Default for CpuIdCacheParameters {
-    fn default() -> CpuIdCacheParameters {
-        CpuIdCacheParameters{
-            caches: [CacheParameter{eax: 0, ebx:0, ecx: 0, edx: 0}; MAX_CACHE_PARAMETER_ENTRIES]
+    fn next(&mut self) -> Option<CacheParameter> {
+        let res = cpuid!(4, self.current);
+        let cp = CacheParameter{
+            eax: res.eax,
+            ebx: res.ebx,
+            ecx: res.ecx,
+            edx: res.edx
+        };
+
+        match cp.cache_type() {
+            CacheType::NULL => None,
+            CacheType::RESERVED => None,
+            _ => {
+                self.current += 1;
+                Some(cp)
+            }
         }
     }
 }
@@ -733,30 +729,6 @@ impl CacheParameter {
     /// True: A complex function is used to index the cache, potentially using all address bits.
     pub fn has_complex_indexing(&self) -> bool {
         get_bits(self.edx, 2, 2) == 1
-    }
-}
-
-pub struct CacheParametersIter<'a> {
-    current: usize,
-    params: &'a CpuIdCacheParameters
-}
-
-impl<'a> Iterator for CacheParametersIter<'a> {
-    type Item = &'a CacheParameter;
-
-    fn next(&mut self) -> Option<&'a CacheParameter> {
-        if self.current >= MAX_CACHE_PARAMETER_ENTRIES {
-            return None;
-        }
-
-        match self.params.caches[self.current].cache_type() {
-            CacheType::NULL => None,
-            CacheType::RESERVED => None,
-            _ => {
-                self.current += 1;
-                Some(&self.params.caches[self.current - 1])
-            }
-        }
     }
 }
 
@@ -1147,23 +1119,17 @@ fn cache_info() {
 
 #[test]
 fn cache_parameters() {
-    let cparams = CpuIdCacheParameters {
-        caches: [
+    //let cpuid = CpuId;
+    //let cparams = cpuid.get_cache_parameters();
+    let caches: [CacheParameter; 4] = [
             CacheParameter { eax: 469778721, ebx: 29360191, ecx: 63, edx: 0 },
             CacheParameter { eax: 469778722, ebx: 29360191, ecx: 63, edx: 0 },
             CacheParameter { eax: 469778755, ebx: 29360191, ecx: 511, edx: 0 },
             CacheParameter { eax: 470008163, ebx: 46137407, ecx: 4095, edx: 6 },
-            CacheParameter { eax: 0, ebx: 0, ecx: 0, edx: 0 },
-            CacheParameter { eax: 0, ebx: 0, ecx: 0, edx: 0 },
-            CacheParameter { eax: 0, ebx: 0, ecx: 0, edx: 0 },
-            CacheParameter { eax: 0, ebx: 0, ecx: 0, edx: 0 },
-            CacheParameter { eax: 0, ebx: 0, ecx: 0, edx: 0 },
-            CacheParameter { eax: 0, ebx: 0, ecx: 0, edx: 0 },
-        ]
-    };
+    ];
 
 
-    for (idx, cache) in cparams.iter().enumerate() {
+    for (idx, cache) in caches.into_iter().enumerate() {
         match idx {
             0 => {
                 assert!(cache.cache_type() == CacheType::DATA);
