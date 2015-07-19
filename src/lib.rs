@@ -14,12 +14,7 @@ extern crate bitflags;
 #[macro_use]
 extern crate std;
 
-#[cfg(test)]
-#[prelude_import]
-use std::prelude::v1::*;
-
 use core::prelude::*;
-use core::iter;
 use core::raw;
 use core::str;
 use core::mem::transmute;
@@ -32,6 +27,7 @@ mod std {
     pub use core::option;
 }
 
+
 #[macro_export]
 macro_rules! cpuid {
     ($eax:expr)
@@ -42,7 +38,8 @@ macro_rules! cpuid {
 
 }
 
-fn cpuid2(eax: u32, ecx: u32) -> CpuIdResult {
+/// Execute CPUID instruction with eax and ecx register set.
+pub fn cpuid2(eax: u32, ecx: u32) -> CpuIdResult {
     let mut res = CpuIdResult { eax: 0, ebx: 0, ecx: 0, edx: 0 };
 
     unsafe {
@@ -56,7 +53,8 @@ fn cpuid2(eax: u32, ecx: u32) -> CpuIdResult {
     res
 }
 
-fn cpuid1(eax: u32) -> CpuIdResult {
+/// Execute CPUID instruction with eax register set.
+pub fn cpuid1(eax: u32) -> CpuIdResult {
     let mut res = CpuIdResult { eax: 0, ebx: 0, ecx: 0, edx: 0 };
 
     unsafe {
@@ -87,44 +85,10 @@ fn get_bits(r: u32, from: u32, to: u32) -> u32 {
     (r & mask) >> from
 }
 
-enum CpuIdLeaf {
-    VendorInformation,
-    FeatureInformation,
-    CacheInformation,
-    ProcessorSerial,
-    CacheParameters,
-    MonitorMwait,
-    ThermalPowerManagement,
-    StructuredExtendedFeature,
-    DirectCacheAccess,
-    PerformanceMonitoring,
-    ExtendedTopology,
-    ProcessorExtendedState,
-    QualityofService,
-    ExtendedFunction,
-}
-
-struct LeafData(CpuIdLeaf, &'static str, u32);
-
-const LEAF_INFORMATION: [LeafData; 14] = [
-    LeafData(CpuIdLeaf::VendorInformation, "GenuineIntel", 0x0),
-    LeafData(CpuIdLeaf::FeatureInformation, "Version/Feature Information", 0x1),
-    LeafData(CpuIdLeaf::CacheInformation, "Cache and TLB Information", 0x2),
-    LeafData(CpuIdLeaf::ProcessorSerial, "Processor serial number", 0x3),
-    LeafData(CpuIdLeaf::CacheParameters, "Deterministic Cache Parameters", 0x4),
-    LeafData(CpuIdLeaf::MonitorMwait, "MONITOR/MWAIT", 0x5),
-    LeafData(CpuIdLeaf::ThermalPowerManagement, "Thermal and Power Management", 0x6),
-    LeafData(CpuIdLeaf::StructuredExtendedFeature, "Structured Extended Feature Flags", 0x7),
-    LeafData(CpuIdLeaf::DirectCacheAccess, "Direct Cache Access Information", 0x9),
-    LeafData(CpuIdLeaf::PerformanceMonitoring, "Architectural Performance Monitoring", 0xA),
-    LeafData(CpuIdLeaf::ExtendedTopology, "Extended Topology Enumeration", 0xB),
-    LeafData(CpuIdLeaf::ProcessorExtendedState, "Processor Extended State Enumeration", 0xD),
-    LeafData(CpuIdLeaf::QualityofService, "Quality of Service", 0xF),
-    LeafData(CpuIdLeaf::ExtendedFunction, "Extended Function CPUID Information", 0x80000000),
-];
-
 #[derive(Debug)]
-pub struct CpuId;
+pub struct CpuId {
+    max_eax_value: u32
+}
 
 #[derive(Debug, Copy, Clone, Default)]
 pub struct CpuIdResult {
@@ -134,96 +98,233 @@ pub struct CpuIdResult {
     pub edx: u32,
 }
 
+const EAX_VENDOR_INFO: u32 = 0x0;
+const EAX_FEATURE_INFO: u32 = 0x1;
+const EAX_CACHE_INFO: u32 = 0x2;
+const EAX_PROCESSOR_SERIAL: u32 = 0x3;
+const EAX_CACHE_PARAMETERS: u32 = 0x4;
+const EAX_MONITOR_MWAIT_INFO: u32 = 0x5;
+const EAX_THERMAL_POWER_INFO: u32 = 0x6;
+const EAX_STRUCTURED_EXTENDED_FEATURE_INFO: u32 = 0x7;
+const EAX_DIRECT_CACHE_ACCESS_INFO: u32 = 0x9;
+const EAX_PERFORMANCE_MONITOR_INFO: u32 = 0xA;
+const EAX_EXTENDED_TOPOLOGY_INFO: u32 = 0xB;
+const EAX_EXTENDED_STATE_INFO: u32 = 0xD;
+const EAX_QOS_INFO: u32 = 0xF;
+const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x80000000;
+
 impl CpuId {
 
-    pub fn get_vendor_info(&self) -> VendorInfo {
-        let res = cpuid!(0);
-        VendorInfo { ebx: res.ebx, ecx: res.ecx, edx: res.edx }
+    pub fn new() -> CpuId {
+        let res = cpuid!(EAX_VENDOR_INFO);
+        CpuId { max_eax_value: res.eax }
     }
 
-    pub fn get_feature_info(&self) -> FeatureInfo {
-        let res = cpuid!(1);
-        FeatureInfo { eax: res.eax,
-                           ebx: res.ebx,
-                           ecx: FeatureInfoEcx { bits: res.ecx },
-                           edx: FeatureInfoEdx { bits: res.edx },
+    fn leaf_is_supported(&self, val: u32) -> bool {
+        val <= self.max_eax_value
+    }
+
+    pub fn get_vendor_info(&self) -> Option<VendorInfo> {
+        if self.leaf_is_supported(EAX_VENDOR_INFO) {
+            let res = cpuid!(EAX_VENDOR_INFO);
+            Some(VendorInfo { ebx: res.ebx, ecx: res.ecx, edx: res.edx })
+        }
+        else {
+            None
         }
     }
 
-    pub fn get_cache_info(&self) -> CacheInfoIter {
-        let res = cpuid!(2);
-        CacheInfoIter { current: 1,
-                        eax: res.eax,
-                        ebx: res.ebx,
-                        ecx: res.ecx,
-                        edx: res.edx }
+    pub fn get_feature_info(&self) -> Option<FeatureInfo> {
+        if self.leaf_is_supported(EAX_FEATURE_INFO) {
+            let res = cpuid!(EAX_FEATURE_INFO);
+            Some(FeatureInfo { eax: res.eax,
+                               ebx: res.ebx,
+                               ecx: FeatureInfoEcx { bits: res.ecx },
+                               edx: FeatureInfoEdx { bits: res.edx },
+            })
+        }
+        else {
+            None
+        }
     }
 
-    pub fn get_cache_parameters(&self) -> CacheParametersIter {
-        CacheParametersIter { current: 0 }
+    pub fn get_cache_info(&self) -> Option<CacheInfoIter> {
+        if self.leaf_is_supported(EAX_CACHE_INFO) {
+            let res = cpuid!(EAX_CACHE_INFO);
+            Some(CacheInfoIter { current: 1,
+                            eax: res.eax,
+                            ebx: res.ebx,
+                            ecx: res.ecx,
+                            edx: res.edx })
+        }
+        else {
+            None
+        }
     }
 
-    pub fn get_monitor_mwait_info(&self) -> MonitorMwaitInfo {
-        let res = cpuid!(5);
-        MonitorMwaitInfo { eax: res.eax, ebx: res.ebx, ecx: res.ecx, edx: res.edx }
+    pub fn get_processor_serial(&self) -> Option<ProcessorSerial> {
+        if self.leaf_is_supported(EAX_PROCESSOR_SERIAL) {
+            let res = cpuid!(EAX_PROCESSOR_SERIAL);
+            Some(ProcessorSerial { ecx: res.ecx, edx: res.edx })
+        }
+        else {
+            None
+        }
+
     }
 
-    pub fn get_thermal_power_info(&self) -> ThermalPowerInfo {
-        let res = cpuid!(6);
-        ThermalPowerInfo { eax: ThermalPowerFeaturesEax { bits: res.eax },
+    pub fn get_cache_parameters(&self) -> Option<CacheParametersIter> {
+        if self.leaf_is_supported(EAX_CACHE_PARAMETERS) {
+            Some(CacheParametersIter { current: 0 })
+        }
+        else {
+            None
+        }
+    }
+
+    pub fn get_monitor_mwait_info(&self) -> Option<MonitorMwaitInfo> {
+        if self.leaf_is_supported(EAX_MONITOR_MWAIT_INFO) {
+            let res = cpuid!(EAX_MONITOR_MWAIT_INFO);
+            Some(MonitorMwaitInfo { eax: res.eax, ebx: res.ebx, ecx: res.ecx, edx: res.edx })
+        }
+        else {
+            None
+        }
+    }
+
+    pub fn get_thermal_power_info(&self) -> Option<ThermalPowerInfo> {
+        if self.leaf_is_supported(EAX_THERMAL_POWER_INFO) {
+            let res = cpuid!(EAX_THERMAL_POWER_INFO);
+            Some(ThermalPowerInfo { eax: ThermalPowerFeaturesEax { bits: res.eax },
                             ebx: res.ebx,
                             ecx: ThermalPowerFeaturesEcx { bits: res.ecx },
-                            edx: res.edx }
+                            edx: res.edx })
+        }
+        else {
+            None
+        }
     }
 
-    pub fn get_extended_feature_info(&self) -> ExtendedFeatures {
-        let res = cpuid!(7);
-        assert!(res.eax == 0);
-        ExtendedFeatures { eax: res.eax,
-                           ebx: ExtendedFeaturesEbx { bits: res.ebx },
-                           ecx: res.ecx,
-                           edx: res.edx }
+    pub fn get_extended_feature_info(&self) -> Option<ExtendedFeatures> {
+        if self.leaf_is_supported(EAX_STRUCTURED_EXTENDED_FEATURE_INFO) {
+            let res = cpuid!(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
+            assert!(res.eax == 0);
+            Some(ExtendedFeatures { eax: res.eax,
+                               ebx: ExtendedFeaturesEbx { bits: res.ebx },
+                               ecx: res.ecx,
+                               edx: res.edx })
+        }
+        else {
+            None
+        }
 
     }
 
-    pub fn get_direct_cache_access_info(&self) -> DirectCacheAccessInfo {
-        let res = cpuid!(9);
-        DirectCacheAccessInfo{ eax: res.eax }
+    pub fn get_direct_cache_access_info(&self) -> Option<DirectCacheAccessInfo> {
+        if self.leaf_is_supported(EAX_DIRECT_CACHE_ACCESS_INFO) {
+            let res = cpuid!(EAX_DIRECT_CACHE_ACCESS_INFO);
+            Some(DirectCacheAccessInfo{ eax: res.eax })
+        }
+        else {
+            None
+        }
     }
 
-    pub fn get_performance_monitoring_info(&self) -> PerformanceMonitoringInfo {
-        let res = cpuid!(10);
-        PerformanceMonitoringInfo{ eax: res.eax,
-                                   ebx: PerformanceMonitoringFeaturesEbx{ bits: res.ebx },
-                                   ecx: res.ecx,
-                                   edx: res.edx }
+    pub fn get_performance_monitoring_info(&self) -> Option<PerformanceMonitoringInfo> {
+        if self.leaf_is_supported(EAX_PERFORMANCE_MONITOR_INFO) {
+            let res = cpuid!(EAX_PERFORMANCE_MONITOR_INFO);
+            Some(PerformanceMonitoringInfo{ eax: res.eax,
+                                            ebx: PerformanceMonitoringFeaturesEbx{ bits: res.ebx },
+                                            ecx: res.ecx,
+                                            edx: res.edx })
+        }
+        else {
+            None
+        }
     }
 
-    pub fn get_extended_topology_info(&self) -> ExtendedTopologyIter {
-        ExtendedTopologyIter { level: 0 }
+    pub fn get_extended_topology_info(&self) -> Option<ExtendedTopologyIter> {
+        if self.leaf_is_supported(EAX_EXTENDED_TOPOLOGY_INFO) {
+            Some(ExtendedTopologyIter { level: 0 })
+        }
+        else {
+            None
+        }
     }
 
-    pub fn get_extended_state_info(&self) -> ExtendedStateInfo {
-        let res = cpuid!(13, 0);
-        let res1 = cpuid!(13, 1);
-
-        ExtendedStateInfo { eax: res.eax, ebx: res.ebx, ecx: res.ecx, edx: res.edx, eax1: res1.eax }
+    pub fn get_extended_state_info(&self) -> Option<ExtendedStateInfo> {
+        if self.leaf_is_supported(EAX_EXTENDED_STATE_INFO) {
+            let res = cpuid!(EAX_EXTENDED_STATE_INFO, 0);
+            let res1 = cpuid!(EAX_EXTENDED_STATE_INFO, 1);
+            Some(ExtendedStateInfo { eax: res.eax, ebx: res.ebx,
+                                     ecx: res.ecx, edx: res.edx,
+                                     eax1: res1.eax })
+        }
+        else {
+            None
+        }
     }
 
-    pub fn get_quality_of_service_info(&self) -> QoSInfo {
-        let res = cpuid!(16, 0);
-        let res1 = cpuid!(16, 1);
+    pub fn get_quality_of_service_info(&self) -> Option<QoSInfo> {
+        let res = cpuid!(EAX_QOS_INFO, 0);
+        let res1 = cpuid!(EAX_QOS_INFO, 1);
 
-        QoSInfo { ebx0: res.ebx, edx0: res.edx,
-                  ebx1: res1.ebx, ecx1: res1.ecx, edx1: res1.edx }
+        if self.leaf_is_supported(EAX_QOS_INFO) {
+            Some(QoSInfo { ebx0: res.ebx, edx0: res.edx,
+                           ebx1: res1.ebx, ecx1: res1.ecx,
+                           edx1: res1.edx })
+        }
+        else {
+            None
+        }
+    }
+
+    pub fn get_extended_function_info(&self) -> Option<ExtendedFunctionInfo> {
+        let res = cpuid!(EAX_EXTENDED_FUNCTION_INFO);
+
+        if res.eax == 0 {
+            return None;
+        }
+
+        let mut ef = ExtendedFunctionInfo {
+            max: res.eax - EAX_EXTENDED_FUNCTION_INFO,
+            data: [
+                CpuIdResult{eax: res.eax, ebx: res.ebx, ecx: res.ecx, edx: res.edx},
+                CpuIdResult{eax: 0, ebx: 0, ecx: 0, edx: 0},
+                CpuIdResult{eax: 0, ebx: 0, ecx: 0, edx: 0},
+                CpuIdResult{eax: 0, ebx: 0, ecx: 0, edx: 0},
+                CpuIdResult{eax: 0, ebx: 0, ecx: 0, edx: 0},
+                CpuIdResult{eax: 0, ebx: 0, ecx: 0, edx: 0},
+                CpuIdResult{eax: 0, ebx: 0, ecx: 0, edx: 0},
+                CpuIdResult{eax: 0, ebx: 0, ecx: 0, edx: 0},
+                CpuIdResult{eax: 0, ebx: 0, ecx: 0, edx: 0}
+            ]
+        };
+
+        for i in 1..ef.max+1 {
+            ef.data[i as usize] = cpuid!(EAX_EXTENDED_FUNCTION_INFO + i);
+        }
+
+        Some(ef)
     }
 }
 
 #[derive(Debug)]
 pub struct VendorInfo {
     pub ebx: u32,
-    pub ecx: u32,
     pub edx: u32,
+    pub ecx: u32,
+}
+
+impl VendorInfo {
+    pub fn as_string(&self) -> &str {
+        unsafe {
+            let brand_string_start = transmute::<&VendorInfo, *const u8>(&self);
+            let slice = raw::Slice { data: brand_string_start, len: 3*4 };
+            let byte_array: &'static [u8] = transmute(slice);
+            str::from_utf8_unchecked(byte_array)
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -410,12 +511,26 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 103] = [
 
 impl fmt::Display for VendorInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        unsafe {
-            write!(f, "{}{}{}",
-               str::from_utf8_unchecked(as_bytes(&self.ebx)),
-               str::from_utf8_unchecked(as_bytes(&self.edx)),
-               str::from_utf8_unchecked(as_bytes(&self.ecx)))
-        }
+        write!(f, "{}", self.as_string())
+    }
+}
+
+pub struct ProcessorSerial {
+    ecx: u32,
+    edx: u32
+}
+
+impl ProcessorSerial {
+    /// Bits 00-31 of 96 bit processor serial number.
+    /// (Available in Pentium III processor only; otherwise, the value in this register is reserved.)
+    pub fn serial_lower(&self) -> u32 {
+        self.ecx
+    }
+
+    /// Bits 32-63 of 96 bit processor serial number.
+    /// (Available in Pentium III processor only; otherwise, the value in this register is reserved.)
+    pub fn serial_middle(&self) -> u32 {
+        self.edx
     }
 }
 
@@ -612,7 +727,7 @@ impl Iterator for CacheParametersIter {
     type Item = CacheParameter;
 
     fn next(&mut self) -> Option<CacheParameter> {
-        let res = cpuid!(4, self.current);
+        let res = cpuid!(EAX_CACHE_PARAMETERS, self.current);
         let cp = CacheParameter{
             eax: res.eax,
             ebx: res.ebx,
@@ -1048,7 +1163,7 @@ impl Iterator for ExtendedTopologyIter {
     type Item = ExtendedTopologyLevel;
 
     fn next(&mut self) -> Option<ExtendedTopologyLevel> {
-        let res = cpuid!(11, self.level);
+        let res = cpuid!(EAX_EXTENDED_TOPOLOGY_INFO, self.level);
         self.level += 1;
 
         let et = ExtendedTopologyLevel{
@@ -1133,7 +1248,7 @@ impl Iterator for ExtendedStateIter {
         self.level += 1;
 
         if self.xcr0 & bit > 0 {
-            let res = cpuid!(13, bit);
+            let res = cpuid!(EAX_EXTENDED_STATE_INFO, bit);
             if res.eax > 0 {
                 let ident = match bit {
                     0 => ExtendedStateIdent::LegacyX87,
@@ -1223,17 +1338,153 @@ impl QoSInfo {
 }
 
 
+#[derive(Debug)]
+pub struct ExtendedFunctionInfo {
+    max: u32,
+    data: [CpuIdResult; 9]
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub enum L2Associativity {
+    Disabled = 0x0,
+    DirectMapped = 0x1,
+    TwoWay = 0x2,
+    FourWay = 0x4,
+    EightWay = 0x6,
+    SixteenWay = 0x8,
+    FullyAssiciative = 0xF,
+    Unknown
+}
+
+impl ExtendedFunctionInfo {
+
+    pub fn processor_brand_string(&self) -> &str {
+        unsafe {
+            let brand_string_start = transmute::<&CpuIdResult, *const u8>(&self.data[2]);
+            let slice = raw::Slice { data: brand_string_start, len: 3*4*4 };
+            let byte_array: &'static [u8] = transmute(slice);
+            str::from_utf8_unchecked(byte_array)
+        }
+    }
+
+    /// Extended Processor Signature and Feature Bits.
+    pub fn extended_signature(&self) -> u32 {
+        self.data[1].eax
+    }
+
+    /// Cache Line size in bytes
+    pub fn cache_line_size(&self) -> u8 {
+        get_bits(self.data[6].ecx, 0, 7) as u8
+    }
+
+    /// L2 Associativity field
+    pub fn l2_associativity(&self) -> L2Associativity {
+        match get_bits(self.data[6].ecx, 12, 15) {
+            0x0 => L2Associativity::Disabled,
+            0x1 => L2Associativity::DirectMapped,
+            0x2 => L2Associativity::TwoWay,
+            0x4 => L2Associativity::FourWay,
+            0x6 => L2Associativity::EightWay,
+            0x8 => L2Associativity::SixteenWay,
+            0xF => L2Associativity::FullyAssiciative,
+            _ => L2Associativity::Unknown,
+        }
+    }
+
+    /// Cache size in 1K units
+    pub fn cache_size(&self) -> u16 {
+        get_bits(self.data[6].ecx, 16, 31) as u16
+    }
+
+    /// Invariant TSC available if true
+    pub fn has_invariant_tsc(&self) -> bool {
+        self.data[7].edx & (1<<8) > 0
+    }
+
+    /// #Physical Address Bits
+    pub fn physical_address_bits(&self) -> u8 {
+        get_bits(self.data[8].eax, 0, 7) as u8
+    }
+
+    /// #Linear Address Bits
+    pub fn linear_address_bits(&self) -> u8 {
+        get_bits(self.data[8].eax, 8, 15) as u8
+    }
+
+    pub fn has_lahf_sahf(&self) -> bool {
+        ExtendedFunctionInfoEcx{ bits: self.data[1].ecx }.contains(CPU_FEATURE_LAHF_SAHF)
+    }
+
+    pub fn has_lzcnt(&self) -> bool {
+        ExtendedFunctionInfoEcx{ bits: self.data[1].ecx }.contains(CPU_FEATURE_LZCNT)
+    }
+
+    pub fn has_prefetchw(&self) -> bool {
+        ExtendedFunctionInfoEcx{ bits: self.data[1].ecx }.contains(CPU_FEATURE_PREFETCHW)
+    }
+
+    pub fn has_syscall_sysret(&self) -> bool {
+        ExtendedFunctionInfoEdx{ bits: self.data[1].edx }.contains(CPU_FEATURE_SYSCALL_SYSRET)
+    }
+
+    pub fn has_execute_disable(&self) -> bool {
+        ExtendedFunctionInfoEdx{ bits: self.data[1].edx }.contains(CPU_FEATURE_EXECUTE_DISABLE)
+    }
+
+    pub fn has_1gib_pages(&self) -> bool {
+        ExtendedFunctionInfoEdx{ bits: self.data[1].edx }.contains(CPU_FEATURE_1GIB_PAGES)
+    }
+
+    pub fn has_rdtscp(&self) -> bool {
+        ExtendedFunctionInfoEdx{ bits: self.data[1].edx }.contains(CPU_FEATURE_RDTSCP)
+    }
+
+    pub fn has_64bit_mode(&self) -> bool {
+        ExtendedFunctionInfoEdx{ bits: self.data[1].edx }.contains(CPU_FEATURE_64BIT_MODE)
+    }
 
 
+}
+
+bitflags! {
+    #[derive(Debug)]
+    flags ExtendedFunctionInfoEcx: u32 {
+        /// LAHF/SAHF available in 64-bit mode.
+        const CPU_FEATURE_LAHF_SAHF = 1 << 0,
+
+        /// Bit 05: LZCNT
+        const CPU_FEATURE_LZCNT = 1 << 5,
+
+        /// Bit 08: PREFETCHW
+        const CPU_FEATURE_PREFETCHW = 1 << 8,
+    }
+}
+
+bitflags! {
+    #[derive(Debug)]
+    flags ExtendedFunctionInfoEdx: u32 {
+        /// SYSCALL/SYSRET available in 64-bit mode (Bit 11).
+        const CPU_FEATURE_SYSCALL_SYSRET = 1 << 11,
+
+        /// Execute Disable Bit available (Bit 20).
+        const CPU_FEATURE_EXECUTE_DISABLE = 1 << 20,
+
+        /// 1-GByte pages are available if 1 (Bit 26).
+        const CPU_FEATURE_1GIB_PAGES = 1 << 26,
+
+        /// RDTSCP and IA32_TSC_AUX are available if 1 (Bit 27).
+        const CPU_FEATURE_RDTSCP = 1 << 27,
+
+        /// Intel ® 64 Architecture available if 1 (Bit 29).
+        const CPU_FEATURE_64BIT_MODE = 1 << 29,
+    }
+}
+
+#[cfg(test)]
 #[test]
 fn genuine_intel() {
-    let cpu: CpuId = CpuId;
-    let vinfo = cpu.get_vendor_info();
-
-    // GenuineIntel
-    assert!(vinfo.ebx == 0x756e6547);
-    assert!(vinfo.edx == 0x49656e69);
-    assert!(vinfo.ecx == 0x6c65746e);
+    let vf = VendorInfo { ebx: 1970169159, edx: 1231384169, ecx: 1818588270 };
+    assert!(vf.as_string() == "GenuineIntel");
 }
 
 #[test]
@@ -1484,4 +1735,42 @@ fn quality_of_service_info() {
     assert!(qos.conversion_factor() == 0x0);
     assert!(qos.maximum_range_l3_rmid() == 0x0);
     assert!(!qos.has_l3_occupancy_monitoring());
+}
+
+
+#[cfg(test)]
+#[test]
+fn extended_functions() {
+    let ef = ExtendedFunctionInfo {
+        max: 8,
+        data: [
+            CpuIdResult { eax: 2147483656, ebx: 0, ecx: 0, edx: 0 },
+            CpuIdResult { eax: 0, ebx: 0, ecx: 1, edx: 672139264 },
+            CpuIdResult { eax: 538976288, ebx: 1226842144, ecx: 1818588270, edx: 539578920 },
+            CpuIdResult { eax: 1701998403, ebx: 692933672, ecx: 758475040, edx: 926102323 },
+            CpuIdResult { eax: 1346576469, ebx: 541073493, ecx: 808988209, edx: 8013895 },
+            CpuIdResult { eax:0, ebx: 0, ecx: 0, edx: 0 },
+            CpuIdResult { eax: 0, ebx: 0, ecx: 16801856, edx: 0 },
+            CpuIdResult { eax: 0, ebx: 0, ecx: 0, edx: 256 },
+            CpuIdResult { eax: 12324, ebx: 0, ecx: 0, edx: 0 }
+        ]
+    };
+
+    assert!(ef.processor_brand_string() == "       Intel(R) Core(TM) i5-3337U CPU @ 1.80GHz\0");
+    assert!(ef.has_lahf_sahf());
+    assert!(!ef.has_lzcnt());
+    assert!(!ef.has_prefetchw());
+    assert!(ef.has_syscall_sysret());
+    assert!(ef.has_execute_disable());
+    assert!(!ef.has_1gib_pages());
+    assert!(ef.has_rdtscp());
+    assert!(ef.has_64bit_mode());
+    assert!(ef.has_invariant_tsc());
+
+    assert!(ef.extended_signature() == 0x0);
+    assert!(ef.cache_line_size() == 64);
+    assert!(ef.l2_associativity() == L2Associativity::EightWay);
+    assert!(ef.cache_size() == 256);
+    assert!(ef.physical_address_bits() == 36);
+    assert!(ef.linear_address_bits() == 48);
 }
