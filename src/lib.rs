@@ -153,10 +153,10 @@ impl CpuId {
     pub fn get_cache_info(&self) -> CacheInfoIter {
         let res = cpuid!(2);
         CacheInfoIter { current: 1,
-                             eax: res.eax,
-                             ebx: res.ebx,
-                             ecx: res.ecx,
-                             edx: res.edx }
+                        eax: res.eax,
+                        ebx: res.ebx,
+                        ecx: res.ecx,
+                        edx: res.edx }
     }
 
     pub fn get_cache_parameters(&self) -> CacheParametersIter {
@@ -165,10 +165,7 @@ impl CpuId {
 
     pub fn get_monitor_mwait_info(&self) -> MonitorMwaitInfo {
         let res = cpuid!(5);
-        MonitorMwaitInfo { eax: res.eax,
-                            ebx: res.ebx,
-                            ecx: res.ecx,
-                            edx: res.edx }
+        MonitorMwaitInfo { eax: res.eax, ebx: res.ebx, ecx: res.ecx, edx: res.edx }
     }
 
     pub fn get_thermal_power_info(&self) -> ThermalPowerInfo {
@@ -183,9 +180,9 @@ impl CpuId {
         let res = cpuid!(7);
         assert!(res.eax == 0);
         ExtendedFeatures { eax: res.eax,
-                               ebx: ExtendedFeaturesEbx { bits: res.ebx },
-                               ecx: res.ecx,
-                               edx: res.edx }
+                           ebx: ExtendedFeaturesEbx { bits: res.ebx },
+                           ecx: res.ecx,
+                           edx: res.edx }
 
     }
 
@@ -197,13 +194,20 @@ impl CpuId {
     pub fn get_performance_monitoring_info(&self) -> PerformanceMonitoringInfo {
         let res = cpuid!(10);
         PerformanceMonitoringInfo{ eax: res.eax,
-                                    ebx: PerformanceMonitoringFeaturesEbx{ bits: res.ebx },
-                                    ecx: res.ecx,
-                                    edx: res.edx }
+                                   ebx: PerformanceMonitoringFeaturesEbx{ bits: res.ebx },
+                                   ecx: res.ecx,
+                                   edx: res.edx }
     }
 
     pub fn get_extended_topology_info(&self) -> ExtendedTopologyIter {
         ExtendedTopologyIter { level: 0 }
+    }
+
+    pub fn get_extended_state_info(&self) -> ExtendedStateInfo {
+        let res = cpuid!(13, 0);
+        let res1 = cpuid!(13, 1);
+
+        ExtendedStateInfo { eax: res.eax, ebx: res.ebx, ecx: res.ecx, edx: res.edx, eax1: res1.eax }
     }
 }
 
@@ -1025,8 +1029,7 @@ impl ExtendedTopologyLevel {
 
 }
 
-#[derive(PartialEq, Eq)]
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum TopologyType {
     INVALID = 0,
     SMT = 1,
@@ -1053,6 +1056,129 @@ impl Iterator for ExtendedTopologyIter {
         }
     }
 }
+
+
+#[derive(Debug)]
+pub struct ExtendedStateInfo {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    edx: u32,
+    eax1: u32
+}
+
+impl ExtendedStateInfo {
+
+    /// Reports the valid bit fields of the lower 32 bits of XCR0. If a bit is 0,
+    /// the corresponding bit field in XCR0 is reserved.
+    pub fn xcr0(&self) -> u64 {
+        (self.edx as u64) << 32 | self.eax as u64
+    }
+
+    /// Reports the valid bit fields of the upper 32 bits of XCR0. If a bit is 0,
+    /// the corresponding bit field in XCR0 is reserved.
+    pub fn xcr0_upper_bits(&self) -> u32 {
+        self.edx
+    }
+
+    /// Maximum size (bytes, from the beginning of the XSAVE/XRSTOR save area) required by
+    /// enabled features in XCR0. May be different than ECX if some features at the end of the XSAVE save area
+    /// are not enabled.
+    pub fn maximum_size_enabled_features(&self) -> u32 {
+        self.ebx
+    }
+
+    /// Maximum size (bytes, from the beginning of the XSAVE/XRSTOR save area) of the
+    /// XSAVE/XRSTOR save area required by all supported features in the processor,
+    /// i.e all the valid bit fields in XCR0.
+    pub fn maximum_size_supported_features(&self) -> u32 {
+        self.ecx
+    }
+
+    /// CPU has xsaveopt feature.
+    pub fn has_xsaveopt(&self) -> bool {
+        self.eax1 & 0x1 == 1
+    }
+
+    /// Iterator over extended state enumeration levels >= 2.
+    pub fn iter(&self) -> ExtendedStateIter {
+        ExtendedStateIter { level: 2, xcr0: self.xcr0() }
+    }
+
+}
+
+
+pub struct ExtendedStateIter {
+    level: u32,
+    xcr0: u64
+}
+
+impl Iterator for ExtendedStateIter {
+    type Item = ExtendedState;
+
+    fn next(&mut self) -> Option<ExtendedState> {
+        if self.level > 62 {
+            return None;
+        }
+
+        let bit = 1 << self.level;
+        self.level += 1;
+
+        if self.xcr0 & bit > 0 {
+            let res = cpuid!(13, bit);
+            if res.eax > 0 {
+                let ident = match bit {
+                    0 => ExtendedStateIdent::LegacyX87,
+                    1 => ExtendedStateIdent::SSE128,
+                    2 => ExtendedStateIdent::AVX256,
+                    _ => panic!("Unknown bit, consider updating ExtendedStateIdent enum!")
+                };
+
+                return Some(ExtendedState { ident: ident, eax: res.eax, ebx: res.ebx });
+            }
+        }
+
+        self.next()
+    }
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub enum ExtendedStateIdent {
+    /// legacy x87 (Bit 00).
+    LegacyX87 = 1 << 0,
+
+    /// 128-bit SSE (Bit 01).
+    SSE128 = 1 << 1,
+
+    /// 256-bit AVX (Bit 02).
+    AVX256 = 1 << 2,
+}
+
+#[derive(Debug)]
+pub struct ExtendedState {
+    ident: ExtendedStateIdent,
+    eax: u32,
+    ebx: u32
+}
+
+impl ExtendedState {
+    /// The size in bytes (from the offset specified in EBX) of the save area
+    /// for an extended state feature associated with a valid sub-leaf index, n.
+    /// This field reports 0 if the sub-leaf index, n, is invalid.
+    pub fn size(&self) -> u32 {
+        self.eax
+    }
+
+    /// The offset in bytes of this extended state components save area
+    /// from the beginning of the XSAVE/XRSTOR area.
+    pub fn offset(&self) -> u32 {
+        self.ebx
+    }
+
+}
+
+
+
 
 
 #[test]
@@ -1283,4 +1409,27 @@ fn extended_topology_info() {
     assert!(l2.level_type() == TopologyType::CORE);
     assert!(l2.x2apic_id() == 3);
     assert!(l2.shift_right_for_next_apic_id() == 4);
+}
+
+#[cfg(test)]
+#[test]
+fn extended_state_info() {
+    let cpuid = CpuId;
+    let es = cpuid.get_extended_state_info();
+
+    assert!(es.xcr0() == 7);
+    assert!(es.maximum_size_enabled_features() == 832);
+    assert!(es.maximum_size_supported_features() == 832);
+    assert!(es.has_xsaveopt());
+
+    for (idx, e) in es.iter().enumerate() {
+        match idx {
+            0 => {
+                assert!(e.ident == ExtendedStateIdent::AVX256);
+                assert!(e.size() == 256);
+                assert!(e.offset() == 576);
+            }
+            _ => unreachable!()
+        }
+    }
 }
