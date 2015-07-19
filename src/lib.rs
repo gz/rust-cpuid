@@ -209,6 +209,14 @@ impl CpuId {
 
         ExtendedStateInfo { eax: res.eax, ebx: res.ebx, ecx: res.ecx, edx: res.edx, eax1: res1.eax }
     }
+
+    pub fn get_quality_of_service_info(&self) -> QoSInfo {
+        let res = cpuid!(16, 0);
+        let res1 = cpuid!(16, 1);
+
+        QoSInfo { ebx0: res.ebx, edx0: res.edx,
+                  ebx1: res1.ebx, ecx1: res1.ecx, edx1: res1.edx }
+    }
 }
 
 #[derive(Debug)]
@@ -1177,6 +1185,42 @@ impl ExtendedState {
 
 }
 
+#[derive(Debug)]
+pub struct QoSInfo {
+    ebx0: u32,
+    edx0: u32,
+    ebx1: u32,
+    ecx1: u32,
+    edx1: u32
+}
+
+impl QoSInfo {
+
+    /// Maximum range (zero-based) of RMID within this physical processor of all types.
+    pub fn maximum_rmid_range(&self) -> u32 {
+        self.ebx0
+    }
+
+    /// Supports L3 Cache QoS if true.
+    pub fn has_l3_qos(&self) -> bool {
+        self.edx0 & (1 << 1) > 0
+    }
+
+    /// Conversion factor from reported IA32_QM_CTR value to occupancy metric (bytes).
+    pub fn conversion_factor(&self) -> u32 {
+        self.ebx1
+    }
+
+    /// Maximum range (zero-based) of RMID of L3.
+    pub fn maximum_range_l3_rmid(&self) -> u32 {
+        self.ecx1
+    }
+
+    /// Supports L3 occupancy monitoring if true.
+    pub fn has_l3_occupancy_monitoring(&self) -> bool {
+        self.edx1 & 0x1 > 0
+    }
+}
 
 
 
@@ -1372,7 +1416,6 @@ fn direct_cache_access_info() {
 
 #[test]
 fn performance_monitoring_info() {
-    let cpuid = CpuId;
     let pm = PerformanceMonitoringInfo { eax: 120587267, ebx: PerformanceMonitoringFeaturesEbx { bits: 0 }, ecx: 0, edx: 1539 };
 
     assert!(pm.version_id() == 3);
@@ -1411,11 +1454,9 @@ fn extended_topology_info() {
     assert!(l2.shift_right_for_next_apic_id() == 4);
 }
 
-#[cfg(test)]
 #[test]
 fn extended_state_info() {
-    let cpuid = CpuId;
-    let es = cpuid.get_extended_state_info();
+    let es = ExtendedStateInfo { eax: 7, ebx: 832, ecx: 832, edx: 0, eax1: 1 };
 
     assert!(es.xcr0() == 7);
     assert!(es.maximum_size_enabled_features() == 832);
@@ -1432,4 +1473,15 @@ fn extended_state_info() {
             _ => unreachable!()
         }
     }
+}
+
+#[test]
+fn quality_of_service_info() {
+    let qos = QoSInfo { ebx0: 832, edx0: 0, ebx1: 0, ecx1: 0, edx1: 0 };
+
+    assert!(qos.maximum_rmid_range() == 832);
+    assert!(!qos.has_l3_qos());
+    assert!(qos.conversion_factor() == 0x0);
+    assert!(qos.maximum_range_l3_rmid() == 0x0);
+    assert!(!qos.has_l3_occupancy_monitoring());
 }
