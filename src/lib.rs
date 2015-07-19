@@ -28,6 +28,9 @@ mod std {
 }
 
 
+/// Macro to choose between `cpuid1` and `cpuid2`.
+/// Note: This is a low-level macro to query cpuid directly.
+/// If in doubt use `CpuId` instead.
 #[macro_export]
 macro_rules! cpuid {
     ($eax:expr)
@@ -39,6 +42,8 @@ macro_rules! cpuid {
 }
 
 /// Execute CPUID instruction with eax and ecx register set.
+/// Note: This is a low-level function to query cpuid directly.
+/// If in doubt use `CpuId` instead.
 pub fn cpuid2(eax: u32, ecx: u32) -> CpuIdResult {
     let mut res = CpuIdResult { eax: 0, ebx: 0, ecx: 0, edx: 0 };
 
@@ -54,6 +59,8 @@ pub fn cpuid2(eax: u32, ecx: u32) -> CpuIdResult {
 }
 
 /// Execute CPUID instruction with eax register set.
+/// Note: This is a low-level function to query cpuid directly.
+/// If in doubt use `CpuId` instead.
 pub fn cpuid1(eax: u32) -> CpuIdResult {
     let mut res = CpuIdResult { eax: 0, ebx: 0, ecx: 0, edx: 0 };
 
@@ -86,23 +93,30 @@ fn get_bits(r: u32, from: u32, to: u32) -> u32 {
 }
 
 macro_rules! check_flag {
-    ($fun:ident, $flags:ident, $flag:ident) => (
+    ($doc:meta, $fun:ident, $flags:ident, $flag:ident) => (
+        #[$doc]
         pub fn $fun(&self) -> bool {
             self.$flags.contains($flag)
         }
     )
 }
 
+/// Main type used to query for information about the CPU we're running on.
 #[derive(Debug)]
 pub struct CpuId {
     max_eax_value: u32,
 }
 
+/// Low-level data-structure to store result of cpuid instruction.
 #[derive(Debug, Copy, Clone, Default)]
 pub struct CpuIdResult {
+    /// Return value EAX register
     pub eax: u32,
+    /// Return value EBX register
     pub ebx: u32,
+    /// Return value ECX register
     pub ecx: u32,
+    /// Return value EDX register
     pub edx: u32,
 }
 
@@ -123,6 +137,7 @@ const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x80000000;
 
 impl CpuId {
 
+    /// Return new CPUID struct.
     pub fn new() -> CpuId {
         let res = cpuid!(EAX_VENDOR_INFO);
         CpuId { max_eax_value: res.eax }
@@ -132,6 +147,9 @@ impl CpuId {
         val <= self.max_eax_value
     }
 
+    /// Return information about vendor.
+    /// This is typically a ASCII readable string such as
+    /// GenuineIntel for Intel CPUs or AuthenticAMD for AMD CPUs.
     pub fn get_vendor_info(&self) -> Option<VendorInfo> {
         if self.leaf_is_supported(EAX_VENDOR_INFO) {
             let res = cpuid!(EAX_VENDOR_INFO);
@@ -142,6 +160,7 @@ impl CpuId {
         }
     }
 
+    /// Query a set of features that are available on this CPU.
     pub fn get_feature_info(&self) -> Option<FeatureInfo> {
         if self.leaf_is_supported(EAX_FEATURE_INFO) {
             let res = cpuid!(EAX_FEATURE_INFO);
@@ -156,6 +175,8 @@ impl CpuId {
         }
     }
 
+    /// Query basic information about caches. This will just return an index
+    /// into a static table of cache descriptions (see `CACHE_INFO_TABLE`).
     pub fn get_cache_info(&self) -> Option<CacheInfoIter> {
         if self.leaf_is_supported(EAX_CACHE_INFO) {
             let res = cpuid!(EAX_CACHE_INFO);
@@ -170,6 +191,7 @@ impl CpuId {
         }
     }
 
+    /// Retrieve serial number of processor.
     pub fn get_processor_serial(&self) -> Option<ProcessorSerial> {
         if self.leaf_is_supported(EAX_PROCESSOR_SERIAL) {
             let res = cpuid!(EAX_PROCESSOR_SERIAL);
@@ -181,6 +203,9 @@ impl CpuId {
 
     }
 
+    /// Retrieve more elaborate information about caches (as opposed
+    /// to `get_cache_info`). This will tell us about associativity,
+    /// set size, line size etc. for each level of the cache hierarchy.
     pub fn get_cache_parameters(&self) -> Option<CacheParametersIter> {
         if self.leaf_is_supported(EAX_CACHE_PARAMETERS) {
             Some(CacheParametersIter { current: 0 })
@@ -190,6 +215,7 @@ impl CpuId {
         }
     }
 
+    /// Information about how monitor/mwait works on this CPU.
     pub fn get_monitor_mwait_info(&self) -> Option<MonitorMwaitInfo> {
         if self.leaf_is_supported(EAX_MONITOR_MWAIT_INFO) {
             let res = cpuid!(EAX_MONITOR_MWAIT_INFO);
@@ -200,6 +226,7 @@ impl CpuId {
         }
     }
 
+    /// Query information about thermal and power management features of the CPU.
     pub fn get_thermal_power_info(&self) -> Option<ThermalPowerInfo> {
         if self.leaf_is_supported(EAX_THERMAL_POWER_INFO) {
             let res = cpuid!(EAX_THERMAL_POWER_INFO);
@@ -213,6 +240,7 @@ impl CpuId {
         }
     }
 
+    /// Find out about more features supported by this CPU.
     pub fn get_extended_feature_info(&self) -> Option<ExtendedFeatures> {
         if self.leaf_is_supported(EAX_STRUCTURED_EXTENDED_FEATURE_INFO) {
             let res = cpuid!(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
@@ -228,6 +256,7 @@ impl CpuId {
 
     }
 
+    /// Direct cache access info.
     pub fn get_direct_cache_access_info(&self) -> Option<DirectCacheAccessInfo> {
         if self.leaf_is_supported(EAX_DIRECT_CACHE_ACCESS_INFO) {
             let res = cpuid!(EAX_DIRECT_CACHE_ACCESS_INFO);
@@ -238,6 +267,7 @@ impl CpuId {
         }
     }
 
+    /// Info about performance monitoring (how many counters etc.).
     pub fn get_performance_monitoring_info(&self) -> Option<PerformanceMonitoringInfo> {
         if self.leaf_is_supported(EAX_PERFORMANCE_MONITOR_INFO) {
             let res = cpuid!(EAX_PERFORMANCE_MONITOR_INFO);
@@ -251,6 +281,7 @@ impl CpuId {
         }
     }
 
+    /// Information about topology (how many cores and what kind of cores).
     pub fn get_extended_topology_info(&self) -> Option<ExtendedTopologyIter> {
         if self.leaf_is_supported(EAX_EXTENDED_TOPOLOGY_INFO) {
             Some(ExtendedTopologyIter { level: 0 })
@@ -260,6 +291,7 @@ impl CpuId {
         }
     }
 
+    /// Information for saving/restoring extended register state.
     pub fn get_extended_state_info(&self) -> Option<ExtendedStateInfo> {
         if self.leaf_is_supported(EAX_EXTENDED_STATE_INFO) {
             let res = cpuid!(EAX_EXTENDED_STATE_INFO, 0);
@@ -273,6 +305,7 @@ impl CpuId {
         }
     }
 
+    /// QoS informations.
     pub fn get_quality_of_service_info(&self) -> Option<QoSInfo> {
         let res = cpuid!(EAX_QOS_INFO, 0);
         let res1 = cpuid!(EAX_QOS_INFO, 1);
@@ -287,6 +320,8 @@ impl CpuId {
         }
     }
 
+    /// Extended functionality of CPU described here (including more supported features).
+    /// This also contains a more detailed CPU model identifier.
     pub fn get_extended_function_info(&self) -> Option<ExtendedFunctionInfo> {
         let res = cpuid!(EAX_EXTENDED_FUNCTION_INFO);
 
@@ -323,6 +358,8 @@ pub struct VendorInfo {
 }
 
 impl VendorInfo {
+
+    /// Return vendor identification as human readable string.
     pub fn as_string(&self) -> &str {
         unsafe {
             let brand_string_start = transmute::<&VendorInfo, *const u8>(&self);
@@ -333,6 +370,7 @@ impl VendorInfo {
     }
 }
 
+/// Used to iterate over cache information contained in cpuid instruction.
 #[derive(Debug)]
 pub struct CacheInfoIter {
     current: u32,
@@ -345,7 +383,11 @@ pub struct CacheInfoIter {
 impl Iterator for CacheInfoIter {
     type Item = CacheInfo;
 
+    /// Iterate over all cache information.
     fn next(&mut self) -> Option<CacheInfo> {
+        // Every byte of the 4 register values returned by cpuid
+        // can contain information about a cache (except the
+        // very first one).
         if self.current >= 4*4 {
             return None;
         }
@@ -387,10 +429,14 @@ pub enum CacheInfoType {
     PREFETCH,
 }
 
+/// Describes any kind of cache (TLB, Data and Instruction caches plus prefetchers).
 #[derive(Copy, Clone, Debug)]
 pub struct CacheInfo {
+    /// Number as retrieved from cpuid
     pub num: u8,
+    /// Cache type
     pub typ: CacheInfoType,
+    /// Description of the cache (from Intel Manual)
     pub desc: &'static str,
 }
 
@@ -409,6 +455,7 @@ impl fmt::Display for CacheInfo {
     }
 }
 
+/// This table is taken from Intel manual (Section CPUID instruction).
 pub const CACHE_INFO_TABLE: [CacheInfo; 103] = [
     CacheInfo{num: 0x00, typ: CacheInfoType::GENERAL, desc: "Null descriptor, this byte contains no information"},
     CacheInfo{num: 0x01, typ: CacheInfoType::TLB, desc: "Instruction TLB: 4 KByte pages, 4-way set associative, 32 entries"},
@@ -549,177 +596,222 @@ pub struct FeatureInfo {
 }
 
 impl FeatureInfo {
-    /// Streaming SIMD Extensions 3 (SSE3). A value of 1 indicates the processor supports this technology.
-    check_flag!(has_sse3, ecx, CPU_FEATURE_SSE3);
 
-    /// PCLMULQDQ. A value of 1 indicates the processor supports the PCLMULQDQ instruction
-    check_flag!(has_pclmulqdq, ecx, CPU_FEATURE_PCLMULQDQ);
+    /// Version Information: Extended Family
+    pub fn extended_family_id(&self) -> u8 {
+        get_bits(self.eax, 20, 27) as u8
+    }
 
-    /// 64-bit DS Area. A value of 1 indicates the processor supports DS area using 64-bit layout
-    check_flag!(has_ds_area, ecx, CPU_FEATURE_DTES64);
+    /// Version Information: Extended Model
+    pub fn extended_model_id(&self) -> u8 {
+        get_bits(self.eax, 16, 19) as u8
+    }
 
-    /// MONITOR/MWAIT. A value of 1 indicates the processor supports this feature.
-    check_flag!(has_monitor_mwait, ecx, CPU_FEATURE_MONITOR);
+    /// Version Information: Family
+    pub fn family_id(&self) -> u8 {
+        get_bits(self.eax, 8, 11) as u8
+    }
 
-    /// CPL Qualified Debug Store. A value of 1 indicates the processor supports the extensions to the  Debug Store feature to allow for branch message storage qualified by CPL.
-    check_flag!(has_cpl, ecx, CPU_FEATURE_DSCPL);
+    /// Version Information: Model
+    pub fn model_id(&self) -> u8 {
+        get_bits(self.eax, 4, 7) as u8
+    }
 
-    /// Virtual Machine Extensions. A value of 1 indicates that the processor supports this technology.
-    check_flag!(has_vmx, ecx, CPU_FEATURE_VMX);
+    /// Version Information: Stepping ID
+    pub fn stepping_id(&self) -> u8 {
+        get_bits(self.eax, 0, 3) as u8
+    }
 
-    /// Safer Mode Extensions. A value of 1 indicates that the processor supports this technology. See Chapter 5, Safer Mode Extensions Reference.
-    check_flag!(has_smx, ecx, CPU_FEATURE_SMX);
+    /// Brand Index
+    pub fn brand_index(&self) -> u8 {
+        get_bits(self.ebx, 0, 7) as u8
+    }
 
-    /// Enhanced Intel SpeedStep® technology. A value of 1 indicates that the processor supports this technology.
-    check_flag!(has_eist, ecx, CPU_FEATURE_EIST);
+    /// CLFLUSH line size (Value ∗ 8 = cache line size in bytes)
+    pub fn cflush_cache_line_size(&self) -> u8 {
+        get_bits(self.ebx, 8, 15) as u8
+    }
 
-    /// Thermal Monitor 2. A value of 1 indicates whether the processor supports this technology.
-    check_flag!(has_tm2, ecx, CPU_FEATURE_TM2);
+    /// Initial APIC ID
+    pub fn initial_local_apic_id(&self) -> u8 {
+        get_bits(self.ebx, 24, 31) as u8
+    }
 
-    /// A value of 1 indicates the presence of the Supplemental Streaming SIMD Extensions 3 (SSSE3). A value of 0 indicates the instruction extensions are not present in the processor
-    check_flag!(has_ssse3, ecx, CPU_FEATURE_SSSE3);
+    /// Maximum number of addressable IDs for logical processors in this physical package.
+    pub fn max_logical_processor_ids(&self) -> u8 {
+        get_bits(self.ebx, 16, 23) as u8
+    }
 
-    /// L1 Context ID. A value of 1 indicates the L1 data cache mode can be set to either adaptive mode or shared mode. A value of 0 indicates this feature is not supported. See definition of the IA32_MISC_ENABLE MSR Bit 24 (L1 Data Cache Context Mode) for details.
-    check_flag!(has_cnxtid, ecx, CPU_FEATURE_CNXTID);
+    check_flag!(doc = "Streaming SIMD Extensions 3 (SSE3). A value of 1 indicates the processor supports this technology.",
+                has_sse3, ecx, CPU_FEATURE_SSE3);
 
-    /// A value of 1 indicates the processor supports FMA extensions using YMM state.
-    check_flag!(has_fma, ecx, CPU_FEATURE_FMA);
+    check_flag!(doc = "PCLMULQDQ. A value of 1 indicates the processor supports the PCLMULQDQ instruction",
+                has_pclmulqdq, ecx, CPU_FEATURE_PCLMULQDQ);
 
-    /// CMPXCHG16B Available. A value of 1 indicates that the feature is available. See the CMPXCHG8B/CMPXCHG16B Compare and Exchange Bytes section. 14
-    check_flag!(has_cmpxchg16b, ecx, CPU_FEATURE_CMPXCHG16B);
+    check_flag!(doc = "64-bit DS Area. A value of 1 indicates the processor supports DS area using 64-bit layout",
+                has_ds_area, ecx, CPU_FEATURE_DTES64);
 
-    /// Perfmon and Debug Capability: A value of 1 indicates the processor supports the performance   and debug feature indication MSR IA32_PERF_CAPABILITIES.
-    check_flag!(has_pdcm, ecx, CPU_FEATURE_PDCM);
+    check_flag!(doc = "MONITOR/MWAIT. A value of 1 indicates the processor supports this feature.",
+                has_monitor_mwait, ecx, CPU_FEATURE_MONITOR);
 
-    /// Process-context identifiers. A value of 1 indicates that the processor supports PCIDs and the software may set CR4.PCIDE to 1.
-    check_flag!(has_pcid, ecx, CPU_FEATURE_PCID);
+    check_flag!(doc = "CPL Qualified Debug Store. A value of 1 indicates the processor supports the extensions to the  Debug Store feature to allow for branch message storage qualified by CPL.",
+                has_cpl, ecx, CPU_FEATURE_DSCPL);
 
-    /// A value of 1 indicates the processor supports the ability to prefetch data from a memory mapped device.
-    check_flag!(has_dca, ecx, CPU_FEATURE_DCA);
+    check_flag!(doc = "Virtual Machine Extensions. A value of 1 indicates that the processor supports this technology.",
+                has_vmx, ecx, CPU_FEATURE_VMX);
 
-    /// A value of 1 indicates that the processor supports SSE4.1.
-    check_flag!(has_sse41, ecx, CPU_FEATURE_SSE41);
+    check_flag!(doc = "Safer Mode Extensions. A value of 1 indicates that the processor supports this technology. See Chapter 5, Safer Mode Extensions Reference.",
+                has_smx, ecx, CPU_FEATURE_SMX);
 
-    /// A value of 1 indicates that the processor supports SSE4.2.
-    check_flag!(has_sse42, ecx, CPU_FEATURE_SSE42);
+    check_flag!(doc = "Enhanced Intel SpeedStep® technology. A value of 1 indicates that the processor supports this technology.",
+                has_eist, ecx, CPU_FEATURE_EIST);
 
-    /// A value of 1 indicates that the processor supports x2APIC feature.
-    check_flag!(has_x2apic, ecx, CPU_FEATURE_X2APIC);
+    check_flag!(doc = "Thermal Monitor 2. A value of 1 indicates whether the processor supports this technology.",
+                has_tm2, ecx, CPU_FEATURE_TM2);
 
-    /// A value of 1 indicates that the processor supports MOVBE instruction.
-    check_flag!(has_movbe, ecx, CPU_FEATURE_MOVBE);
+    check_flag!(doc = "A value of 1 indicates the presence of the Supplemental Streaming SIMD Extensions 3 (SSSE3). A value of 0 indicates the instruction extensions are not present in the processor",
+                has_ssse3, ecx, CPU_FEATURE_SSSE3);
 
-    /// A value of 1 indicates that the processor supports the POPCNT instruction.
-    check_flag!(has_popcnt, ecx, CPU_FEATURE_POPCNT);
+    check_flag!(doc = "L1 Context ID. A value of 1 indicates the L1 data cache mode can be set to either adaptive mode or shared mode. A value of 0 indicates this feature is not supported. See definition of the IA32_MISC_ENABLE MSR Bit 24 (L1 Data Cache Context Mode) for details.",
+                has_cnxtid, ecx, CPU_FEATURE_CNXTID);
 
-    /// A value of 1 indicates that the processors local APIC timer supports one-shot operation using a TSC deadline value.
-    check_flag!(has_tsc_deadline, ecx, CPU_FEATURE_TSC_DEADLINE);
+    check_flag!(doc = "A value of 1 indicates the processor supports FMA extensions using YMM state.",
+                has_fma, ecx, CPU_FEATURE_FMA);
 
-    /// A value of 1 indicates that the processor supports the AESNI instruction extensions.
-    check_flag!(has_aesni, ecx, CPU_FEATURE_AESNI);
+    check_flag!(doc = "CMPXCHG16B Available. A value of 1 indicates that the feature is available. See the CMPXCHG8B/CMPXCHG16B Compare and Exchange Bytes section. 14",
+                has_cmpxchg16b, ecx, CPU_FEATURE_CMPXCHG16B);
 
-    /// A value of 1 indicates that the processor supports the XSAVE/XRSTOR processor extended states feature, the XSETBV/XGETBV instructions, and XCR0.
-    check_flag!(has_xsave, ecx, CPU_FEATURE_XSAVE);
+    check_flag!(doc = "Perfmon and Debug Capability: A value of 1 indicates the processor supports the performance   and debug feature indication MSR IA32_PERF_CAPABILITIES.",
+                has_pdcm, ecx, CPU_FEATURE_PDCM);
 
-    /// A value of 1 indicates that the OS has enabled XSETBV/XGETBV instructions to access XCR0, and support for processor extended state management using XSAVE/XRSTOR.
-    check_flag!(has_oxsave, ecx, CPU_FEATURE_OSXSAVE);
+    check_flag!(doc = "Process-context identifiers. A value of 1 indicates that the processor supports PCIDs and the software may set CR4.PCIDE to 1.",
+                has_pcid, ecx, CPU_FEATURE_PCID);
 
-    /// A value of 1 indicates the processor supports the AVX instruction extensions.
-    check_flag!(has_avx, ecx, CPU_FEATURE_AVX);
+    check_flag!(doc = "A value of 1 indicates the processor supports the ability to prefetch data from a memory mapped device.",
+                has_dca, ecx, CPU_FEATURE_DCA);
 
-    /// A value of 1 indicates that processor supports 16-bit floating-point conversion instructions.
-    check_flag!(has_f16c, ecx, CPU_FEATURE_F16C);
+    check_flag!(doc = "A value of 1 indicates that the processor supports SSE4.1.",
+                has_sse41, ecx, CPU_FEATURE_SSE41);
 
-    /// A value of 1 indicates that processor supports RDRAND instruction.
-    check_flag!(has_rdrand, ecx, CPU_FEATURE_RDRAND);
+    check_flag!(doc = "A value of 1 indicates that the processor supports SSE4.2.",
+                has_sse42, ecx, CPU_FEATURE_SSE42);
 
-    /// Floating Point Unit On-Chip. The processor contains an x87 FPU.
-    check_flag!(has_fpu, edx, CPU_FEATURE_FPU);
+    check_flag!(doc = "A value of 1 indicates that the processor supports x2APIC feature.",
+                has_x2apic, ecx, CPU_FEATURE_X2APIC);
 
-    /// Virtual 8086 Mode Enhancements. Virtual 8086 mode enhancements, including CR4.VME for controlling the feature, CR4.PVI for protected mode virtual interrupts, software interrupt indirection, expansion of the TSS with the software indirection bitmap, and EFLAGS.VIF and EFLAGS.VIP flags.
-    check_flag!(has_vme, edx, CPU_FEATURE_VME);
+    check_flag!(doc = "A value of 1 indicates that the processor supports MOVBE instruction.",
+                has_movbe, ecx, CPU_FEATURE_MOVBE);
 
-    /// Debugging Extensions. Support for I/O breakpoints, including CR4.DE for controlling the feature, and optional trapping of accesses to DR4 and DR5.
-    check_flag!(has_de, edx, CPU_FEATURE_DE);
+    check_flag!(doc = "A value of 1 indicates that the processor supports the POPCNT instruction.",
+                has_popcnt, ecx, CPU_FEATURE_POPCNT);
 
-    /// Page Size Extension. Large pages of size 4 MByte are supported, including CR4.PSE for controlling the feature, the defined dirty bit in PDE (Page Directory Entries), optional reserved bit trapping in CR3, PDEs, and PTEs.
-    check_flag!(has_pse, edx, CPU_FEATURE_PSE);
+    check_flag!(doc = "A value of 1 indicates that the processors local APIC timer supports one-shot operation using a TSC deadline value.",
+                has_tsc_deadline, ecx, CPU_FEATURE_TSC_DEADLINE);
 
-    /// Time Stamp Counter. The RDTSC instruction is supported, including CR4.TSD for controlling privilege.
-    check_flag!(has_tsc, edx, CPU_FEATURE_TSC);
+    check_flag!(doc = "A value of 1 indicates that the processor supports the AESNI instruction extensions.",
+                has_aesni, ecx, CPU_FEATURE_AESNI);
 
-    /// Model Specific Registers RDMSR and WRMSR Instructions. The RDMSR and WRMSR instructions are supported. Some of the MSRs are implementation dependent.
-    check_flag!(has_msr, edx, CPU_FEATURE_MSR);
+    check_flag!(doc = "A value of 1 indicates that the processor supports the XSAVE/XRSTOR processor extended states feature, the XSETBV/XGETBV instructions, and XCR0.",
+                has_xsave, ecx, CPU_FEATURE_XSAVE);
 
-    /// Physical Address Extension. Physical addresses greater than 32 bits are supported: extended page table entry formats, an extra level in the page translation tables is defined, 2-MByte pages are supported instead of 4 Mbyte pages if PAE bit is 1.
-    check_flag!(has_pae, edx, CPU_FEATURE_PAE);
+    check_flag!(doc = "A value of 1 indicates that the OS has enabled XSETBV/XGETBV instructions to access XCR0, and support for processor extended state management using XSAVE/XRSTOR.",
+                has_oxsave, ecx, CPU_FEATURE_OSXSAVE);
 
-    /// Machine Check Exception. Exception 18 is defined for Machine Checks, including CR4.MCE for controlling the feature. This feature does not define the model-specific implementations of machine-check error logging, reporting, and processor shutdowns. Machine Check exception handlers may have to depend on processor version to do model specific processing of the exception, or test for the presence of the Machine Check feature.
-    check_flag!(has_mce, edx, CPU_FEATURE_MCE);
+    check_flag!(doc = "A value of 1 indicates the processor supports the AVX instruction extensions.",
+                has_avx, ecx, CPU_FEATURE_AVX);
 
-    /// CMPXCHG8B Instruction. The compare-and-exchange 8 bytes (64 bits) instruction is supported (implicitly locked and atomic).
-    check_flag!(has_cmpxchg8b, edx, CPU_FEATURE_CX8);
+    check_flag!(doc = "A value of 1 indicates that processor supports 16-bit floating-point conversion instructions.",
+                has_f16c, ecx, CPU_FEATURE_F16C);
 
-    /// APIC On-Chip. The processor contains an Advanced Programmable Interrupt Controller (APIC), responding to memory mapped commands in the physical address range FFFE0000H to FFFE0FFFH (by default - some processors permit the APIC to be relocated).
-    check_flag!(has_apic, edx, CPU_FEATURE_APIC);
+    check_flag!(doc = "A value of 1 indicates that processor supports RDRAND instruction.",
+                has_rdrand, ecx, CPU_FEATURE_RDRAND);
 
-    /// SYSENTER and SYSEXIT Instructions. The SYSENTER and SYSEXIT and associated MSRs are supported.
-    check_flag!(has_sysenter_sysexit, edx, CPU_FEATURE_SEP);
+    check_flag!(doc = "Floating Point Unit On-Chip. The processor contains an x87 FPU.",
+                has_fpu, edx, CPU_FEATURE_FPU);
 
-    /// Memory Type Range Registers. MTRRs are supported. The MTRRcap MSR contains feature bits that describe what memory types are supported, how many variable MTRRs are supported, and whether fixed MTRRs are supported.
-    check_flag!(has_mtrr, edx, CPU_FEATURE_MTRR);
+    check_flag!(doc = "Virtual 8086 Mode Enhancements. Virtual 8086 mode enhancements, including CR4.VME for controlling the feature, CR4.PVI for protected mode virtual interrupts, software interrupt indirection, expansion of the TSS with the software indirection bitmap, and EFLAGS.VIF and EFLAGS.VIP flags.",
+                has_vme, edx, CPU_FEATURE_VME);
 
-    /// Page Global Bit. The global bit is supported in paging-structure entries that map a page, indicating TLB entries that are common to different processes and need not be flushed. The CR4.PGE bit controls this feature.
-    check_flag!(has_pge, edx, CPU_FEATURE_PGE);
+    check_flag!(doc = "Debugging Extensions. Support for I/O breakpoints, including CR4.DE for controlling the feature, and optional trapping of accesses to DR4 and DR5.",
+                has_de, edx, CPU_FEATURE_DE);
 
-    /// Machine Check Architecture. The Machine Check Architecture, which provides a compatible mechanism for error reporting in P6 family, Pentium 4, Intel Xeon processors, and future processors, is supported. The MCG_CAP MSR contains feature bits describing how many banks of error reporting MSRs are supported.
-    check_flag!(has_mca, edx, CPU_FEATURE_MCA);
+    check_flag!(doc = "Page Size Extension. Large pages of size 4 MByte are supported, including CR4.PSE for controlling the feature, the defined dirty bit in PDE (Page Directory Entries), optional reserved bit trapping in CR3, PDEs, and PTEs.",
+                has_pse, edx, CPU_FEATURE_PSE);
 
-    /// Conditional Move Instructions. The conditional move instruction CMOV is supported. In addition, if x87 FPU is present as indicated by the CPUID.FPU feature bit, then the FCOMI and FCMOV instructions are supported
-    check_flag!(has_cmov, edx, CPU_FEATURE_CMOV);
+    check_flag!(doc = "Time Stamp Counter. The RDTSC instruction is supported, including CR4.TSD for controlling privilege.",
+                has_tsc, edx, CPU_FEATURE_TSC);
 
-    /// Page Attribute Table. Page Attribute Table is supported. This feature augments the Memory Type Range Registers (MTRRs), allowing an operating system to specify attributes of memory accessed through a linear address on a 4KB granularity.
-    check_flag!(has_pat, edx, CPU_FEATURE_PAT);
+    check_flag!(doc = "Model Specific Registers RDMSR and WRMSR Instructions. The RDMSR and WRMSR instructions are supported. Some of the MSRs are implementation dependent.",
+                has_msr, edx, CPU_FEATURE_MSR);
 
-    /// 36-Bit Page Size Extension. 4-MByte pages addressing physical memory beyond 4 GBytes are supported with 32-bit paging. This feature indicates that upper bits of the physical address of a 4-MByte page are encoded in bits 20:13 of the page-directory entry. Such physical addresses are limited by MAXPHYADDR and may be up to 40 bits in size.
-    check_flag!(has_pse36, edx, CPU_FEATURE_PSE36);
+    check_flag!(doc = "Physical Address Extension. Physical addresses greater than 32 bits are supported: extended page table entry formats, an extra level in the page translation tables is defined, 2-MByte pages are supported instead of 4 Mbyte pages if PAE bit is 1.",
+                has_pae, edx, CPU_FEATURE_PAE);
 
-    /// Processor Serial Number. The processor supports the 96-bit processor identification number feature and the feature is enabled.
-    check_flag!(has_psn, edx, CPU_FEATURE_PSN);
+    check_flag!(doc = "Machine Check Exception. Exception 18 is defined for Machine Checks, including CR4.MCE for controlling the feature. This feature does not define the model-specific implementations of machine-check error logging, reporting, and processor shutdowns. Machine Check exception handlers may have to depend on processor version to do model specific processing of the exception, or test for the presence of the Machine Check feature.",
+                has_mce, edx, CPU_FEATURE_MCE);
 
-    /// CLFLUSH Instruction. CLFLUSH Instruction is supported.
-    check_flag!(has_clflush, edx, CPU_FEATURE_CLFSH);
+    check_flag!(doc = "CMPXCHG8B Instruction. The compare-and-exchange 8 bytes (64 bits) instruction is supported (implicitly locked and atomic).",
+                has_cmpxchg8b, edx, CPU_FEATURE_CX8);
 
-    /// Debug Store. The processor supports the ability to write debug information into a memory resident buffer. This feature is used by the branch trace store (BTS) and precise event-based sampling (PEBS) facilities (see Chapter 23, Introduction to Virtual-Machine Extensions, in the Intel® 64 and IA-32 Architectures Software Developers Manual, Volume 3C).
-    check_flag!(has_ds, edx, CPU_FEATURE_DS);
+    check_flag!(doc = "APIC On-Chip. The processor contains an Advanced Programmable Interrupt Controller (APIC), responding to memory mapped commands in the physical address range FFFE0000H to FFFE0FFFH (by default - some processors permit the APIC to be relocated).",
+                has_apic, edx, CPU_FEATURE_APIC);
 
-    /// Thermal Monitor and Software Controlled Clock Facilities. The processor implements internal MSRs that allow processor temperature to be monitored and processor performance to be modulated in predefined duty cycles under software control.
-    check_flag!(has_acpi, edx, CPU_FEATURE_ACPI);
+    check_flag!(doc = "SYSENTER and SYSEXIT Instructions. The SYSENTER and SYSEXIT and associated MSRs are supported.",
+                has_sysenter_sysexit, edx, CPU_FEATURE_SEP);
 
-    /// Intel MMX Technology. The processor supports the Intel MMX technology.
-    check_flag!(has_mmx, edx, CPU_FEATURE_MMX);
+    check_flag!(doc = "Memory Type Range Registers. MTRRs are supported. The MTRRcap MSR contains feature bits that describe what memory types are supported, how many variable MTRRs are supported, and whether fixed MTRRs are supported.",
+                has_mtrr, edx, CPU_FEATURE_MTRR);
 
-    /// FXSAVE and FXRSTOR Instructions. The FXSAVE and FXRSTOR instructions are supported for fast save and restore of the floating point context. Presence of this bit also indicates that CR4.OSFXSR is available for an operating system to indicate that it supports the FXSAVE and FXRSTOR instructions.
-    check_flag!(has_fxsave_fxstor, edx, CPU_FEATURE_FXSR);
+    check_flag!(doc = "Page Global Bit. The global bit is supported in paging-structure entries that map a page, indicating TLB entries that are common to different processes and need not be flushed. The CR4.PGE bit controls this feature.",
+                has_pge, edx, CPU_FEATURE_PGE);
 
-    /// SSE. The processor supports the SSE extensions.
-    check_flag!(has_sse, edx, CPU_FEATURE_SSE);
+    check_flag!(doc = "Machine Check Architecture. The Machine Check Architecture, which provides a compatible mechanism for error reporting in P6 family, Pentium 4, Intel Xeon processors, and future processors, is supported. The MCG_CAP MSR contains feature bits describing how many banks of error reporting MSRs are supported.",
+                has_mca, edx, CPU_FEATURE_MCA);
 
-    /// SSE2. The processor supports the SSE2 extensions.
-    check_flag!(has_sse2, edx, CPU_FEATURE_SSE2);
+    check_flag!(doc = "Conditional Move Instructions. The conditional move instruction CMOV is supported. In addition, if x87 FPU is present as indicated by the CPUID.FPU feature bit, then the FCOMI and FCMOV instructions are supported",
+                has_cmov, edx, CPU_FEATURE_CMOV);
 
-    /// Self Snoop. The processor supports the management of conflicting memory types by performing a snoop of its own cache structure for transactions issued to the bus.
-    check_flag!(has_ss, edx, CPU_FEATURE_SS);
+    check_flag!(doc = "Page Attribute Table. Page Attribute Table is supported. This feature augments the Memory Type Range Registers (MTRRs), allowing an operating system to specify attributes of memory accessed through a linear address on a 4KB granularity.",
+                has_pat, edx, CPU_FEATURE_PAT);
 
-    /// Max APIC IDs reserved field is Valid. A value of 0 for HTT indicates there is only a single logical processor in the package and software should assume only a single APIC ID is reserved.  A value of 1 for HTT indicates the value in CPUID.1.EBX[23:16] (the Maximum number of addressable IDs for logical processors in this package) is valid for the package.
-    check_flag!(has_htt, edx, CPU_FEATURE_HTT);
+    check_flag!(doc = "36-Bit Page Size Extension. 4-MByte pages addressing physical memory beyond 4 GBytes are supported with 32-bit paging. This feature indicates that upper bits of the physical address of a 4-MByte page are encoded in bits 20:13 of the page-directory entry. Such physical addresses are limited by MAXPHYADDR and may be up to 40 bits in size.",
+                has_pse36, edx, CPU_FEATURE_PSE36);
 
-    /// Thermal Monitor. The processor implements the thermal monitor automatic thermal control circuitry (TCC).
-    check_flag!(has_tm, edx, CPU_FEATURE_TM);
+    check_flag!(doc = "Processor Serial Number. The processor supports the 96-bit processor identification number feature and the feature is enabled.",
+                has_psn, edx, CPU_FEATURE_PSN);
 
-    /// Pending Break Enable. The processor supports the use of the FERR#/PBE# pin when the processor is in the stop-clock state (STPCLK# is asserted) to signal the processor that an interrupt is pending and that the processor should return to normal operation to handle the interrupt. Bit 10 (PBE enable) in the IA32_MISC_ENABLE MSR enables this capability.
-    check_flag!(has_pbe, edx, CPU_FEATURE_PBE);
+    check_flag!(doc = "CLFLUSH Instruction. CLFLUSH Instruction is supported.",
+                has_clflush, edx, CPU_FEATURE_CLFSH);
 
+    check_flag!(doc = "Debug Store. The processor supports the ability to write debug information into a memory resident buffer. This feature is used by the branch trace store (BTS) and precise event-based sampling (PEBS) facilities (see Chapter 23, Introduction to Virtual-Machine Extensions, in the Intel® 64 and IA-32 Architectures Software Developers Manual, Volume 3C).",
+                has_ds, edx, CPU_FEATURE_DS);
+
+    check_flag!(doc = "Thermal Monitor and Software Controlled Clock Facilities. The processor implements internal MSRs that allow processor temperature to be monitored and processor performance to be modulated in predefined duty cycles under software control.",
+                has_acpi, edx, CPU_FEATURE_ACPI);
+
+    check_flag!(doc = "Intel MMX Technology. The processor supports the Intel MMX technology.",
+                has_mmx, edx, CPU_FEATURE_MMX);
+
+    check_flag!(doc = "FXSAVE and FXRSTOR Instructions. The FXSAVE and FXRSTOR instructions are supported for fast save and restore of the floating point context. Presence of this bit also indicates that CR4.OSFXSR is available for an operating system to indicate that it supports the FXSAVE and FXRSTOR instructions.",
+                has_fxsave_fxstor, edx, CPU_FEATURE_FXSR);
+
+    check_flag!(doc = "SSE. The processor supports the SSE extensions.",
+                has_sse, edx, CPU_FEATURE_SSE);
+
+    check_flag!(doc = "SSE2. The processor supports the SSE2 extensions.",
+                has_sse2, edx, CPU_FEATURE_SSE2);
+
+    check_flag!(doc = "Self Snoop. The processor supports the management of conflicting memory types by performing a snoop of its own cache structure for transactions issued to the bus.",
+                has_ss, edx, CPU_FEATURE_SS);
+
+    check_flag!(doc = "Max APIC IDs reserved field is Valid. A value of 0 for HTT indicates there is only a single logical processor in the package and software should assume only a single APIC ID is reserved.  A value of 1 for HTT indicates the value in CPUID.1.EBX[23:16] (the Maximum number of addressable IDs for logical processors in this package) is valid for the package.",
+                has_htt, edx, CPU_FEATURE_HTT);
+
+    check_flag!(doc = "Thermal Monitor. The processor implements the thermal monitor automatic thermal control circuitry (TCC).",
+                has_tm, edx, CPU_FEATURE_TM);
+
+    check_flag!(doc = "Pending Break Enable. The processor supports the use of the FERR#/PBE# pin when the processor is in the stop-clock state (STPCLK# is asserted) to signal the processor that an interrupt is pending and that the processor should return to normal operation to handle the interrupt. Bit 10 (PBE enable) in the IA32_MISC_ENABLE MSR enables this capability.",
+                has_pbe, edx, CPU_FEATURE_PBE);
 
 
 }
@@ -851,56 +943,6 @@ bitflags! {
     }
 }
 
-
-
-impl FeatureInfo {
-
-    /// Version Information: Extended Family
-    pub fn extended_family_id(&self) -> u8 {
-        get_bits(self.eax, 20, 27) as u8
-    }
-
-    /// Version Information: Extended Model
-    pub fn extended_model_id(&self) -> u8 {
-        get_bits(self.eax, 16, 19) as u8
-    }
-
-    /// Version Information: Family
-    pub fn family_id(&self) -> u8 {
-        get_bits(self.eax, 8, 11) as u8
-    }
-
-    /// Version Information: Model
-    pub fn model_id(&self) -> u8 {
-        get_bits(self.eax, 4, 7) as u8
-    }
-
-    /// Version Information: Stepping ID
-    pub fn stepping_id(&self) -> u8 {
-        get_bits(self.eax, 0, 3) as u8
-    }
-
-    /// Brand Index
-    pub fn brand_index(&self) -> u8 {
-        get_bits(self.ebx, 0, 7) as u8
-    }
-
-    /// CLFLUSH line size (Value ∗ 8 = cache line size in bytes)
-    pub fn cflush_cache_line_size(&self) -> u8 {
-        get_bits(self.ebx, 8, 15) as u8
-    }
-
-    /// Initial APIC ID
-    pub fn initial_local_apic_id(&self) -> u8 {
-        get_bits(self.ebx, 24, 31) as u8
-    }
-
-    /// Maximum number of addressable IDs for logical processors in this physical package.
-    pub fn max_logical_processor_ids(&self) -> u8 {
-        get_bits(self.ebx, 16, 23) as u8
-    }
-}
-
 pub struct CacheParametersIter {
     current: u32,
 }
@@ -908,6 +950,9 @@ pub struct CacheParametersIter {
 impl Iterator for CacheParametersIter {
     type Item = CacheParameter;
 
+    /// Iterate over all caches for this CPU.
+    /// Note: cpuid is called every-time we this function to get information
+    /// about next cache.
     fn next(&mut self) -> Option<CacheParameter> {
         let res = cpuid!(EAX_CACHE_PARAMETERS, self.current);
         let cp = CacheParameter { eax: res.eax, ebx: res.ebx, ecx: res.ecx, edx: res.edx };
@@ -1103,35 +1148,30 @@ pub struct ThermalPowerInfo {
 }
 
 impl ThermalPowerInfo {
-    /// Digital temperature sensor is supported if set.
-    check_flag!(has_dts, eax, CPU_FEATURE_DTS);
 
-    /// Intel Turbo Boost Technology Available (see description of IA32_MISC_ENABLE[38]).
-    check_flag!(has_turbo_boost, eax, CPU_FEATURE_TURBO_BOOST);
+    check_flag!(doc = "Digital temperature sensor is supported if set.",
+                has_dts, eax, CPU_FEATURE_DTS);
 
-    /// ARAT. APIC-Timer-always-running feature is supported if set.
-    check_flag!(has_arat, eax, CPU_FEATURE_ARAT);
+    check_flag!(doc = "Intel Turbo Boost Technology Available (see description of IA32_MISC_ENABLE[38]).",
+                has_turbo_boost, eax, CPU_FEATURE_TURBO_BOOST);
 
-    /// PLN. Power limit notification controls are supported if set.
-    check_flag!(has_pln, eax, CPU_FEATURE_PLN);
+    check_flag!(doc = "ARAT. APIC-Timer-always-running feature is supported if set.",
+                has_arat, eax, CPU_FEATURE_ARAT);
 
-    /// ECMD. Clock modulation duty cycle extension is supported if set.
-    check_flag!(has_ecmd, eax, CPU_FEATURE_ECMD);
+    check_flag!(doc = "PLN. Power limit notification controls are supported if set.",
+                has_pln, eax, CPU_FEATURE_PLN);
 
-    /// PTM. Package thermal management is supported if set.
-    check_flag!(has_ptm, eax, CPU_FEATURE_PTM);
+    check_flag!(doc = "ECMD. Clock modulation duty cycle extension is supported if set.",
+                has_ecmd, eax, CPU_FEATURE_ECMD);
 
-    /// Hardware Coordination Feedback Capability (Presence of IA32_MPERF
-    /// and IA32_APERF). The capability to provide a measure of
-    /// delivered processor performance (since last reset of the counters),
-    /// as a percentage of expected processor performance at frequency specified
-    /// in CPUID Brand String Bits 02 - 01
-    check_flag!(has_hw_coord_feedback, ecx, CPU_FEATURE_HW_COORD_FEEDBACK);
+    check_flag!(doc = "PTM. Package thermal management is supported if set.",
+                has_ptm, eax, CPU_FEATURE_PTM);
 
-    /// The processor supports performance-energy bias preference
-    /// if CPUID.06H:ECX.SETBH[bit 3] is set and it also implies the
-    /// presence of a new architectural MSR called IA32_ENERGY_PERF_BIAS (1B0H)
-    check_flag!(has_energy_bias_pref, ecx, CPU_FEATURE_ENERGY_BIAS_PREF);
+    check_flag!(doc = "Hardware Coordination Feedback Capability (Presence of IA32_MPERF and IA32_APERF). The capability to provide a measure of delivered processor performance (since last reset of the counters), as a percentage of expected processor performance at frequency specified in CPUID Brand String Bits 02 - 01",
+                has_hw_coord_feedback, ecx, CPU_FEATURE_HW_COORD_FEEDBACK);
+
+    check_flag!(doc = "The processor supports performance-energy bias preference if CPUID.06H:ECX.SETBH[bit 3] is set and it also implies the presence of a new architectural MSR called IA32_ENERGY_PERF_BIAS (1B0H)",
+                has_energy_bias_pref, ecx, CPU_FEATURE_ENERGY_BIAS_PREF);
 }
 
 bitflags! {
@@ -1187,41 +1227,42 @@ pub struct ExtendedFeatures {
 }
 
 impl ExtendedFeatures {
-    /// FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1.
-    check_flag!(has_fsgsbase, ebx, CPU_FEATURE_FSGSBASE);
 
-    /// IA32_TSC_ADJUST MSR is supported if 1.
-    check_flag!(has_tsc_adjust_msr, ebx, CPU_FEATURE_ADJUST_MSR);
+    check_flag!(doc = "FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1.",
+                has_fsgsbase, ebx, CPU_FEATURE_FSGSBASE);
 
-    /// BMI1
-    check_flag!(has_bmi1, ebx, CPU_FEATURE_BMI1);
+    check_flag!(doc = "IA32_TSC_ADJUST MSR is supported if 1.",
+                has_tsc_adjust_msr, ebx, CPU_FEATURE_ADJUST_MSR);
 
-    /// HLE
-    check_flag!(has_hle, ebx, CPU_FEATURE_HLE);
+    check_flag!(doc = "BMI1",
+                has_bmi1, ebx, CPU_FEATURE_BMI1);
 
-    /// AVX2
-    check_flag!(has_avx2, ebx, CPU_FEATURE_AVX2);
+    check_flag!(doc = "HLE",
+                has_hle, ebx, CPU_FEATURE_HLE);
 
-    /// SMEP. Supports Supervisor-Mode Execution Prevention if 1.
-    check_flag!(has_smep, ebx, CPU_FEATURE_SMEP);
+    check_flag!(doc = "AVX2",
+                has_avx2, ebx, CPU_FEATURE_AVX2);
 
-    /// BMI2
-    check_flag!(has_bmi2, ebx, CPU_FEATURE_BMI2);
+    check_flag!(doc = "SMEP. Supports Supervisor-Mode Execution Prevention if 1.",
+                has_smep, ebx, CPU_FEATURE_SMEP);
 
-    /// Supports Enhanced REP MOVSB/STOSB if 1.
-    check_flag!(has_rep_movsb_stosb, ebx, CPU_FEATURE_REP_MOVSB_STOSB);
+    check_flag!(doc = "BMI2",
+                has_bmi2, ebx, CPU_FEATURE_BMI2);
 
-    /// INVPCID. If 1, supports INVPCID instruction for system software that manages process-context identifiers.
-    check_flag!(has_invpcid, ebx, CPU_FEATURE_INVPCID);
+    check_flag!(doc = "Supports Enhanced REP MOVSB/STOSB if 1.",
+                has_rep_movsb_stosb, ebx, CPU_FEATURE_REP_MOVSB_STOSB);
 
-    /// RTM
-    check_flag!(has_rtm, ebx, CPU_FEATURE_RTM);
+    check_flag!(doc = "INVPCID. If 1, supports INVPCID instruction for system software that manages process-context identifiers.",
+                has_invpcid, ebx, CPU_FEATURE_INVPCID);
 
-    /// Supports Quality of Service Monitoring (QM) capability if 1.
-    check_flag!(has_qm, ebx, CPU_FEATURE_QM);
+    check_flag!(doc = "RTM",
+                has_rtm, ebx, CPU_FEATURE_RTM);
 
-    /// Deprecates FPU CS and FPU DS values if 1.
-    check_flag!(has_fpu_cs_ds_deprecated, ebx, CPU_FEATURE_DEPRECATE_FPU_CS_DS);
+    check_flag!(doc = "Supports Quality of Service Monitoring (QM) capability if 1.",
+                has_qm, ebx, CPU_FEATURE_QM);
+
+    check_flag!(doc = "Deprecates FPU CS and FPU DS values if 1.",
+                has_fpu_cs_ds_deprecated, ebx, CPU_FEATURE_DEPRECATE_FPU_CS_DS);
 }
 
 
@@ -1322,26 +1363,27 @@ impl PerformanceMonitoringInfo {
         get_bits(self.edx, 5, 12) as u8
     }
 
-    /// Core cycle event not available if 1.
-    check_flag!(is_core_cyc_ev_unavailable, ebx, CPU_FEATURE_CORE_CYC_EV_UNAVAILABLE);
 
-    /// Instruction retired event not available if 1.
-    check_flag!(is_inst_ret_ev_unavailable, ebx, CPU_FEATURE_INST_RET_EV_UNAVAILABLE);
+    check_flag!(doc = "Core cycle event not available if 1.",
+                is_core_cyc_ev_unavailable, ebx, CPU_FEATURE_CORE_CYC_EV_UNAVAILABLE);
 
-    /// Reference cycles event not available if 1.
-    check_flag!(is_ref_cycle_ev_unavailable, ebx, CPU_FEATURE_REF_CYC_EV_UNAVAILABLE);
+    check_flag!(doc = "Instruction retired event not available if 1.",
+                is_inst_ret_ev_unavailable, ebx, CPU_FEATURE_INST_RET_EV_UNAVAILABLE);
 
-    /// Last-level cache reference event not available if 1.
-    check_flag!(is_cache_ref_ev_unavailable, ebx, CPU_FEATURE_CACHE_REF_EV_UNAVAILABLE);
+    check_flag!(doc = "Reference cycles event not available if 1.",
+                is_ref_cycle_ev_unavailable, ebx, CPU_FEATURE_REF_CYC_EV_UNAVAILABLE);
 
-    /// Last-level cache misses event not available if 1.
-    check_flag!(is_ll_cache_miss_ev_unavailable, ebx, CPU_FEATURE_LL_CACHE_MISS_EV_UNAVAILABLE);
+    check_flag!(doc = "Last-level cache reference event not available if 1.",
+                is_cache_ref_ev_unavailable, ebx, CPU_FEATURE_CACHE_REF_EV_UNAVAILABLE);
 
-    /// Branch instruction retired event not available if 1.
-    check_flag!(is_branch_inst_ret_ev_unavailable, ebx, CPU_FEATURE_BRANCH_INST_RET_EV_UNAVAILABLE);
+    check_flag!(doc = "Last-level cache misses event not available if 1.",
+                is_ll_cache_miss_ev_unavailable, ebx, CPU_FEATURE_LL_CACHE_MISS_EV_UNAVAILABLE);
 
-    /// Branch mispredict retired event not available if 1.
-    check_flag!(is_branch_midpred_ev_unavailable, ebx, CPU_FEATURE_BRANCH_MISPRED_EV_UNAVAILABLE);
+    check_flag!(doc = "Branch instruction retired event not available if 1.",
+                is_branch_inst_ret_ev_unavailable, ebx, CPU_FEATURE_BRANCH_INST_RET_EV_UNAVAILABLE);
+
+    check_flag!(doc = "Branch mispredict retired event not available if 1.",
+                is_branch_midpred_ev_unavailable, ebx, CPU_FEATURE_BRANCH_MISPRED_EV_UNAVAILABLE);
 }
 
 bitflags! {
@@ -1422,6 +1464,7 @@ impl ExtendedTopologyLevel {
 #[derive(PartialEq, Eq, Debug)]
 pub enum TopologyType {
     INVALID = 0,
+    /// Hyper-thread (Simultaneous multithreading)
     SMT = 1,
     CORE = 2,
 }
