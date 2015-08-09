@@ -1,11 +1,8 @@
-#![feature(no_std, prelude_import, core, core_prelude, asm, raw)]
+#![feature(no_std, prelude_import, asm, raw)]
 #![no_std]
 
 #![crate_name = "raw_cpuid"]
 #![crate_type = "lib"]
-
-#[macro_use]
-extern crate core;
 
 #[macro_use]
 extern crate bitflags;
@@ -14,7 +11,6 @@ extern crate bitflags;
 #[macro_use]
 extern crate std;
 
-use core::prelude::*;
 use core::raw;
 use core::str;
 use core::mem::transmute;
