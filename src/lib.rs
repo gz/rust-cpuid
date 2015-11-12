@@ -5,7 +5,7 @@
 #![crate_type = "lib"]
 
 #[macro_use]
-extern crate bitflags;
+mod bitflags;
 
 #[cfg(test)]
 #[macro_use]
@@ -905,7 +905,7 @@ bitflags! {
 
 
 bitflags! {
-    #[doc(hidden)]    
+    #[doc(hidden)]
     #[derive(Debug)]
     flags FeatureInfoEdx: u32 {
         /// Floating Point Unit On-Chip. The processor contains an x87 FPU.
