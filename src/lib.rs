@@ -97,6 +97,21 @@ macro_rules! check_flag {
     )
 }
 
+macro_rules! is_bit_set {
+    ($field:expr, $bit:expr) => (
+        $field & (1 << $bit) > 0
+    )
+}
+
+macro_rules! check_bit_fn {
+    ($doc:meta, $fun:ident, $field:ident, $bit:expr) => (
+        #[$doc]
+        pub fn $fun(&self) -> bool {
+            is_bit_set!(self.$field, $bit)
+        }
+    )
+}
+
 /// Main type used to query for information about the CPU we're running on.
 #[derive(Debug)]
 pub struct CpuId {
@@ -305,8 +320,8 @@ impl CpuId {
         }
     }
 
-    /// QoS informations.
-    pub fn get_quality_of_service_info(&self) -> Option<QoSInfo> {
+    /// Quality of service informations.
+    pub fn get_qos_info(&self) -> Option<QoSInfo> {
         let res = cpuid!(EAX_QOS_INFO, 0);
         let res1 = cpuid!(EAX_QOS_INFO, 1);
 
@@ -314,6 +329,21 @@ impl CpuId {
             Some(QoSInfo { ebx0: res.ebx, edx0: res.edx,
                            ebx1: res1.ebx, ecx1: res1.ecx,
                            edx1: res1.edx })
+        }
+        else {
+            None
+        }
+    }
+
+    /// Quality of service enforcement information.
+    pub fn get_qos_enforcement_info(&self) -> Option<QoSEnforcementInfo> {
+        let res = cpuid!(EAX_QOS_ENFORCEMENT_INFO, 0);
+        let res1 = cpuid!(EAX_QOS_ENFORCEMENT_INFO, 1);
+
+        if self.leaf_is_supported(EAX_QOS_ENFORCEMENT_INFO) {
+            Some(QoSEnforcementInfo { ebx0: res.ebx, eax1: res1.eax,
+                                      ebx1: res1.ebx, ecx1: res1.ecx,
+                                      edx1: res1.edx })
         }
         else {
             None
@@ -1784,6 +1814,55 @@ impl QoSInfo {
     pub fn has_l3_occupancy_monitoring(&self) -> bool {
         self.edx1 & 0x1 > 0
     }
+}
+
+#[derive(Debug)]
+pub struct QoSEnforcementInfo {
+    ebx0: u32,
+    eax1: u32,
+    ebx1: u32,
+    ecx1: u32,
+    edx1: u32
+}
+
+impl QoSEnforcementInfo {
+    check_bit_fn!(doc = "Supports L3 Cache QoS enforcement if true.", has_l3_qos_enforcement, ebx0, 0);
+
+    /// Iterator over QoS enforcements.
+    pub fn iter(&self) -> QoSEnforcementIter {
+        QoSEnforcementIter { current: 0, ebx0: self.ebx0 }
+    }
+}
+
+/// Iterator over the QoSEnforcement sub-leafs.
+pub struct QoSEnforcementIter {
+    current: u8,
+    ebx0: u32,
+}
+
+impl Iterator for QoSEnforcementIter {
+    type Item = QoSEnforcement;
+
+    fn next(&mut self) -> Option<QoSEnforcement> {
+        if self.current > 31 {
+            return None;
+        }
+
+        self.current += 1;
+        if is_bit_set!(self.ebx0, self.current) {
+            let res = cpuid!(EAX_QOS_ENFORCEMENT_INFO, self.current);
+            return Some(QoSEnforcement { eax: res.eax, ebx: res.ebx, ecx: res.ecx, edx: res.edx });
+        }
+
+        self.next()
+    }
+}
+
+pub struct QoSEnforcement {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    edx: u32
 }
 
 
