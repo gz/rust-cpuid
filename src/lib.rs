@@ -1322,6 +1322,9 @@ impl ExtendedFeatures {
 
     check_flag!(doc = "Deprecates FPU CS and FPU DS values if 1.",
                 has_fpu_cs_ds_deprecated, ebx, CPU_FEATURE_DEPRECATE_FPU_CS_DS);
+
+    check_flag!(doc = "MPX. Supports Intel Memory Protection Extensions if 1.",
+                has_mpx, ebx, CPU_FEATURE_MPX);
 }
 
 
@@ -1365,6 +1368,9 @@ bitflags! {
         #[doc(hidden)]
         /// Deprecates FPU CS and FPU DS values if 1. (Bit 13)
         const CPU_FEATURE_DEPRECATE_FPU_CS_DS = 1 << 13,
+        #[doc(hidden)]
+        /// Deprecates FPU CS and FPU DS values if 1. (Bit 14)
+        const CPU_FEATURE_MPX = 1 << 14,
 
     }
 }
