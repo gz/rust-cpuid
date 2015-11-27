@@ -129,6 +129,10 @@ const EAX_PERFORMANCE_MONITOR_INFO: u32 = 0xA;
 const EAX_EXTENDED_TOPOLOGY_INFO: u32 = 0xB;
 const EAX_EXTENDED_STATE_INFO: u32 = 0xD;
 const EAX_QOS_INFO: u32 = 0xF;
+const EAX_QOS_ENFORCEMENT_INFO: u32 = 0x10;
+const EAX_TRACE_ENUMERATION_INFO: u32 = 0x14;
+const EAX_TIME_STAMP_COUNTER_INFO: u32 = 0x15;
+const EAX_FREQUENCY_INFO: u32 = 0x16;
 const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x80000000;
 
 impl CpuId {
@@ -1553,6 +1557,30 @@ impl Iterator for ExtendedTopologyIter {
     }
 }
 
+#[derive(PartialEq, Eq, Debug)]
+#[allow(non_camel_case_types)]
+pub enum ExtendedStateIdent {
+    /// legacy x87 (Bit 00).
+    Legacy87 = 1 << 0,
+
+    /// 128-bit SSE (Bit 01).
+    SSE128 = 1 << 1,
+
+    /// 256-bit AVX (Bit 02).
+    AVX256 = 1 << 2,
+
+    /// MPX (Bits 04 - 03).
+    MPX = 0b11 << 3,
+
+    /// AVX512 (Bit 07 - 05).
+    AVX512 = 0b111 << 5,
+
+    /// IA32_XSS (Bit 08).
+    IA32_XSS = 1 << 8,
+
+    /// PKRU state (Bit 09).
+    PKRU = 1 << 9,
+}
 
 #[derive(Debug)]
 pub struct ExtendedStateInfo {
@@ -1563,19 +1591,43 @@ pub struct ExtendedStateInfo {
     eax1: u32,
 }
 
+macro_rules! check_xcr_flag {
+    ($doc:meta, $fun:ident, $flag:ident) => (
+        #[$doc]
+        pub fn $fun(&self) -> bool {
+            self.xcr0_supported() & (ExtendedStateIdent::$flag as u64) > 0
+        }
+    )
+}
+
 impl ExtendedStateInfo {
 
-    /// Reports the valid bit fields of the lower 32 bits of XCR0. If a bit is 0,
+    /// Reports the valid bit fields of XCR0. If a bit is 0,
     /// the corresponding bit field in XCR0 is reserved.
-    pub fn xcr0(&self) -> u64 {
+    pub fn xcr0_supported(&self) -> u64 {
         (self.edx as u64) << 32 | self.eax as u64
     }
 
-    /// Reports the valid bit fields of the upper 32 bits of XCR0. If a bit is 0,
-    /// the corresponding bit field in XCR0 is reserved.
-    pub fn xcr0_upper_bits(&self) -> u32 {
-        self.edx
-    }
+    check_xcr_flag!(doc = "Legacy x87.",
+                has_legacy_x87, Legacy87);
+
+    check_xcr_flag!(doc = "SSE 128-bit.",
+                has_sse_128, SSE128);
+
+    check_xcr_flag!(doc = "AVX 256-bit.",
+                has_avx_256, AVX256);
+
+    check_xcr_flag!(doc = "MPX.",
+                has_mpx, MPX);
+
+    check_xcr_flag!(doc = "AVX 512-bit.",
+                has_avx_512, AVX512);
+
+    check_xcr_flag!(doc = "IA32_XSS.",
+                has_ia32_xss, IA32_XSS);
+
+    check_xcr_flag!(doc = "PKRU.",
+                has_pkru, PKRU);
 
     /// Maximum size (bytes, from the beginning of the XSAVE/XRSTOR save area) required by
     /// enabled features in XCR0. May be different than ECX if some features at the end of the XSAVE save area
@@ -1593,22 +1645,47 @@ impl ExtendedStateInfo {
 
     /// CPU has xsaveopt feature.
     pub fn has_xsaveopt(&self) -> bool {
-        self.eax1 & 0x1 == 1
+        self.eax1 & 0x1 > 0
+    }
+
+    /// Supports XSAVEC and the compacted form of XRSTOR if set.
+    pub fn has_xsavec(&self) -> bool {
+        self.eax1 & 0x0b10 > 0
+    }
+
+    /// Supports XGETBV with ECX = 1 if set.
+    pub fn has_xgetbv(&self) -> bool {
+        self.eax1 & 0x0b100 > 0
+    }
+
+    /// Supports XSAVES/XRSTORS and IA32_XSS if set.
+    pub fn has_xsaves_xrstors(&self) -> bool {
+        self.eax1 & 0x0b1000 > 0
     }
 
     /// Iterator over extended state enumeration levels >= 2.
     pub fn iter(&self) -> ExtendedStateIter {
-        ExtendedStateIter { level: 2, xcr0: self.xcr0() }
+        ExtendedStateIter { level: 1, xcr0_supported: self.xcr0_supported() }
     }
 
 }
 
-
 pub struct ExtendedStateIter {
     level: u32,
-    xcr0: u64,
+    xcr0_supported: u64,
 }
 
+/// When CPUID executes with EAX set to 0DH and ECX = n (n > 1,
+/// and is a valid sub-leaf index), the processor returns information
+/// about the size and offset of each processor extended state save area
+/// within the XSAVE/XRSTOR area. Software can use the forward-extendable
+/// technique depicted below to query the valid sub-leaves and obtain size
+/// and offset information for each processor extended state save area:///
+///
+/// For i = 2 to 62 // sub-leaf 1 is reserved
+///   IF (CPUID.(EAX=0DH, ECX=0):VECTOR[i] = 1 ) // VECTOR is the 64-bit value of EDX:EAX
+///     Execute CPUID.(EAX=0DH, ECX = i) to examine size and offset for sub-leaf i;
+/// FI;
 impl Iterator for ExtendedStateIter {
     type Item = ExtendedState;
 
@@ -1616,48 +1693,28 @@ impl Iterator for ExtendedStateIter {
         if self.level > 62 {
             return None;
         }
-
-        let bit = 1 << self.level;
         self.level += 1;
 
-        if self.xcr0 & bit > 0 {
-            let res = cpuid!(EAX_EXTENDED_STATE_INFO, bit);
-            if res.eax > 0 {
-                let ident = match bit {
-                    0 => ExtendedStateIdent::LegacyX87,
-                    1 => ExtendedStateIdent::SSE128,
-                    2 => ExtendedStateIdent::AVX256,
-                    _ => panic!("Unknown bit, consider updating ExtendedStateIdent enum!")
-                };
-
-                return Some(ExtendedState { ident: ident, eax: res.eax, ebx: res.ebx });
-            }
+        let bit = 1 << self.level;
+        if self.xcr0_supported & bit > 0 {
+            let res = cpuid!(EAX_EXTENDED_STATE_INFO, self.level);
+            return Some(ExtendedState { subleaf: self.level, eax: res.eax, ebx: res.ebx, ecx: res.ecx });
         }
 
         self.next()
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
-pub enum ExtendedStateIdent {
-    /// legacy x87 (Bit 00).
-    LegacyX87 = 1 << 0,
-
-    /// 128-bit SSE (Bit 01).
-    SSE128 = 1 << 1,
-
-    /// 256-bit AVX (Bit 02).
-    AVX256 = 1 << 2,
-}
-
 #[derive(Debug)]
 pub struct ExtendedState {
-    pub ident: ExtendedStateIdent,
+    pub subleaf: u32,
     eax: u32,
     ebx: u32,
+    ecx: u32,
 }
 
 impl ExtendedState {
+
     /// The size in bytes (from the offset specified in EBX) of the save area
     /// for an extended state feature associated with a valid sub-leaf index, n.
     /// This field reports 0 if the sub-leaf index, n, is invalid.
@@ -1669,6 +1726,25 @@ impl ExtendedState {
     /// from the beginning of the XSAVE/XRSTOR area.
     pub fn offset(&self) -> u32 {
         self.ebx
+    }
+
+    /// True if the bit n (corresponding to the sub-leaf index)
+    /// is supported in the IA32_XSS MSR;
+    pub fn is_in_ia32_xss(&self) -> bool {
+        self.ecx & 0b1 > 0
+    }
+
+    /// True if bit n is supported in XCR0.
+    pub fn is_in_xcr0(&self) -> bool {
+        self.ecx & 0b1 == 0
+    }
+
+    /// Returns true when the compacted format of an XSAVE area is used,
+    /// this extended state component located on the next 64-byte
+    /// boundary following the preceding state component
+    /// (otherwise, it is located immediately following the preceding state component).
+    pub fn is_compacted_format(&self) -> bool {
+        self.ecx & 0b10 > 0
     }
 
 }
@@ -2156,7 +2232,7 @@ fn extended_topology_info() {
 fn extended_state_info() {
     let es = ExtendedStateInfo { eax: 7, ebx: 832, ecx: 832, edx: 0, eax1: 1 };
 
-    assert!(es.xcr0() == 7);
+    assert!(es.xcr0_supported() == 7);
     assert!(es.maximum_size_enabled_features() == 832);
     assert!(es.maximum_size_supported_features() == 832);
     assert!(es.has_xsaveopt());
@@ -2164,7 +2240,7 @@ fn extended_state_info() {
     for (idx, e) in es.iter().enumerate() {
         match idx {
             0 => {
-                assert!(e.ident == ExtendedStateIdent::AVX256);
+                assert!(e.subleaf == 2);
                 assert!(e.size() == 256);
                 assert!(e.offset() == 576);
             }
