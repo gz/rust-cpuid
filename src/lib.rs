@@ -951,7 +951,7 @@ bitflags! {
         /// Page Global Bit. The global bit is supported in paging-structure entries that map a page, indicating TLB entries that are common to different processes and need not be flushed. The CR4.PGE bit controls this feature.
         #[doc(hidden)]
         const CPU_FEATURE_PGE = 1 << 13,
-        /// Machine Check Architecture. The Machine Check Architecture, which provides a compatible mechanism for error reporting in P6 family, Pentium 4, Intel Xeon processors, and future processors, is supported. The MCG_CAP MSR contains feature bits describing how many banks of error reporting MSRs are supported.
+        /// Machine Check Architecture. The Machine Check exArchitecture, which provides a compatible mechanism for error reporting in P6 family, Pentium 4, Intel Xeon processors, and future processors, is supported. The MCG_CAP MSR contains feature bits describing how many banks of error reporting MSRs are supported.
         #[doc(hidden)]
         const CPU_FEATURE_MCA = 1 << 14,
         /// Conditional Move Instructions. The conditional move instruction CMOV is supported. In addition, if x87 FPU is present as indicated by the CPUID.FPU feature bit, then the FCOMI and FCMOV instructions are supported
@@ -1559,7 +1559,7 @@ impl Iterator for ExtendedTopologyIter {
 
 #[derive(PartialEq, Eq, Debug)]
 #[allow(non_camel_case_types)]
-pub enum ExtendedStateIdent {
+enum ExtendedStateIdent {
     /// legacy x87 (Bit 00).
     Legacy87 = 1 << 0,
 
