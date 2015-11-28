@@ -145,7 +145,7 @@ const EAX_EXTENDED_TOPOLOGY_INFO: u32 = 0xB;
 const EAX_EXTENDED_STATE_INFO: u32 = 0xD;
 const EAX_QOS_INFO: u32 = 0xF;
 const EAX_QOS_ENFORCEMENT_INFO: u32 = 0x10;
-const EAX_TRACE_ENUMERATION_INFO: u32 = 0x14;
+const EAX_TRACE_INFO: u32 = 0x14;
 const EAX_TIME_STAMP_COUNTER_INFO: u32 = 0x15;
 const EAX_FREQUENCY_INFO: u32 = 0x16;
 const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x80000000;
@@ -344,6 +344,45 @@ impl CpuId {
             Some(QoSEnforcementInfo { ebx0: res.ebx, eax1: res1.eax,
                                       ebx1: res1.ebx, ecx1: res1.ecx,
                                       edx1: res1.edx })
+        }
+        else {
+            None
+        }
+    }
+
+    /// Intel Processor Trace Enumeration Information.
+    pub fn get_processor_trace_info(&self) -> Option<ProcessorTraceInfo> {
+        let res = cpuid!(EAX_TRACE_INFO, 0);
+        if self.leaf_is_supported(EAX_TRACE_INFO) {
+            Some(ProcessorTraceInfo { eax: res.eax,
+                                      ebx: res.ebx,
+                                      ecx: res.ecx,
+                                      edx: res.edx })
+        }
+        else {
+            None
+        }
+    }
+
+    /// Time Stamp Counter/Core Crystal Clock Information.
+    pub fn get_tsc_info(&self) -> Option<TscInfo> {
+        let res = cpuid!(EAX_TIME_STAMP_COUNTER_INFO, 0);
+        if self.leaf_is_supported(EAX_TIME_STAMP_COUNTER_INFO) {
+            Some(TscInfo { eax: res.eax,
+                           ebx: res.ebx })
+        }
+        else {
+            None
+        }
+    }
+
+    /// Processor Frequency Information.
+    pub fn get_processor_frequency_info(&self) -> Option<ProcessorFrequencyInfo> {
+        let res = cpuid!(EAX_FREQUENCY_INFO, 0);
+        if self.leaf_is_supported(EAX_FREQUENCY_INFO) {
+            Some(ProcessorFrequencyInfo { eax: res.eax,
+                                          ebx: res.ebx,
+                                          ecx: res.ecx })
         }
         else {
             None
@@ -1858,6 +1897,7 @@ impl Iterator for QoSEnforcementIter {
     }
 }
 
+#[derive(Debug)]
 pub struct QoSEnforcement {
     eax: u32,
     ebx: u32,
@@ -1865,6 +1905,161 @@ pub struct QoSEnforcement {
     edx: u32
 }
 
+impl QoSEnforcement {
+
+    /// Length of the capacity bit mask.
+    pub fn capacity_mask_length(&self) -> u8 {
+        get_bits(self.eax, 0, 4) as u8
+    }
+
+    /// Bit-granular map of isolation/contention of allocation units.
+    pub fn allocation_unit_isolation(&self) -> u32 {
+        self.ebx
+    }
+
+    /// Highest COS number supported for this Leaf.
+    pub fn highest_cos_number(&self) -> u16 {
+        get_bits(self.edx, 0, 15) as u16
+    }
+
+    check_bit_fn!(doc = "Updates of COS should be infrequent if true.",
+                  has_infrequent_cos_updates, ecx, 1);
+
+    check_bit_fn!(doc = "Is Code and Data Prioritization Technology supported?",
+                  has_code_data_prioritization, ecx, 2);
+}
+
+#[derive(Debug)]
+pub struct ProcessorTraceInfo {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    edx: u32
+}
+
+impl ProcessorTraceInfo {
+
+    // EBX features
+    check_bit_fn!(doc = "If true, Indicates that IA32_RTIT_CTL.CR3Filter can be set to 1, and that IA32_RTIT_CR3_MATCH MSR can be accessed.",
+                  has_rtit_cr3_match, ebx, 0);
+    check_bit_fn!(doc = "If true, Indicates support of Configurable PSB and Cycle-Accurate Mode.",
+                  has_configurable_psb_and_cycle_accurate_mode, ebx, 1);
+    check_bit_fn!(doc = "If true, Indicates support of IP Filtering, TraceStop filtering, and preservation of Intel PT MSRs across warm reset.",
+                  has_ip_tracestop_filtering, ebx, 2);
+    check_bit_fn!(doc = "If true, Indicates support of MTC timing packet and suppression of COFI-based packets.",
+                  has_mtc_timing_packet_coefi_suppression, ebx, 3);
+
+    // ECX features
+    check_bit_fn!(doc = "If true, Tracing can be enabled with IA32_RTIT_CTL.ToPA = 1, hence utilizing the ToPA output scheme; IA32_RTIT_OUTPUT_BASE and IA32_RTIT_OUTPUT_MASK_PTRS MSRs can be accessed.",
+                  has_topa, ecx, 0);
+    check_bit_fn!(doc = "If true, ToPA tables can hold any number of output entries, up to the maximum allowed by the MaskOrTableOffset field of IA32_RTIT_OUTPUT_MASK_PTRS.",
+                  has_topa_maximum_entries, ecx, 1);
+    check_bit_fn!(doc = "If true, Indicates support of Single-Range Output scheme.",
+                  has_single_range_output_scheme, ecx, 2);
+    check_bit_fn!(doc = "If true, Indicates support of output to Trace Transport subsystem.",
+                  has_trace_transport_subsystem, ecx, 3);
+    check_bit_fn!(doc = "If true, Generated packets which contain IP payloads have LIP values, which include the CS base component.",
+                  has_lip_with_cs_base, ecx, 31);
+
+    /// Iterator over processor trace info sub-leafs.
+    pub fn iter(&self) -> ProcessorTraceIter {
+        ProcessorTraceIter { current: 0, count: self.eax }
+    }
+}
+
+/// Iterator over the Processor Trace sub-leafs.
+#[derive(Debug)]
+pub struct ProcessorTraceIter {
+    current: u32,
+    count: u32,
+}
+
+impl Iterator for ProcessorTraceIter {
+    type Item = ProcessorTrace;
+
+    fn next(&mut self) -> Option<ProcessorTrace> {
+        if self.current <= self.count {
+            self.current += 1;
+            let res = cpuid!(EAX_TRACE_INFO, self.current);
+            return Some(ProcessorTrace { eax: res.eax, ebx: res.ebx });
+        }
+
+        None
+    }
+}
+
+/// Processor Trace information sub-leaf.
+#[derive(Debug)]
+pub struct ProcessorTrace {
+    eax: u32,
+    ebx: u32,
+}
+
+impl ProcessorTrace {
+    /// Number of configurable Address Ranges for filtering (Bits 2:0).
+    pub fn configurable_address_ranges(&self) -> u8 {
+        get_bits(self.eax, 0, 2) as u8
+    }
+
+    /// Bitmap of supported MTC period encodings (Bit 31:16).
+    pub fn supported_mtc_period_encodings(&self) -> u16 {
+        get_bits(self.eax, 16, 31) as u16
+    }
+
+    /// Bitmap of supported Cycle Threshold value encodings (Bits 15-0).
+    pub fn supported_cycle_threshold_value_encodings(&self) -> u16 {
+        get_bits(self.ebx, 0, 15) as u16
+    }
+
+    /// Bitmap of supported Configurable PSB frequency encodings (Bit 31:16)
+    pub fn supported_psb_frequency_encodings(&self) -> u16 {
+        get_bits(self.ebx, 16, 31) as u16
+    }
+}
+
+/// Contains time stamp counter information.
+#[derive(Debug)]
+pub struct TscInfo {
+    eax: u32,
+    ebx: u32
+}
+
+impl TscInfo {
+    /// An unsigned integer which is the denominator of the TSC/”core crystal clock” ratio (Bits 31:0).
+    pub fn get_tsc_ratio_denominator(&self) -> u32 {
+        self.eax
+    }
+
+    /// An unsigned integer which is the numerator of the TSC/”core crystal clock” ratio (Bits 31-0).
+    pub fn get_tsc_ratio_numerator(&self) -> u32 {
+        self.ebx
+    }
+}
+
+/// Processor Frequency Information
+#[derive(Debug)]
+pub struct ProcessorFrequencyInfo {
+    eax: u32,
+    ebx: u32,
+    ecx: u32
+}
+
+impl ProcessorFrequencyInfo {
+    /// Processor Base Frequency (in MHz).
+    pub fn processor_base_frequency(&self) -> u16 {
+        get_bits(self.eax, 0, 15) as u16
+    }
+
+    /// Maximum Frequency (in MHz).
+    pub fn processor_max_frequency(&self) -> u16 {
+        get_bits(self.ebx, 0, 15) as u16
+    }
+
+    /// Bus (Reference) Frequency (in MHz).
+    pub fn bus_frequency(&self) -> u16 {
+        get_bits(self.ecx, 0, 15) as u16
+    }
+}
 
 #[derive(Debug)]
 pub struct ExtendedFunctionInfo {
@@ -2348,7 +2543,7 @@ fn extended_functions() {
             CpuIdResult { eax: 538976288, ebx: 1226842144, ecx: 1818588270, edx: 539578920 },
             CpuIdResult { eax: 1701998403, ebx: 692933672, ecx: 758475040, edx: 926102323 },
             CpuIdResult { eax: 1346576469, ebx: 541073493, ecx: 808988209, edx: 8013895 },
-            CpuIdResult { eax:0, ebx: 0, ecx: 0, edx: 0 },
+            CpuIdResult { eax: 0, ebx: 0, ecx: 0, edx: 0 },
             CpuIdResult { eax: 0, ebx: 0, ecx: 16801856, edx: 0 },
             CpuIdResult { eax: 0, ebx: 0, ecx: 0, edx: 256 },
             CpuIdResult { eax: 12324, ebx: 0, ecx: 0, edx: 0 }
@@ -2401,5 +2596,6 @@ fn readme_test() {
             }
         },
         None => println!("No cache parameter information available"),
-    }*/
+    }
+    */
 }
