@@ -1,4 +1,4 @@
-#![feature(no_std, prelude_import, asm, raw)]
+#![feature(prelude_import, asm)]
 #![no_std]
 
 #![crate_name = "raw_cpuid"]
@@ -11,7 +11,6 @@ mod bitflags;
 #[macro_use]
 extern crate std;
 
-use core::raw;
 use core::str;
 use core::mem::transmute;
 use core::fmt;
@@ -432,7 +431,7 @@ impl VendorInfo {
     pub fn as_string(&self) -> &str {
         unsafe {
             let brand_string_start = transmute::<&VendorInfo, *const u8>(&self);
-            let slice = raw::Slice { data: brand_string_start, len: 3*4 };
+            let slice = slice::from_raw_parts(brand_string_start, 3*4);
             let byte_array: &'static [u8] = transmute(slice);
             str::from_utf8_unchecked(byte_array)
         }
@@ -2094,7 +2093,7 @@ impl ExtendedFunctionInfo {
         if self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING) {
             Some(unsafe {
                 let brand_string_start = transmute::<&CpuIdResult, *const u8>(&self.data[2]);
-                let slice = raw::Slice { data: brand_string_start, len: 3*4*4 };
+                let slice = slice::from_raw_parts(brand_string_start, 3*4*4);
                 let byte_array: &'static [u8] = transmute(slice);
                 str::from_utf8_unchecked(byte_array)
             })
