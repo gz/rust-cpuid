@@ -39,34 +39,32 @@ macro_rules! cpuid {
 /// Execute CPUID instruction with eax and ecx register set.
 /// Note: This is a low-level function to query cpuid directly.
 /// If in doubt use `CpuId` instead.
-pub fn cpuid2(eax: u32, ecx: u32) -> CpuIdResult {
-    let mut res = CpuIdResult { eax: 0, ebx: 0, ecx: 0, edx: 0 };
+pub fn cpuid2(mut eax: u32, mut ecx: u32) -> CpuIdResult {
+    let ebx: u32;
+    let edx: u32;
 
     unsafe {
-        asm!("movl $0, %eax" : : "{eax}" (eax) : "eax");
-        asm!("movl $0, %ecx" : : "{ecx}" (ecx) : "ecx");
-        asm!("cpuid" : "={eax}"(res.eax) "={ebx}"(res.ebx)
-                       "={ecx}"(res.ecx) "={edx}"(res.edx)
-                     :: "eax", "ebx", "ecx", "edx");
+        asm!("cpuid" : "+{eax}"(eax) "={ebx}"(ebx)
+                       "+{ecx}"(ecx) "={edx}"(edx));
     }
 
-    res
+    CpuIdResult { eax: eax, ebx: ebx, ecx: ecx, edx: edx }
 }
 
 /// Execute CPUID instruction with eax register set.
 /// Note: This is a low-level function to query cpuid directly.
 /// If in doubt use `CpuId` instead.
-pub fn cpuid1(eax: u32) -> CpuIdResult {
-    let mut res = CpuIdResult { eax: 0, ebx: 0, ecx: 0, edx: 0 };
+pub fn cpuid1(mut eax: u32) -> CpuIdResult {
+    let ebx: u32;
+    let edx: u32;
+    let ecx: u32;
 
     unsafe {
-        asm!("movl $0, %eax" : : "{eax}" (eax) : "eax");
-        asm!("cpuid" : "={eax}"(res.eax) "={ebx}"(res.ebx)
-                       "={ecx}"(res.ecx) "={edx}"(res.edx)
-                     :: "eax", "ebx", "ecx", "edx");
+        asm!("cpuid" : "+{eax}"(eax) "={ebx}"(ebx)
+                       "={ecx}"(ecx) "={edx}"(edx));
     }
 
-    res
+    CpuIdResult { eax: eax, ebx: ebx, ecx: ecx, edx: edx }
 }
 
 fn as_bytes(v: &u32) -> &[u8] {
