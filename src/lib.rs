@@ -5,7 +5,7 @@
 #![crate_type = "lib"]
 
 #[macro_use]
-mod bitflags;
+extern crate bitflags;
 
 #[cfg(test)]
 #[macro_use]
@@ -885,91 +885,61 @@ impl FeatureInfo {
 }
 
 bitflags! {
-    #[doc(hidden)]
-    #[derive(Debug)]
     flags FeatureInfoEcx: u32 {
-        #[doc(hidden)]
         /// Streaming SIMD Extensions 3 (SSE3). A value of 1 indicates the processor supports this technology.
         const CPU_FEATURE_SSE3 = 1 << 0,
-        #[doc(hidden)]
         /// PCLMULQDQ. A value of 1 indicates the processor supports the PCLMULQDQ instruction
         const CPU_FEATURE_PCLMULQDQ = 1 << 1,
-        #[doc(hidden)]
         /// 64-bit DS Area. A value of 1 indicates the processor supports DS area using 64-bit layout
         const CPU_FEATURE_DTES64 = 1 << 2,
-        #[doc(hidden)]
         /// MONITOR/MWAIT. A value of 1 indicates the processor supports this feature.
         const CPU_FEATURE_MONITOR = 1 << 3,
-        #[doc(hidden)]
         /// CPL Qualified Debug Store. A value of 1 indicates the processor supports the extensions to the  Debug Store feature to allow for branch message storage qualified by CPL.
         const CPU_FEATURE_DSCPL = 1 << 4,
-        #[doc(hidden)]
         /// Virtual Machine Extensions. A value of 1 indicates that the processor supports this technology.
         const CPU_FEATURE_VMX = 1 << 5,
-        #[doc(hidden)]
         /// Safer Mode Extensions. A value of 1 indicates that the processor supports this technology. See Chapter 5, Safer Mode Extensions Reference.
         const CPU_FEATURE_SMX = 1 << 6,
-        #[doc(hidden)]
         /// Enhanced Intel SpeedStep® technology. A value of 1 indicates that the processor supports this technology.
         const CPU_FEATURE_EIST = 1 << 7,
-        #[doc(hidden)]
         /// Thermal Monitor 2. A value of 1 indicates whether the processor supports this technology.
         const CPU_FEATURE_TM2 = 1 << 8,
-        #[doc(hidden)]
         /// A value of 1 indicates the presence of the Supplemental Streaming SIMD Extensions 3 (SSSE3). A value of 0 indicates the instruction extensions are not present in the processor
         const CPU_FEATURE_SSSE3 = 1 << 9,
-        #[doc(hidden)]
         /// L1 Context ID. A value of 1 indicates the L1 data cache mode can be set to either adaptive mode or shared mode. A value of 0 indicates this feature is not supported. See definition of the IA32_MISC_ENABLE MSR Bit 24 (L1 Data Cache Context Mode) for details.
         const CPU_FEATURE_CNXTID = 1 << 10,
-        #[doc(hidden)]
         /// A value of 1 indicates the processor supports FMA extensions using YMM state.
         const CPU_FEATURE_FMA = 1 << 12,
-        #[doc(hidden)]
         /// CMPXCHG16B Available. A value of 1 indicates that the feature is available. See the CMPXCHG8B/CMPXCHG16B Compare and Exchange Bytes section. 14
         const CPU_FEATURE_CMPXCHG16B = 1 << 13,
-        #[doc(hidden)]
         /// Perfmon and Debug Capability: A value of 1 indicates the processor supports the performance   and debug feature indication MSR IA32_PERF_CAPABILITIES.
         const CPU_FEATURE_PDCM = 1 << 15,
-        #[doc(hidden)]
         /// Process-context identifiers. A value of 1 indicates that the processor supports PCIDs and the software may set CR4.PCIDE to 1.
         const CPU_FEATURE_PCID = 1 << 17,
-        #[doc(hidden)]
         /// A value of 1 indicates the processor supports the ability to prefetch data from a memory mapped device.
         const CPU_FEATURE_DCA = 1 << 18,
-        #[doc(hidden)]
         /// A value of 1 indicates that the processor supports SSE4.1.
         const CPU_FEATURE_SSE41 = 1 << 19,
-        #[doc(hidden)]
         /// A value of 1 indicates that the processor supports SSE4.2.
         const CPU_FEATURE_SSE42 = 1 << 20,
-        #[doc(hidden)]
         /// A value of 1 indicates that the processor supports x2APIC feature.
         const CPU_FEATURE_X2APIC = 1 << 21,
-        #[doc(hidden)]
         /// A value of 1 indicates that the processor supports MOVBE instruction.
         const CPU_FEATURE_MOVBE = 1 << 22,
-        #[doc(hidden)]
         /// A value of 1 indicates that the processor supports the POPCNT instruction.
         const CPU_FEATURE_POPCNT = 1 << 23,
-        #[doc(hidden)]
         /// A value of 1 indicates that the processors local APIC timer supports one-shot operation using a TSC deadline value.
         const CPU_FEATURE_TSC_DEADLINE = 1 << 24,
-        #[doc(hidden)]
         /// A value of 1 indicates that the processor supports the AESNI instruction extensions.
         const CPU_FEATURE_AESNI = 1 << 25,
-        #[doc(hidden)]
         /// A value of 1 indicates that the processor supports the XSAVE/XRSTOR processor extended states feature, the XSETBV/XGETBV instructions, and XCR0.
         const CPU_FEATURE_XSAVE = 1 << 26,
-        #[doc(hidden)]
         /// A value of 1 indicates that the OS has enabled XSETBV/XGETBV instructions to access XCR0, and support for processor extended state management using XSAVE/XRSTOR.
         const CPU_FEATURE_OSXSAVE = 1 << 27,
-        #[doc(hidden)]
         /// A value of 1 indicates the processor supports the AVX instruction extensions.
         const CPU_FEATURE_AVX = 1 << 28,
-        #[doc(hidden)]
         /// A value of 1 indicates that processor supports 16-bit floating-point conversion instructions.
         const CPU_FEATURE_F16C = 1 << 29,
-        #[doc(hidden)]
         /// A value of 1 indicates that processor supports RDRAND instruction.
         const CPU_FEATURE_RDRAND = 1 << 30,
     }
@@ -977,95 +947,64 @@ bitflags! {
 
 
 bitflags! {
-    #[doc(hidden)]
-    #[derive(Debug)]
     flags FeatureInfoEdx: u32 {
         /// Floating Point Unit On-Chip. The processor contains an x87 FPU.
-        #[doc(hidden)]
         const CPU_FEATURE_FPU = 1 << 0,
         /// Virtual 8086 Mode Enhancements. Virtual 8086 mode enhancements, including CR4.VME for controlling the feature, CR4.PVI for protected mode virtual interrupts, software interrupt indirection, expansion of the TSS with the software indirection bitmap, and EFLAGS.VIF and EFLAGS.VIP flags.
-        #[doc(hidden)]
         const CPU_FEATURE_VME = 1 << 1,
         /// Debugging Extensions. Support for I/O breakpoints, including CR4.DE for controlling the feature, and optional trapping of accesses to DR4 and DR5.
-        #[doc(hidden)]
         const CPU_FEATURE_DE = 1 << 2,
         /// Page Size Extension. Large pages of size 4 MByte are supported, including CR4.PSE for controlling the feature, the defined dirty bit in PDE (Page Directory Entries), optional reserved bit trapping in CR3, PDEs, and PTEs.
-        #[doc(hidden)]
         const CPU_FEATURE_PSE = 1 << 3,
         /// Time Stamp Counter. The RDTSC instruction is supported, including CR4.TSD for controlling privilege.
-        #[doc(hidden)]
         const CPU_FEATURE_TSC = 1 << 4,
         /// Model Specific Registers RDMSR and WRMSR Instructions. The RDMSR and WRMSR instructions are supported. Some of the MSRs are implementation dependent.
-        #[doc(hidden)]
         const CPU_FEATURE_MSR = 1 << 5,
         /// Physical Address Extension. Physical addresses greater than 32 bits are supported: extended page table entry formats, an extra level in the page translation tables is defined, 2-MByte pages are supported instead of 4 Mbyte pages if PAE bit is 1.
-        #[doc(hidden)]
         const CPU_FEATURE_PAE = 1 << 6,
         /// Machine Check Exception. Exception 18 is defined for Machine Checks, including CR4.MCE for controlling the feature. This feature does not define the model-specific implementations of machine-check error logging, reporting, and processor shutdowns. Machine Check exception handlers may have to depend on processor version to do model specific processing of the exception, or test for the presence of the Machine Check feature.
-        #[doc(hidden)]
         const CPU_FEATURE_MCE = 1 << 7,
         /// CMPXCHG8B Instruction. The compare-and-exchange 8 bytes (64 bits) instruction is supported (implicitly locked and atomic).
-        #[doc(hidden)]
         const CPU_FEATURE_CX8 = 1 << 8,
         /// APIC On-Chip. The processor contains an Advanced Programmable Interrupt Controller (APIC), responding to memory mapped commands in the physical address range FFFE0000H to FFFE0FFFH (by default - some processors permit the APIC to be relocated).
-        #[doc(hidden)]
         const CPU_FEATURE_APIC = 1 << 9,
         /// SYSENTER and SYSEXIT Instructions. The SYSENTER and SYSEXIT and associated MSRs are supported.
-        #[doc(hidden)]
         const CPU_FEATURE_SEP = 1 << 11,
         /// Memory Type Range Registers. MTRRs are supported. The MTRRcap MSR contains feature bits that describe what memory types are supported, how many variable MTRRs are supported, and whether fixed MTRRs are supported.
-        #[doc(hidden)]
         const CPU_FEATURE_MTRR = 1 << 12,
         /// Page Global Bit. The global bit is supported in paging-structure entries that map a page, indicating TLB entries that are common to different processes and need not be flushed. The CR4.PGE bit controls this feature.
-        #[doc(hidden)]
         const CPU_FEATURE_PGE = 1 << 13,
         /// Machine Check Architecture. The Machine Check exArchitecture, which provides a compatible mechanism for error reporting in P6 family, Pentium 4, Intel Xeon processors, and future processors, is supported. The MCG_CAP MSR contains feature bits describing how many banks of error reporting MSRs are supported.
-        #[doc(hidden)]
         const CPU_FEATURE_MCA = 1 << 14,
         /// Conditional Move Instructions. The conditional move instruction CMOV is supported. In addition, if x87 FPU is present as indicated by the CPUID.FPU feature bit, then the FCOMI and FCMOV instructions are supported
-        #[doc(hidden)]
         const CPU_FEATURE_CMOV = 1 << 15,
         /// Page Attribute Table. Page Attribute Table is supported. This feature augments the Memory Type Range Registers (MTRRs), allowing an operating system to specify attributes of memory accessed through a linear address on a 4KB granularity.
-        #[doc(hidden)]
         const CPU_FEATURE_PAT = 1 << 16,
         /// 36-Bit Page Size Extension. 4-MByte pages addressing physical memory beyond 4 GBytes are supported with 32-bit paging. This feature indicates that upper bits of the physical address of a 4-MByte page are encoded in bits 20:13 of the page-directory entry. Such physical addresses are limited by MAXPHYADDR and may be up to 40 bits in size.
-        #[doc(hidden)]
         const CPU_FEATURE_PSE36 = 1 << 17,
         /// Processor Serial Number. The processor supports the 96-bit processor identification number feature and the feature is enabled.
-        #[doc(hidden)]
         const CPU_FEATURE_PSN = 1 << 18,
         /// CLFLUSH Instruction. CLFLUSH Instruction is supported.
-        #[doc(hidden)]
         const CPU_FEATURE_CLFSH = 1 << 19,
         /// Debug Store. The processor supports the ability to write debug information into a memory resident buffer. This feature is used by the branch trace store (BTS) and precise event-based sampling (PEBS) facilities (see Chapter 23, Introduction to Virtual-Machine Extensions, in the Intel® 64 and IA-32 Architectures Software Developers Manual, Volume 3C).
-        #[doc(hidden)]
         const CPU_FEATURE_DS = 1 << 21,
         /// Thermal Monitor and Software Controlled Clock Facilities. The processor implements internal MSRs that allow processor temperature to be monitored and processor performance to be modulated in predefined duty cycles under software control.
-        #[doc(hidden)]
         const CPU_FEATURE_ACPI = 1 << 22,
         /// Intel MMX Technology. The processor supports the Intel MMX technology.
-        #[doc(hidden)]
         const CPU_FEATURE_MMX = 1 << 23,
         /// FXSAVE and FXRSTOR Instructions. The FXSAVE and FXRSTOR instructions are supported for fast save and restore of the floating point context. Presence of this bit also indicates that CR4.OSFXSR is available for an operating system to indicate that it supports the FXSAVE and FXRSTOR instructions.
-        #[doc(hidden)]
         const CPU_FEATURE_FXSR = 1 << 24,
         /// SSE. The processor supports the SSE extensions.
-        #[doc(hidden)]
         const CPU_FEATURE_SSE = 1 << 25,
         /// SSE2. The processor supports the SSE2 extensions.
-        #[doc(hidden)]
         const CPU_FEATURE_SSE2 = 1 << 26,
         /// Self Snoop. The processor supports the management of conflicting memory types by performing a snoop of its own cache structure for transactions issued to the bus.
-        #[doc(hidden)]
         const CPU_FEATURE_SS = 1 << 27,
         /// Max APIC IDs reserved field is Valid. A value of 0 for HTT indicates there is only a single logical processor in the package and software should assume only a single APIC ID is reserved.  A value of 1 for HTT indicates the value in CPUID.1.EBX[23:16] (the Maximum number of addressable IDs for logical processors in this package) is valid for the package.
-        #[doc(hidden)]
         const CPU_FEATURE_HTT = 1 << 28,
         /// Thermal Monitor. The processor implements the thermal monitor automatic thermal control circuitry (TCC).
-        #[doc(hidden)]
         const CPU_FEATURE_TM = 1 << 29,
         /// Pending Break Enable. The processor supports the use of the FERR#/PBE# pin when the processor is in the stop-clock state (STPCLK# is asserted) to signal the processor that an interrupt is pending and that the processor should return to normal operation to handle the interrupt. Bit 10 (PBE enable) in the IA32_MISC_ENABLE MSR enables this capability.
-        #[doc(hidden)]
         const CPU_FEATURE_PBE = 1 << 31,
     }
 }
@@ -1302,39 +1241,27 @@ impl ThermalPowerInfo {
 }
 
 bitflags! {
-    #[doc(hidden)]
-    #[derive(Debug)]
     flags ThermalPowerFeaturesEax: u32 {
-        #[doc(hidden)]
         /// Digital temperature sensor is supported if set. (Bit 00)
         const CPU_FEATURE_DTS = 1 << 0,
-        #[doc(hidden)]
         /// Intel Turbo Boost Technology Available (see description of IA32_MISC_ENABLE[38]). (Bit 01)
         const CPU_FEATURE_TURBO_BOOST = 1 << 1,
-        #[doc(hidden)]
         /// ARAT. APIC-Timer-always-running feature is supported if set. (Bit 02)
         const CPU_FEATURE_ARAT = 1 << 2,
-        #[doc(hidden)]
         /// PLN. Power limit notification controls are supported if set. (Bit 04)
         const CPU_FEATURE_PLN = 1 << 4,
-        #[doc(hidden)]
         /// ECMD. Clock modulation duty cycle extension is supported if set. (Bit 05)
         const CPU_FEATURE_ECMD = 1 << 5,
-        #[doc(hidden)]
         /// PTM. Package thermal management is supported if set. (Bit 06)
         const CPU_FEATURE_PTM = 1 << 6,
     }
 }
 
 bitflags! {
-    #[doc(hidden)]
-    #[derive(Debug)]
     flags ThermalPowerFeaturesEcx: u32 {
-        #[doc(hidden)]
         /// Hardware Coordination Feedback Capability (Presence of IA32_MPERF and IA32_APERF). The capability to provide a measure of delivered processor performance (since last reset of the counters), as a percentage of expected processor performance at frequency specified in CPUID Brand String Bits 02 - 01
         const CPU_FEATURE_HW_COORD_FEEDBACK = 1 << 0,
 
-        #[doc(hidden)]
         /// The processor supports performance-energy bias preference if CPUID.06H:ECX.SETBH[bit 3] is set and it also implies the presence of a new architectural MSR called IA32_ENERGY_PERF_BIAS (1B0H)
         const CPU_FEATURE_ENERGY_BIAS_PREF = 1 << 3,
     }
@@ -1401,46 +1328,31 @@ impl ExtendedFeatures {
 
 
 bitflags! {
-    #[doc(hidden)]
-    #[derive(Debug)]
     flags ExtendedFeaturesEbx: u32 {
-        #[doc(hidden)]
         /// FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1. (Bit 00)
         const CPU_FEATURE_FSGSBASE = 1 << 0,
-        #[doc(hidden)]
         /// IA32_TSC_ADJUST MSR is supported if 1. (Bit 01)
         const CPU_FEATURE_ADJUST_MSR = 1 << 1,
-        #[doc(hidden)]
         /// BMI1 (Bit 03)
         const CPU_FEATURE_BMI1 = 1 << 3,
-        #[doc(hidden)]
         /// HLE (Bit 04)
         const CPU_FEATURE_HLE = 1 << 4,
-        #[doc(hidden)]
         /// AVX2 (Bit 05)
         const CPU_FEATURE_AVX2 = 1 << 5,
-        #[doc(hidden)]
         /// SMEP. Supports Supervisor-Mode Execution Prevention if 1. (Bit 07)
         const CPU_FEATURE_SMEP = 1 << 7,
-        #[doc(hidden)]
         /// BMI2 (Bit 08)
         const CPU_FEATURE_BMI2 = 1 << 8,
-        #[doc(hidden)]
         /// Supports Enhanced REP MOVSB/STOSB if 1. (Bit 09)
         const CPU_FEATURE_REP_MOVSB_STOSB = 1 << 9,
-        #[doc(hidden)]
         /// INVPCID. If 1, supports INVPCID instruction for system software that manages process-context identifiers. (Bit 10)
         const CPU_FEATURE_INVPCID = 1 << 10,
-        #[doc(hidden)]
         /// RTM (Bit 11)
         const CPU_FEATURE_RTM = 1 << 11,
-        #[doc(hidden)]
         /// Supports Quality of Service Monitoring (QM) capability if 1. (Bit 12)
         const CPU_FEATURE_QM = 1 << 12,
-        #[doc(hidden)]
         /// Deprecates FPU CS and FPU DS values if 1. (Bit 13)
         const CPU_FEATURE_DEPRECATE_FPU_CS_DS = 1 << 13,
-        #[doc(hidden)]
         /// Deprecates FPU CS and FPU DS values if 1. (Bit 14)
         const CPU_FEATURE_MPX = 1 << 14,
 
@@ -1525,28 +1437,19 @@ impl PerformanceMonitoringInfo {
 }
 
 bitflags! {
-    #[doc(hidden)]
-    #[derive(Debug)]
     flags PerformanceMonitoringFeaturesEbx: u32 {
-        #[doc(hidden)]
         /// Core cycle event not available if 1. (Bit 0)
         const CPU_FEATURE_CORE_CYC_EV_UNAVAILABLE = 1 << 0,
-        #[doc(hidden)]
         /// Instruction retired event not available if 1. (Bit 01)
         const CPU_FEATURE_INST_RET_EV_UNAVAILABLE = 1 << 1,
-        #[doc(hidden)]
         /// Reference cycles event not available if 1. (Bit 02)
         const CPU_FEATURE_REF_CYC_EV_UNAVAILABLE = 1 << 2,
-        #[doc(hidden)]
         /// Last-level cache reference event not available if 1. (Bit 03)
         const CPU_FEATURE_CACHE_REF_EV_UNAVAILABLE = 1 << 3,
-        #[doc(hidden)]
         /// Last-level cache misses event not available if 1. (Bit 04)
         const CPU_FEATURE_LL_CACHE_MISS_EV_UNAVAILABLE = 1 << 4,
-        #[doc(hidden)]
         /// Branch instruction retired event not available if 1. (Bit 05)
         const CPU_FEATURE_BRANCH_INST_RET_EV_UNAVAILABLE = 1 << 5,
-        #[doc(hidden)]
         /// Branch mispredict retired event not available if 1. (Bit 06)
         const CPU_FEATURE_BRANCH_MISPRED_EV_UNAVAILABLE = 1 << 6,
     }
@@ -2228,40 +2131,27 @@ impl ExtendedFunctionInfo {
 
 }
 
-#[doc(hidden)]
 bitflags! {
-    #[doc(hidden)]
-    #[derive(Debug)]
     flags ExtendedFunctionInfoEcx: u32 {
-        #[doc(hidden)]
         /// LAHF/SAHF available in 64-bit mode.
         const CPU_FEATURE_LAHF_SAHF = 1 << 0,
-        #[doc(hidden)]
         /// Bit 05: LZCNT
         const CPU_FEATURE_LZCNT = 1 << 5,
-        #[doc(hidden)]
         /// Bit 08: PREFETCHW
         const CPU_FEATURE_PREFETCHW = 1 << 8,
     }
 }
 
 bitflags! {
-    #[doc(hidden)]
-    #[derive(Debug)]
     flags ExtendedFunctionInfoEdx: u32 {
-        #[doc(hidden)]
         /// SYSCALL/SYSRET available in 64-bit mode (Bit 11).
         const CPU_FEATURE_SYSCALL_SYSRET = 1 << 11,
-        #[doc(hidden)]
         /// Execute Disable Bit available (Bit 20).
         const CPU_FEATURE_EXECUTE_DISABLE = 1 << 20,
-        #[doc(hidden)]
         /// 1-GByte pages are available if 1 (Bit 26).
         const CPU_FEATURE_1GIB_PAGES = 1 << 26,
-        #[doc(hidden)]
         /// RDTSCP and IA32_TSC_AUX are available if 1 (Bit 27).
         const CPU_FEATURE_RDTSCP = 1 << 27,
-        #[doc(hidden)]
         /// Intel ® 64 Architecture available if 1 (Bit 29).
         const CPU_FEATURE_64BIT_MODE = 1 << 29,
     }
