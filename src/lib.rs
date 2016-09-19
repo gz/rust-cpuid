@@ -1043,7 +1043,7 @@ pub struct CacheParameter {
     edx: u32,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum CacheType {
     /// Null - No more caches
     NULL = 0,
