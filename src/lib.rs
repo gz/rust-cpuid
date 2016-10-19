@@ -2169,8 +2169,7 @@ fn genuine_intel() {
 fn feature_info() {
     let finfo = FeatureInfo { eax: 198313,
                               ebx: 34605056,
-                              ecx: FeatureInfoEcx { bits: 2109399999 },
-                              edx: FeatureInfoEdx { bits: 3219913727 }, };
+                              edx_ecx: FeatureInfoFlags { bits: 2109399999 | 3219913727 << 32 }, };
 
     assert!(finfo.model_id() == 10);
     assert!(finfo.extended_model_id() == 3);
@@ -2180,8 +2179,8 @@ fn feature_info() {
     assert!(finfo.stepping_id() == 9);
     assert!(finfo.brand_index() == 0);
 
-    assert!(finfo.edx.contains(CPU_FEATURE_SSE2));
-    assert!(finfo.ecx.contains(CPU_FEATURE_SSE41));
+    assert!(finfo.edx_ecx.contains(CPU_FEATURE_SSE2));
+    assert!(finfo.edx_ecx.contains(CPU_FEATURE_SSE41));
 }
 
 #[test]
