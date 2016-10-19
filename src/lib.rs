@@ -15,6 +15,7 @@ use core::str;
 use core::mem::transmute;
 use core::fmt;
 use core::slice;
+use core::cmp::min;
 
 #[cfg(not(test))]
 mod std {
@@ -410,7 +411,8 @@ impl CpuId {
                 CpuIdResult{eax: 0, ebx: 0, ecx: 0, edx: 0}
             ], };
 
-        for i in 1..ef.max_eax_value+1 {
+        let max_eax_value = min(ef.max_eax_value + 1, ef.data.len() as u32);
+        for i in 1..max_eax_value {
             ef.data[i as usize] = cpuid!(EAX_EXTENDED_FUNCTION_INFO + i);
         }
 
