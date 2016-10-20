@@ -15,6 +15,7 @@ use core::str;
 use core::mem::transmute;
 use core::fmt;
 use core::slice;
+use core::cmp::min;
 
 #[cfg(not(test))]
 mod std {
@@ -410,7 +411,8 @@ impl CpuId {
                 CpuIdResult{eax: 0, ebx: 0, ecx: 0, edx: 0}
             ], };
 
-        for i in 1..ef.max_eax_value+1 {
+        let max_eax_value = min(ef.max_eax_value + 1, ef.data.len() as u32);
+        for i in 1..max_eax_value {
             ef.data[i as usize] = cpuid!(EAX_EXTENDED_FUNCTION_INFO + i);
         }
 
@@ -2169,8 +2171,7 @@ fn genuine_intel() {
 fn feature_info() {
     let finfo = FeatureInfo { eax: 198313,
                               ebx: 34605056,
-                              ecx: FeatureInfoEcx { bits: 2109399999 },
-                              edx: FeatureInfoEdx { bits: 3219913727 }, };
+                              edx_ecx: FeatureInfoFlags { bits: 2109399999 | 3219913727 << 32 }, };
 
     assert!(finfo.model_id() == 10);
     assert!(finfo.extended_model_id() == 3);
@@ -2180,8 +2181,8 @@ fn feature_info() {
     assert!(finfo.stepping_id() == 9);
     assert!(finfo.brand_index() == 0);
 
-    assert!(finfo.edx.contains(CPU_FEATURE_SSE2));
-    assert!(finfo.ecx.contains(CPU_FEATURE_SSE41));
+    assert!(finfo.edx_ecx.contains(CPU_FEATURE_SSE2));
+    assert!(finfo.edx_ecx.contains(CPU_FEATURE_SSE41));
 }
 
 #[test]
