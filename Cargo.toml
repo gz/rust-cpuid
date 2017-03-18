@@ -2,6 +2,7 @@
 name = "raw-cpuid"
 version = "2.0.1"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
+build = "build.rs"
 
 description = "A library to parse the x86 CPUID instruction, written in rust with no external dependencies. The implementation closely resembles the Intel CPUID manual description. The library does only depend on libcore."
 homepage = "https://github.com/gz/rust-cpuid"
@@ -14,3 +15,6 @@ license = "MIT"
 
 [dependencies]
 bitflags = "0.7"
+
+[build-dependencies]
+gcc = "0.3"

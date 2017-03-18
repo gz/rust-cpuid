@@ -1,4 +1,3 @@
-#![feature(prelude_import, asm)]
 #![no_std]
 
 #![crate_name = "raw_cpuid"]
@@ -10,6 +9,10 @@ extern crate bitflags;
 #[cfg(test)]
 #[macro_use]
 extern crate std;
+
+extern "C" {
+    fn c_cpuid(a: *mut u32, b: *mut u32, c: *mut u32, d: *mut u32);
+}
 
 use core::str;
 use core::mem::transmute;
@@ -41,12 +44,11 @@ macro_rules! cpuid {
 /// Note: This is a low-level function to query cpuid directly.
 /// If in doubt use `CpuId` instead.
 pub fn cpuid2(mut eax: u32, mut ecx: u32) -> CpuIdResult {
-    let ebx: u32;
-    let edx: u32;
+    let mut ebx: u32 = 0;
+    let mut edx: u32 = 0;
 
     unsafe {
-        asm!("cpuid" : "+{eax}"(eax) "={ebx}"(ebx)
-                       "+{ecx}"(ecx) "={edx}"(edx));
+        c_cpuid(&mut eax, &mut ebx, &mut ecx, &mut edx);
     }
 
     CpuIdResult {
@@ -61,13 +63,12 @@ pub fn cpuid2(mut eax: u32, mut ecx: u32) -> CpuIdResult {
 /// Note: This is a low-level function to query cpuid directly.
 /// If in doubt use `CpuId` instead.
 pub fn cpuid1(mut eax: u32) -> CpuIdResult {
-    let ebx: u32;
-    let edx: u32;
-    let ecx: u32;
+    let mut ebx: u32 = 0;
+    let mut ecx: u32 = 0;
+    let mut edx: u32 = 0;
 
     unsafe {
-        asm!("cpuid" : "+{eax}"(eax) "={ebx}"(ebx)
-                       "={ecx}"(ecx) "={edx}"(edx));
+        c_cpuid(&mut eax, &mut ebx, &mut ecx, &mut edx);
     }
 
     CpuIdResult {
