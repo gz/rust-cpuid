@@ -1,5 +1,8 @@
 extern crate gcc;
 
 fn main() {
-    gcc::compile_library("libcpuid.a", &["src/cpuid.c"]);
+    gcc::Build::new()
+        .file("src/cpuid.c")
+        .compile("libcpuid.a");
+
 }

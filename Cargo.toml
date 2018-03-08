@@ -1,6 +1,6 @@
 [package]
 name = "raw-cpuid"
-version = "3.0.0"
+version = "3.1.0"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 build = "build.rs"
 
