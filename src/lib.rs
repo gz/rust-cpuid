@@ -157,6 +157,7 @@ const EAX_QOS_ENFORCEMENT_INFO: u32 = 0x10;
 const EAX_TRACE_INFO: u32 = 0x14;
 const EAX_TIME_STAMP_COUNTER_INFO: u32 = 0x15;
 const EAX_FREQUENCY_INFO: u32 = 0x16;
+const EAX_SOC_VENDOR_INFO: u32 = 0x17;
 const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x80000000;
 
 impl CpuId {
@@ -418,6 +419,20 @@ impl CpuId {
         }
     }
 
+    pub fn get_soc_vendor_info(&self) -> Option<SoCVendorInfo> {
+        let res = cpuid!(EAX_SOC_VENDOR_INFO, 0);
+        if self.leaf_is_supported(EAX_SOC_VENDOR_INFO) {
+            Some(SoCVendorInfo {
+                eax: res.eax,
+                ebx: res.ebx,
+                ecx: res.ecx,
+                edx: res.edx,
+            })
+        } else {
+            None
+        }
+    }
+
     /// Extended functionality of CPU described here (including more supported features).
     /// This also contains a more detailed CPU model identifier.
     pub fn get_extended_function_info(&self) -> Option<ExtendedFunctionInfo> {
@@ -492,6 +507,7 @@ impl CpuId {
 
         Some(ef)
     }
+
 }
 
 #[derive(Debug)]
@@ -599,7 +615,7 @@ impl fmt::Display for CacheInfo {
 }
 
 /// This table is taken from Intel manual (Section CPUID instruction).
-pub const CACHE_INFO_TABLE: [CacheInfo; 103] =
+pub const CACHE_INFO_TABLE: [CacheInfo; 107] =
     [CacheInfo {
          num: 0x00,
          typ: CacheInfoType::GENERAL,
@@ -881,6 +897,26 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 103] =
          num: 0x68,
          typ: CacheInfoType::CACHE,
          desc: "1st-level data cache: 32 KByte, 4-way set associative, 64 byte line size",
+     },
+     CacheInfo {
+         num: 0x6A,
+         typ: CacheInfoType::CACHE,
+         desc: "uTLB: 4 KByte pages, 8-way set associative, 64 entries",
+     },
+     CacheInfo {
+         num: 0x6B,
+         typ: CacheInfoType::CACHE,
+         desc: "DTLB: 4 KByte pages, 8-way set associative, 256 entries",
+     },
+     CacheInfo {
+         num: 0x6C,
+         typ: CacheInfoType::CACHE,
+         desc: "DTLB: 2M/4M pages, 8-way set associative, 128 entries",
+     },
+     CacheInfo {
+         num: 0x6D,
+         typ: CacheInfoType::CACHE,
+         desc: "DTLB: 1 GByte pages, fully associative, 16 entries",
      },
      CacheInfo {
          num: 0x70,
@@ -2027,6 +2063,11 @@ impl ExtendedFeatures {
 
     check_flag!(doc = "AVX2", has_avx2, ebx, CPU_FEATURE_AVX2);
 
+    check_flag!(doc = "FDP_EXCPTN_ONLY. x87 FPU Data Pointer updated only on x87 exceptions if 1.", 
+                has_fdp, 
+                ebx, 
+                CPU_FEATURE_FDP);
+
     check_flag!(doc = "SMEP. Supports Supervisor-Mode Execution Prevention if 1.",
                 has_smep,
                 ebx,
@@ -2061,6 +2102,37 @@ impl ExtendedFeatures {
                 has_mpx,
                 ebx,
                 CPU_FEATURE_MPX);
+
+    check_flag!(doc = "Supports Platform Quality of Service Enforcement (PQE) capability if 1.",
+                has_pqe,
+                ebx,
+                CPU_FEATURE_PQE);
+
+    check_flag!(doc = "Supports RDSEED.",
+                has_rdseet,
+                ebx,
+                CPU_FEATURE_RDSEED);
+
+    check_flag!(doc = "Supports ADX.",
+                has_adx,
+                ebx,
+                CPU_FEATURE_ADX);
+
+    check_flag!(doc = "SMAP. Supports Supervisor-Mode Access Prevention (and the CLAC/STAC instructions) if 1.",
+                has_smap,
+                ebx,
+                CPU_FEATURE_SMAP);
+
+    check_flag!(doc = "Supports CLFLUSHOPT.",
+                has_clflushopt,
+                ebx,
+                CPU_FEATURE_CLFLUSHOPT);
+
+    check_flag!(doc = "Supports Intel Processor Trace.",
+                has_processor_trace,
+                ebx,
+                CPU_FEATURE_PROCESSOR_TRACE);
+
 }
 
 
@@ -2076,6 +2148,8 @@ bitflags! {
         const CPU_FEATURE_HLE = 1 << 4,
         /// AVX2 (Bit 05)
         const CPU_FEATURE_AVX2 = 1 << 5,
+        /// FDP_EXCPTN_ONLY. x87 FPU Data Pointer updated only on x87 exceptions if 1.
+        const CPU_FEATURE_FDP = 1 << 6,
         /// SMEP. Supports Supervisor-Mode Execution Prevention if 1. (Bit 07)
         const CPU_FEATURE_SMEP = 1 << 7,
         /// BMI2 (Bit 08)
@@ -2092,7 +2166,18 @@ bitflags! {
         const CPU_FEATURE_DEPRECATE_FPU_CS_DS = 1 << 13,
         /// Deprecates FPU CS and FPU DS values if 1. (Bit 14)
         const CPU_FEATURE_MPX = 1 << 14,
-
+        /// Supports Platform Quality of Service Enforcement (PQE) capability if 1.
+        const CPU_FEATURE_PQE = 1 << 15,
+        /// Supports RDSEED.
+        const CPU_FEATURE_RDSEED = 1 << 18,
+        /// Supports ADX.
+        const CPU_FEATURE_ADX = 1 << 19,
+        /// SMAP. Supports Supervisor-Mode Access Prevention (and the CLAC/STAC instructions) if 1.
+        const CPU_FEATURE_SMAP = 1 << 20,
+        /// Bit 23: CLFLUSHOPT
+        const CPU_FEATURE_CLFLUSHOPT = 1 << 23,
+        /// Bit 25: Intel Processor Trace
+        const CPU_FEATURE_PROCESSOR_TRACE = 1 << 25,
     }
 }
 
@@ -2753,6 +2838,90 @@ impl ProcessorFrequencyInfo {
     /// Bus (Reference) Frequency (in MHz).
     pub fn bus_frequency(&self) -> u16 {
         get_bits(self.ecx, 0, 15) as u16
+    }
+}
+
+#[derive(Debug)]
+pub struct SoCVendorInfo {
+    /// MaxSOCID_Index
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    edx: u32
+}
+
+impl SoCVendorInfo {
+
+    pub fn get_soc_vendor_id(&self) -> u16 {
+        get_bits(self.ebx, 0, 15) as u16
+    }
+
+    pub fn get_project_id(&self) -> u32 {
+        self.ecx
+    }
+
+    pub fn get_stepping_id(&self) -> u32 {
+        self.edx
+    }
+
+    pub fn get_vendor_brand(&self) -> SoCVendorBrand {
+        assert!(self.eax >= 3); // Leaf 17H is valid if MaxSOCID_Index >= 3.
+        let r1 = cpuid!(EAX_SOC_VENDOR_INFO, 1);
+        let r2 = cpuid!(EAX_SOC_VENDOR_INFO, 2);
+        let r3 = cpuid!(EAX_SOC_VENDOR_INFO, 3);
+        SoCVendorBrand { data: [r1, r2, r3] }
+    }
+
+    pub fn get_vendor_attributes(&self) -> Option<SoCVendorAttributesIter> {
+        if self.eax > 3 {
+            Some(SoCVendorAttributesIter { count: self.eax, current: 3 })
+        }
+        else {
+            None
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct SoCVendorAttributesIter {
+    count: u32,
+    current: u32
+}
+
+impl Iterator for SoCVendorAttributesIter {
+    type Item = CpuIdResult;
+
+    /// Iterate over all SoC vendor specific attributes.
+    fn next(&mut self) -> Option<CpuIdResult> {
+        if self.current > self.count {
+            return None;
+        }
+        self.count += 1;
+        Some(cpuid!(EAX_SOC_VENDOR_INFO, self.count))
+    }
+}
+
+#[derive(Debug)]
+pub struct SoCVendorBrand {
+    #[allow(dead_code)]
+    data: [CpuIdResult; 3]
+}
+
+impl SoCVendorBrand {
+
+    pub fn as_string(&self) -> &str {
+        unsafe {
+            let brand_string_start = transmute::<&SoCVendorBrand, *const u8>(&self);
+            let slice = slice::from_raw_parts(brand_string_start, core::mem::size_of::<SoCVendorBrand>());
+            let byte_array: &'static [u8] = transmute(slice);
+            str::from_utf8_unchecked(byte_array)
+        }
+    }
+}
+
+impl fmt::Display for SoCVendorBrand {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_string())
     }
 }
 
