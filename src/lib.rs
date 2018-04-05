@@ -1,4 +1,5 @@
 #![no_std]
+#![cfg_attr(feature = "nightly", feature(asm))]
 
 #![crate_name = "raw_cpuid"]
 #![crate_type = "lib"]
@@ -10,8 +11,17 @@ extern crate bitflags;
 #[macro_use]
 extern crate std;
 
+#[cfg(not(feature = "nightly"))]
 extern "C" {
     fn c_cpuid(a: *mut u32, b: *mut u32, c: *mut u32, d: *mut u32);
+}
+
+#[cfg(feature = "nightly")]
+unsafe fn c_cpuid(a: &mut u32, b: &mut u32, c: &mut u32, d: &mut u32) {
+    asm!("cpuid"
+      : "+{eax}"(*a), "={ebx}"(*b), "+{ecx}"(*c), "={edx}"(*d)
+      : : : "volatile"
+    );
 }
 
 use core::str;
