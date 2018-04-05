@@ -1,4 +1,5 @@
 #![no_std]
+#![cfg_attr(feature = "nightly", feature(asm))]
 
 #![feature(asm)]
 
@@ -144,375 +145,375 @@ pub struct CpuIdResult {
     pub edx: u32,
 }
 
-const EAX_VENDOR_INFO: u32 = 0x0;
-const EAX_FEATURE_INFO: u32 = 0x1;
-const EAX_CACHE_INFO: u32 = 0x2;
-const EAX_PROCESSOR_SERIAL: u32 = 0x3;
-const EAX_CACHE_PARAMETERS: u32 = 0x4;
-const EAX_MONITOR_MWAIT_INFO: u32 = 0x5;
-const EAX_THERMAL_POWER_INFO: u32 = 0x6;
-const EAX_STRUCTURED_EXTENDED_FEATURE_INFO: u32 = 0x7;
-const EAX_DIRECT_CACHE_ACCESS_INFO: u32 = 0x9;
-const EAX_PERFORMANCE_MONITOR_INFO: u32 = 0xA;
-const EAX_EXTENDED_TOPOLOGY_INFO: u32 = 0xB;
-const EAX_EXTENDED_STATE_INFO: u32 = 0xD;
-const EAX_QOS_INFO: u32 = 0xF;
-const EAX_QOS_ENFORCEMENT_INFO: u32 = 0x10;
-const EAX_TRACE_INFO: u32 = 0x14;
-const EAX_TIME_STAMP_COUNTER_INFO: u32 = 0x15;
-const EAX_FREQUENCY_INFO: u32 = 0x16;
-const EAX_SOC_VENDOR_INFO: u32 = 0x17;
-const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x80000000;
+    const EAX_VENDOR_INFO: u32 = 0x0;
+    const EAX_FEATURE_INFO: u32 = 0x1;
+    const EAX_CACHE_INFO: u32 = 0x2;
+    const EAX_PROCESSOR_SERIAL: u32 = 0x3;
+    const EAX_CACHE_PARAMETERS: u32 = 0x4;
+    const EAX_MONITOR_MWAIT_INFO: u32 = 0x5;
+    const EAX_THERMAL_POWER_INFO: u32 = 0x6;
+    const EAX_STRUCTURED_EXTENDED_FEATURE_INFO: u32 = 0x7;
+    const EAX_DIRECT_CACHE_ACCESS_INFO: u32 = 0x9;
+    const EAX_PERFORMANCE_MONITOR_INFO: u32 = 0xA;
+    const EAX_EXTENDED_TOPOLOGY_INFO: u32 = 0xB;
+    const EAX_EXTENDED_STATE_INFO: u32 = 0xD;
+    const EAX_QOS_INFO: u32 = 0xF;
+    const EAX_QOS_ENFORCEMENT_INFO: u32 = 0x10;
+    const EAX_TRACE_INFO: u32 = 0x14;
+    const EAX_TIME_STAMP_COUNTER_INFO: u32 = 0x15;
+    const EAX_FREQUENCY_INFO: u32 = 0x16;
+    const EAX_SOC_VENDOR_INFO: u32 = 0x17;
+    const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x80000000;
 
-impl CpuId {
-    /// Return new CPUID struct.
-    pub fn new() -> CpuId {
-        let res = cpuid!(EAX_VENDOR_INFO);
-        CpuId { max_eax_value: res.eax }
-    }
-
-    fn leaf_is_supported(&self, val: u32) -> bool {
-        val <= self.max_eax_value
-    }
-
-    /// Return information about vendor.
-    /// This is typically a ASCII readable string such as
-    /// GenuineIntel for Intel CPUs or AuthenticAMD for AMD CPUs.
-    pub fn get_vendor_info(&self) -> Option<VendorInfo> {
-        if self.leaf_is_supported(EAX_VENDOR_INFO) {
+    impl CpuId {
+        /// Return new CPUID struct.
+        pub fn new() -> CpuId {
             let res = cpuid!(EAX_VENDOR_INFO);
-            Some(VendorInfo {
-                ebx: res.ebx,
-                ecx: res.ecx,
-                edx: res.edx,
-            })
-        } else {
-            None
+            CpuId { max_eax_value: res.eax }
         }
+
+        fn leaf_is_supported(&self, val: u32) -> bool {
+            val <= self.max_eax_value
+        }
+
+        /// Return information about vendor.
+        /// This is typically a ASCII readable string such as
+        /// GenuineIntel for Intel CPUs or AuthenticAMD for AMD CPUs.
+        pub fn get_vendor_info(&self) -> Option<VendorInfo> {
+            if self.leaf_is_supported(EAX_VENDOR_INFO) {
+                let res = cpuid!(EAX_VENDOR_INFO);
+                Some(VendorInfo {
+                    ebx: res.ebx,
+                    ecx: res.ecx,
+                    edx: res.edx,
+                })
+            } else {
+                None
+            }
+        }
+
+        /// Query a set of features that are available on this CPU.
+        pub fn get_feature_info(&self) -> Option<FeatureInfo> {
+            if self.leaf_is_supported(EAX_FEATURE_INFO) {
+                let res = cpuid!(EAX_FEATURE_INFO);
+                Some(FeatureInfo {
+                    eax: res.eax,
+                    ebx: res.ebx,
+                    edx_ecx: FeatureInfoFlags { bits: (((res.edx as u64) << 32) | (res.ecx as u64)) },
+                })
+            } else {
+                None
+            }
+        }
+
+        /// Query basic information about caches. This will just return an index
+        /// into a static table of cache descriptions (see `CACHE_INFO_TABLE`).
+        pub fn get_cache_info(&self) -> Option<CacheInfoIter> {
+            if self.leaf_is_supported(EAX_CACHE_INFO) {
+                let res = cpuid!(EAX_CACHE_INFO);
+                Some(CacheInfoIter {
+                    current: 1,
+                    eax: res.eax,
+                    ebx: res.ebx,
+                    ecx: res.ecx,
+                    edx: res.edx,
+                })
+            } else {
+                None
+            }
+        }
+
+        /// Retrieve serial number of processor.
+        pub fn get_processor_serial(&self) -> Option<ProcessorSerial> {
+            if self.leaf_is_supported(EAX_PROCESSOR_SERIAL) {
+                let res = cpuid!(EAX_PROCESSOR_SERIAL);
+                Some(ProcessorSerial {
+                    ecx: res.ecx,
+                    edx: res.edx,
+                })
+            } else {
+                None
+            }
+
+        }
+
+        /// Retrieve more elaborate information about caches (as opposed
+        /// to `get_cache_info`). This will tell us about associativity,
+        /// set size, line size etc. for each level of the cache hierarchy.
+        pub fn get_cache_parameters(&self) -> Option<CacheParametersIter> {
+            if self.leaf_is_supported(EAX_CACHE_PARAMETERS) {
+                Some(CacheParametersIter { current: 0 })
+            } else {
+                None
+            }
+        }
+
+        /// Information about how monitor/mwait works on this CPU.
+        pub fn get_monitor_mwait_info(&self) -> Option<MonitorMwaitInfo> {
+            if self.leaf_is_supported(EAX_MONITOR_MWAIT_INFO) {
+                let res = cpuid!(EAX_MONITOR_MWAIT_INFO);
+                Some(MonitorMwaitInfo {
+                    eax: res.eax,
+                    ebx: res.ebx,
+                    ecx: res.ecx,
+                    edx: res.edx,
+                })
+            } else {
+                None
+            }
+        }
+
+        /// Query information about thermal and power management features of the CPU.
+        pub fn get_thermal_power_info(&self) -> Option<ThermalPowerInfo> {
+            if self.leaf_is_supported(EAX_THERMAL_POWER_INFO) {
+                let res = cpuid!(EAX_THERMAL_POWER_INFO);
+                Some(ThermalPowerInfo {
+                    eax: ThermalPowerFeaturesEax { bits: res.eax },
+                    ebx: res.ebx,
+                    ecx: ThermalPowerFeaturesEcx { bits: res.ecx },
+                    edx: res.edx,
+                })
+            } else {
+                None
+            }
+        }
+
+        /// Find out about more features supported by this CPU.
+        pub fn get_extended_feature_info(&self) -> Option<ExtendedFeatures> {
+            if self.leaf_is_supported(EAX_STRUCTURED_EXTENDED_FEATURE_INFO) {
+                let res = cpuid!(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
+                assert!(res.eax == 0);
+                Some(ExtendedFeatures {
+                    eax: res.eax,
+                    ebx: ExtendedFeaturesEbx { bits: res.ebx },
+                    ecx: res.ecx,
+                    edx: res.edx,
+                })
+            } else {
+                None
+            }
+
+        }
+
+        /// Direct cache access info.
+        pub fn get_direct_cache_access_info(&self) -> Option<DirectCacheAccessInfo> {
+            if self.leaf_is_supported(EAX_DIRECT_CACHE_ACCESS_INFO) {
+                let res = cpuid!(EAX_DIRECT_CACHE_ACCESS_INFO);
+                Some(DirectCacheAccessInfo { eax: res.eax })
+            } else {
+                None
+            }
+        }
+
+        /// Info about performance monitoring (how many counters etc.).
+        pub fn get_performance_monitoring_info(&self) -> Option<PerformanceMonitoringInfo> {
+            if self.leaf_is_supported(EAX_PERFORMANCE_MONITOR_INFO) {
+                let res = cpuid!(EAX_PERFORMANCE_MONITOR_INFO);
+                Some(PerformanceMonitoringInfo {
+                    eax: res.eax,
+                    ebx: PerformanceMonitoringFeaturesEbx { bits: res.ebx },
+                    ecx: res.ecx,
+                    edx: res.edx,
+                })
+            } else {
+                None
+            }
+        }
+
+        /// Information about topology (how many cores and what kind of cores).
+        pub fn get_extended_topology_info(&self) -> Option<ExtendedTopologyIter> {
+            if self.leaf_is_supported(EAX_EXTENDED_TOPOLOGY_INFO) {
+                Some(ExtendedTopologyIter { level: 0 })
+            } else {
+                None
+            }
+        }
+
+        /// Information for saving/restoring extended register state.
+        pub fn get_extended_state_info(&self) -> Option<ExtendedStateInfo> {
+            if self.leaf_is_supported(EAX_EXTENDED_STATE_INFO) {
+                let res = cpuid!(EAX_EXTENDED_STATE_INFO, 0);
+                let res1 = cpuid!(EAX_EXTENDED_STATE_INFO, 1);
+                Some(ExtendedStateInfo {
+                    eax: res.eax,
+                    ebx: res.ebx,
+                    ecx: res.ecx,
+                    edx: res.edx,
+                    eax1: res1.eax,
+                })
+            } else {
+                None
+            }
+        }
+
+        /// Quality of service informations.
+        pub fn get_qos_info(&self) -> Option<QoSInfo> {
+            let res = cpuid!(EAX_QOS_INFO, 0);
+            let res1 = cpuid!(EAX_QOS_INFO, 1);
+
+            if self.leaf_is_supported(EAX_QOS_INFO) {
+                Some(QoSInfo {
+                    ebx0: res.ebx,
+                    edx0: res.edx,
+                    ebx1: res1.ebx,
+                    ecx1: res1.ecx,
+                    edx1: res1.edx,
+                })
+            } else {
+                None
+            }
+        }
+
+        /// Quality of service enforcement information.
+        pub fn get_qos_enforcement_info(&self) -> Option<QoSEnforcementInfo> {
+            let res = cpuid!(EAX_QOS_ENFORCEMENT_INFO, 0);
+            let res1 = cpuid!(EAX_QOS_ENFORCEMENT_INFO, 1);
+
+            if self.leaf_is_supported(EAX_QOS_ENFORCEMENT_INFO) {
+                Some(QoSEnforcementInfo {
+                    ebx0: res.ebx,
+                    eax1: res1.eax,
+                    ebx1: res1.ebx,
+                    ecx1: res1.ecx,
+                    edx1: res1.edx,
+                })
+            } else {
+                None
+            }
+        }
+
+        /// Intel Processor Trace Enumeration Information.
+        pub fn get_processor_trace_info(&self) -> Option<ProcessorTraceInfo> {
+            let res = cpuid!(EAX_TRACE_INFO, 0);
+            if self.leaf_is_supported(EAX_TRACE_INFO) {
+                Some(ProcessorTraceInfo {
+                    eax: res.eax,
+                    ebx: res.ebx,
+                    ecx: res.ecx,
+                    edx: res.edx,
+                })
+            } else {
+                None
+            }
+        }
+
+        /// Time Stamp Counter/Core Crystal Clock Information.
+        pub fn get_tsc_info(&self) -> Option<TscInfo> {
+            let res = cpuid!(EAX_TIME_STAMP_COUNTER_INFO, 0);
+            if self.leaf_is_supported(EAX_TIME_STAMP_COUNTER_INFO) {
+                Some(TscInfo {
+                    eax: res.eax,
+                    ebx: res.ebx,
+                })
+            } else {
+                None
+            }
+        }
+
+        /// Processor Frequency Information.
+        pub fn get_processor_frequency_info(&self) -> Option<ProcessorFrequencyInfo> {
+            let res = cpuid!(EAX_FREQUENCY_INFO, 0);
+            if self.leaf_is_supported(EAX_FREQUENCY_INFO) {
+                Some(ProcessorFrequencyInfo {
+                    eax: res.eax,
+                    ebx: res.ebx,
+                    ecx: res.ecx,
+                })
+            } else {
+                None
+            }
+        }
+
+        pub fn get_soc_vendor_info(&self) -> Option<SoCVendorInfo> {
+            let res = cpuid!(EAX_SOC_VENDOR_INFO, 0);
+            if self.leaf_is_supported(EAX_SOC_VENDOR_INFO) {
+                Some(SoCVendorInfo {
+                    eax: res.eax,
+                    ebx: res.ebx,
+                    ecx: res.ecx,
+                    edx: res.edx,
+                })
+            } else {
+                None
+            }
+        }
+
+        /// Extended functionality of CPU described here (including more supported features).
+        /// This also contains a more detailed CPU model identifier.
+        pub fn get_extended_function_info(&self) -> Option<ExtendedFunctionInfo> {
+            let res = cpuid!(EAX_EXTENDED_FUNCTION_INFO);
+
+            if res.eax == 0 {
+                return None;
+            }
+
+            let mut ef = ExtendedFunctionInfo {
+                max_eax_value: res.eax - EAX_EXTENDED_FUNCTION_INFO,
+                data: [CpuIdResult {
+                    eax: res.eax,
+                    ebx: res.ebx,
+                    ecx: res.ecx,
+                    edx: res.edx,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                }],
+            };
+
+            let max_eax_value = min(ef.max_eax_value + 1, ef.data.len() as u32);
+            for i in 1..max_eax_value {
+                ef.data[i as usize] = cpuid!(EAX_EXTENDED_FUNCTION_INFO + i);
+            }
+
+            Some(ef)
+        }
+
     }
-
-    /// Query a set of features that are available on this CPU.
-    pub fn get_feature_info(&self) -> Option<FeatureInfo> {
-        if self.leaf_is_supported(EAX_FEATURE_INFO) {
-            let res = cpuid!(EAX_FEATURE_INFO);
-            Some(FeatureInfo {
-                eax: res.eax,
-                ebx: res.ebx,
-                edx_ecx: FeatureInfoFlags { bits: (((res.edx as u64) << 32) | (res.ecx as u64)) },
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Query basic information about caches. This will just return an index
-    /// into a static table of cache descriptions (see `CACHE_INFO_TABLE`).
-    pub fn get_cache_info(&self) -> Option<CacheInfoIter> {
-        if self.leaf_is_supported(EAX_CACHE_INFO) {
-            let res = cpuid!(EAX_CACHE_INFO);
-            Some(CacheInfoIter {
-                current: 1,
-                eax: res.eax,
-                ebx: res.ebx,
-                ecx: res.ecx,
-                edx: res.edx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Retrieve serial number of processor.
-    pub fn get_processor_serial(&self) -> Option<ProcessorSerial> {
-        if self.leaf_is_supported(EAX_PROCESSOR_SERIAL) {
-            let res = cpuid!(EAX_PROCESSOR_SERIAL);
-            Some(ProcessorSerial {
-                ecx: res.ecx,
-                edx: res.edx,
-            })
-        } else {
-            None
-        }
-
-    }
-
-    /// Retrieve more elaborate information about caches (as opposed
-    /// to `get_cache_info`). This will tell us about associativity,
-    /// set size, line size etc. for each level of the cache hierarchy.
-    pub fn get_cache_parameters(&self) -> Option<CacheParametersIter> {
-        if self.leaf_is_supported(EAX_CACHE_PARAMETERS) {
-            Some(CacheParametersIter { current: 0 })
-        } else {
-            None
-        }
-    }
-
-    /// Information about how monitor/mwait works on this CPU.
-    pub fn get_monitor_mwait_info(&self) -> Option<MonitorMwaitInfo> {
-        if self.leaf_is_supported(EAX_MONITOR_MWAIT_INFO) {
-            let res = cpuid!(EAX_MONITOR_MWAIT_INFO);
-            Some(MonitorMwaitInfo {
-                eax: res.eax,
-                ebx: res.ebx,
-                ecx: res.ecx,
-                edx: res.edx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Query information about thermal and power management features of the CPU.
-    pub fn get_thermal_power_info(&self) -> Option<ThermalPowerInfo> {
-        if self.leaf_is_supported(EAX_THERMAL_POWER_INFO) {
-            let res = cpuid!(EAX_THERMAL_POWER_INFO);
-            Some(ThermalPowerInfo {
-                eax: ThermalPowerFeaturesEax { bits: res.eax },
-                ebx: res.ebx,
-                ecx: ThermalPowerFeaturesEcx { bits: res.ecx },
-                edx: res.edx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Find out about more features supported by this CPU.
-    pub fn get_extended_feature_info(&self) -> Option<ExtendedFeatures> {
-        if self.leaf_is_supported(EAX_STRUCTURED_EXTENDED_FEATURE_INFO) {
-            let res = cpuid!(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
-            assert!(res.eax == 0);
-            Some(ExtendedFeatures {
-                eax: res.eax,
-                ebx: ExtendedFeaturesEbx { bits: res.ebx },
-                ecx: res.ecx,
-                edx: res.edx,
-            })
-        } else {
-            None
-        }
-
-    }
-
-    /// Direct cache access info.
-    pub fn get_direct_cache_access_info(&self) -> Option<DirectCacheAccessInfo> {
-        if self.leaf_is_supported(EAX_DIRECT_CACHE_ACCESS_INFO) {
-            let res = cpuid!(EAX_DIRECT_CACHE_ACCESS_INFO);
-            Some(DirectCacheAccessInfo { eax: res.eax })
-        } else {
-            None
-        }
-    }
-
-    /// Info about performance monitoring (how many counters etc.).
-    pub fn get_performance_monitoring_info(&self) -> Option<PerformanceMonitoringInfo> {
-        if self.leaf_is_supported(EAX_PERFORMANCE_MONITOR_INFO) {
-            let res = cpuid!(EAX_PERFORMANCE_MONITOR_INFO);
-            Some(PerformanceMonitoringInfo {
-                eax: res.eax,
-                ebx: PerformanceMonitoringFeaturesEbx { bits: res.ebx },
-                ecx: res.ecx,
-                edx: res.edx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Information about topology (how many cores and what kind of cores).
-    pub fn get_extended_topology_info(&self) -> Option<ExtendedTopologyIter> {
-        if self.leaf_is_supported(EAX_EXTENDED_TOPOLOGY_INFO) {
-            Some(ExtendedTopologyIter { level: 0 })
-        } else {
-            None
-        }
-    }
-
-    /// Information for saving/restoring extended register state.
-    pub fn get_extended_state_info(&self) -> Option<ExtendedStateInfo> {
-        if self.leaf_is_supported(EAX_EXTENDED_STATE_INFO) {
-            let res = cpuid!(EAX_EXTENDED_STATE_INFO, 0);
-            let res1 = cpuid!(EAX_EXTENDED_STATE_INFO, 1);
-            Some(ExtendedStateInfo {
-                eax: res.eax,
-                ebx: res.ebx,
-                ecx: res.ecx,
-                edx: res.edx,
-                eax1: res1.eax,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Quality of service informations.
-    pub fn get_qos_info(&self) -> Option<QoSInfo> {
-        let res = cpuid!(EAX_QOS_INFO, 0);
-        let res1 = cpuid!(EAX_QOS_INFO, 1);
-
-        if self.leaf_is_supported(EAX_QOS_INFO) {
-            Some(QoSInfo {
-                ebx0: res.ebx,
-                edx0: res.edx,
-                ebx1: res1.ebx,
-                ecx1: res1.ecx,
-                edx1: res1.edx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Quality of service enforcement information.
-    pub fn get_qos_enforcement_info(&self) -> Option<QoSEnforcementInfo> {
-        let res = cpuid!(EAX_QOS_ENFORCEMENT_INFO, 0);
-        let res1 = cpuid!(EAX_QOS_ENFORCEMENT_INFO, 1);
-
-        if self.leaf_is_supported(EAX_QOS_ENFORCEMENT_INFO) {
-            Some(QoSEnforcementInfo {
-                ebx0: res.ebx,
-                eax1: res1.eax,
-                ebx1: res1.ebx,
-                ecx1: res1.ecx,
-                edx1: res1.edx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Intel Processor Trace Enumeration Information.
-    pub fn get_processor_trace_info(&self) -> Option<ProcessorTraceInfo> {
-        let res = cpuid!(EAX_TRACE_INFO, 0);
-        if self.leaf_is_supported(EAX_TRACE_INFO) {
-            Some(ProcessorTraceInfo {
-                eax: res.eax,
-                ebx: res.ebx,
-                ecx: res.ecx,
-                edx: res.edx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Time Stamp Counter/Core Crystal Clock Information.
-    pub fn get_tsc_info(&self) -> Option<TscInfo> {
-        let res = cpuid!(EAX_TIME_STAMP_COUNTER_INFO, 0);
-        if self.leaf_is_supported(EAX_TIME_STAMP_COUNTER_INFO) {
-            Some(TscInfo {
-                eax: res.eax,
-                ebx: res.ebx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Processor Frequency Information.
-    pub fn get_processor_frequency_info(&self) -> Option<ProcessorFrequencyInfo> {
-        let res = cpuid!(EAX_FREQUENCY_INFO, 0);
-        if self.leaf_is_supported(EAX_FREQUENCY_INFO) {
-            Some(ProcessorFrequencyInfo {
-                eax: res.eax,
-                ebx: res.ebx,
-                ecx: res.ecx,
-            })
-        } else {
-            None
-        }
-    }
-
-    pub fn get_soc_vendor_info(&self) -> Option<SoCVendorInfo> {
-        let res = cpuid!(EAX_SOC_VENDOR_INFO, 0);
-        if self.leaf_is_supported(EAX_SOC_VENDOR_INFO) {
-            Some(SoCVendorInfo {
-                eax: res.eax,
-                ebx: res.ebx,
-                ecx: res.ecx,
-                edx: res.edx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Extended functionality of CPU described here (including more supported features).
-    /// This also contains a more detailed CPU model identifier.
-    pub fn get_extended_function_info(&self) -> Option<ExtendedFunctionInfo> {
-        let res = cpuid!(EAX_EXTENDED_FUNCTION_INFO);
-
-        if res.eax == 0 {
-            return None;
-        }
-
-        let mut ef = ExtendedFunctionInfo {
-            max_eax_value: res.eax - EAX_EXTENDED_FUNCTION_INFO,
-            data: [CpuIdResult {
-                eax: res.eax,
-                ebx: res.ebx,
-                ecx: res.ecx,
-                edx: res.edx,
-            },
-            CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 0,
-                edx: 0,
-            },
-            CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 0,
-                edx: 0,
-            },
-            CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 0,
-                edx: 0,
-            },
-            CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 0,
-                edx: 0,
-            },
-            CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 0,
-                edx: 0,
-            },
-            CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 0,
-                edx: 0,
-            },
-            CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 0,
-                edx: 0,
-            },
-            CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 0,
-                edx: 0,
-            }],
-        };
-
-        let max_eax_value = min(ef.max_eax_value + 1, ef.data.len() as u32);
-        for i in 1..max_eax_value {
-            ef.data[i as usize] = cpuid!(EAX_EXTENDED_FUNCTION_INFO + i);
-        }
-
-        Some(ef)
-    }
-
-}
 
 #[derive(Debug)]
 pub struct VendorInfo {
@@ -1752,9 +1753,9 @@ bitflags! {
     }
 }
 
-pub struct CacheParametersIter {
-    current: u32,
-}
+        pub struct CacheParametersIter {
+            current: u32,
+        }
 
 impl Iterator for CacheParametersIter {
     type Item = CacheParameter;
@@ -2025,15 +2026,15 @@ bitflags! {
     }
 }
 
-bitflags! {
-    flags ThermalPowerFeaturesEcx: u32 {
-        /// Hardware Coordination Feedback Capability (Presence of IA32_MPERF and IA32_APERF). The capability to provide a measure of delivered processor performance (since last reset of the counters), as a percentage of expected processor performance at frequency specified in CPUID Brand String Bits 02 - 01
-        const CPU_FEATURE_HW_COORD_FEEDBACK = 1 << 0,
+        bitflags! {
+            flags ThermalPowerFeaturesEcx: u32 {
+                /// Hardware Coordination Feedback Capability (Presence of IA32_MPERF and IA32_APERF). The capability to provide a measure of delivered processor performance (since last reset of the counters), as a percentage of expected processor performance at frequency specified in CPUID Brand String Bits 02 - 01
+                const CPU_FEATURE_HW_COORD_FEEDBACK = 1 << 0,
 
-        /// The processor supports performance-energy bias preference if CPUID.06H:ECX.SETBH[bit 3] is set and it also implies the presence of a new architectural MSR called IA32_ENERGY_PERF_BIAS (1B0H)
-        const CPU_FEATURE_ENERGY_BIAS_PREF = 1 << 3,
-    }
-}
+                /// The processor supports performance-energy bias preference if CPUID.06H:ECX.SETBH[bit 3] is set and it also implies the presence of a new architectural MSR called IA32_ENERGY_PERF_BIAS (1B0H)
+                const CPU_FEATURE_ENERGY_BIAS_PREF = 1 << 3,
+            }
+        }
 
 impl ThermalPowerInfo {
     /// Number of Interrupt Thresholds in Digital Thermal Sensor
@@ -2185,7 +2186,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug)]
+        #[derive(Debug)]
 pub struct DirectCacheAccessInfo {
     eax: u32,
 }
@@ -2293,7 +2294,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug)]
+        #[derive(Debug)]
 pub struct ExtendedTopologyIter {
     level: u32,
 }
@@ -2394,7 +2395,7 @@ enum ExtendedStateIdent {
     PKRU = 1 << 9,
 }
 
-#[derive(Debug)]
+    #[derive(Debug)]
 pub struct ExtendedStateInfo {
     eax: u32,
     ebx: u32,
@@ -3098,20 +3099,20 @@ bitflags! {
     }
 }
 
-bitflags! {
-    flags ExtendedFunctionInfoEdx: u32 {
-        /// SYSCALL/SYSRET available in 64-bit mode (Bit 11).
-        const CPU_FEATURE_SYSCALL_SYSRET = 1 << 11,
-        /// Execute Disable Bit available (Bit 20).
-        const CPU_FEATURE_EXECUTE_DISABLE = 1 << 20,
-        /// 1-GByte pages are available if 1 (Bit 26).
-        const CPU_FEATURE_1GIB_PAGES = 1 << 26,
-        /// RDTSCP and IA32_TSC_AUX are available if 1 (Bit 27).
-        const CPU_FEATURE_RDTSCP = 1 << 27,
-        /// Intel ® 64 Architecture available if 1 (Bit 29).
-        const CPU_FEATURE_64BIT_MODE = 1 << 29,
-    }
-}
+        bitflags! {
+            flags ExtendedFunctionInfoEdx: u32 {
+                /// SYSCALL/SYSRET available in 64-bit mode (Bit 11).
+                const CPU_FEATURE_SYSCALL_SYSRET = 1 << 11,
+                /// Execute Disable Bit available (Bit 20).
+                const CPU_FEATURE_EXECUTE_DISABLE = 1 << 20,
+                /// 1-GByte pages are available if 1 (Bit 26).
+                const CPU_FEATURE_1GIB_PAGES = 1 << 26,
+                /// RDTSCP and IA32_TSC_AUX are available if 1 (Bit 27).
+                const CPU_FEATURE_RDTSCP = 1 << 27,
+                /// Intel ® 64 Architecture available if 1 (Bit 29).
+                const CPU_FEATURE_64BIT_MODE = 1 << 29,
+            }
+        }
 
 #[cfg(test)]
 #[test]
