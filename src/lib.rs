@@ -1,6 +1,4 @@
 #![no_std]
-#![cfg_attr(feature = "nightly", feature(asm))]
-
 #![feature(asm)]
 
 #![crate_name = "raw_cpuid"]
