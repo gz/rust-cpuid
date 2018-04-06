@@ -2961,13 +2961,7 @@ impl ExtendedFunctionInfo {
         if self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING) {
             Some(unsafe {
                 let brand_string_start = transmute::<&CpuIdResult, *const u8>(&self.data[2]);
-                let mut slice = slice::from_raw_parts(brand_string_start, 3 * 4 * 4);
-
-                match slice.iter().position(|&x| x == 0) {
-                    Some(index) => slice = slice::from_raw_parts(brand_string_start, index),
-                    None => (),
-                }
-
+                let slice = slice::from_raw_parts(brand_string_start, 3 * 4 * 4);
                 let byte_array: &'static [u8] = transmute(slice);
                 str::from_utf8_unchecked(byte_array)
             })
