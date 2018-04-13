@@ -531,7 +531,7 @@ impl VendorInfo {
     /// Return vendor identification as human readable string.
     pub fn as_string(&self) -> &str {
         unsafe {
-            let brand_string_start = transmute::<&VendorInfo, *const u8>(self);
+            let brand_string_start = self as *const VendorInfo as *const u8;
             let slice = slice::from_raw_parts(brand_string_start, 3 * 4);
             let byte_array: &'static [u8] = transmute(slice);
             str::from_utf8_unchecked(byte_array)
@@ -2921,7 +2921,7 @@ impl SoCVendorBrand {
 
     pub fn as_string(&self) -> &str {
         unsafe {
-            let brand_string_start = transmute::<&SoCVendorBrand, *const u8>(self);
+            let brand_string_start = self as *const SoCVendorBrand as *const u8;
             let slice = slice::from_raw_parts(brand_string_start, core::mem::size_of::<SoCVendorBrand>());
             let byte_array: &'static [u8] = transmute(slice);
             str::from_utf8_unchecked(byte_array)
@@ -2966,7 +2966,7 @@ impl ExtendedFunctionInfo {
     pub fn processor_brand_string(&self) -> Option<&str> {
         if self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING) {
             Some(unsafe {
-                let brand_string_start = transmute::<&CpuIdResult, *const u8>(&self.data[2]);
+                let brand_string_start = &self.data[2] as *const CpuIdResult as *const u8;
                 let mut slice = slice::from_raw_parts(brand_string_start, 3 * 4 * 4);
 
                 match slice.iter().position(|&x| x == 0) {
