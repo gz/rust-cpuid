@@ -3509,8 +3509,8 @@ fn extended_functions() {
                }],
     };
 
-    assert!(ef.processor_brand_string().unwrap() ==
-            "       Intel(R) Core(TM) i5-3337U CPU @ 1.80GHz\0");
+    assert_eq!(ef.processor_brand_string().unwrap(),
+               "       Intel(R) Core(TM) i5-3337U CPU @ 1.80GHz\0");
     assert!(ef.has_lahf_sahf());
     assert!(!ef.has_lzcnt());
     assert!(!ef.has_prefetchw());
