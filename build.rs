@@ -1,8 +1,8 @@
-extern crate gcc;
+extern crate cc;
 
 #[cfg(not(feature = "nightly"))]
 fn main() {
-    gcc::Build::new()
+    cc::Build::new()
         .file("src/cpuid.c")
         .compile("libcpuid.a");
 
