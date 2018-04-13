@@ -531,7 +531,7 @@ impl VendorInfo {
     /// Return vendor identification as human readable string.
     pub fn as_string(&self) -> &str {
         unsafe {
-            let brand_string_start = transmute::<&VendorInfo, *const u8>(&self);
+            let brand_string_start = transmute::<&VendorInfo, *const u8>(self);
             let slice = slice::from_raw_parts(brand_string_start, 3 * 4);
             let byte_array: &'static [u8] = transmute(slice);
             str::from_utf8_unchecked(byte_array)
@@ -2921,7 +2921,7 @@ impl SoCVendorBrand {
 
     pub fn as_string(&self) -> &str {
         unsafe {
-            let brand_string_start = transmute::<&SoCVendorBrand, *const u8>(&self);
+            let brand_string_start = transmute::<&SoCVendorBrand, *const u8>(self);
             let slice = slice::from_raw_parts(brand_string_start, core::mem::size_of::<SoCVendorBrand>());
             let byte_array: &'static [u8] = transmute(slice);
             str::from_utf8_unchecked(byte_array)
