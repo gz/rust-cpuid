@@ -17,7 +17,7 @@ license = "MIT"
 bitflags = "0.7"
 
 [build-dependencies]
-gcc = "0.3"
+cc = "1"
 
 [features]
 nightly = []
