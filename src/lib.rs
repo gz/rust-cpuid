@@ -4,6 +4,13 @@
 #![crate_name = "raw_cpuid"]
 #![crate_type = "lib"]
 
+#[cfg(feature = "serialize")]
+extern crate serde;
+
+#[cfg(feature = "serialize")]
+#[macro_use]
+extern crate serde_derive;
+
 #[macro_use]
 extern crate bitflags;
 
@@ -133,12 +140,14 @@ macro_rules! check_bit_fn {
 
 /// Main type used to query for information about the CPU we're running on.
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CpuId {
     max_eax_value: u32,
 }
 
 /// Low-level data-structure to store result of cpuid instruction.
 #[derive(Debug, Copy, Clone, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CpuIdResult {
     /// Return value EAX register
     pub eax: u32,
@@ -521,6 +530,7 @@ impl CpuId {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct VendorInfo {
     ebx: u32,
     edx: u32,
@@ -541,6 +551,7 @@ impl VendorInfo {
 
 /// Used to iterate over cache information contained in cpuid instruction.
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheInfoIter {
     current: u32,
     eax: u32,
@@ -589,6 +600,7 @@ impl Iterator for CacheInfoIter {
 }
 
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum CacheInfoType {
     GENERAL,
     CACHE,
@@ -600,6 +612,7 @@ pub enum CacheInfoType {
 
 /// Describes any kind of cache (TLB, Data and Instruction caches plus prefetchers).
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheInfo {
     /// Number as retrieved from cpuid
     pub num: u8,
@@ -1180,6 +1193,7 @@ impl fmt::Display for VendorInfo {
     }
 }
 
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorSerial {
     ecx: u32,
     edx: u32,
@@ -1200,6 +1214,7 @@ impl ProcessorSerial {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct FeatureInfo {
     eax: u32,
     ebx: u32,
@@ -1632,6 +1647,7 @@ impl FeatureInfo {
 }
 
 bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     flags FeatureInfoFlags: u64 {
 
 
@@ -1758,6 +1774,7 @@ bitflags! {
     }
 }
 
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParametersIter {
     current: u32,
 }
@@ -1789,6 +1806,7 @@ impl Iterator for CacheParametersIter {
 }
 
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParameter {
     eax: u32,
     ebx: u32,
@@ -1797,6 +1815,7 @@ pub struct CacheParameter {
 }
 
 #[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum CacheType {
     /// Null - No more caches
     NULL = 0,
@@ -1888,6 +1907,7 @@ impl CacheParameter {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct MonitorMwaitInfo {
     eax: u32,
     ebx: u32,
@@ -1958,6 +1978,7 @@ impl MonitorMwaitInfo {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ThermalPowerInfo {
     eax: ThermalPowerFeaturesEax,
     ebx: u32,
@@ -2015,6 +2036,7 @@ impl ThermalPowerInfo {
 }
 
 bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     flags ThermalPowerFeaturesEax: u32 {
         /// Digital temperature sensor is supported if set. (Bit 00)
         const CPU_FEATURE_DTS = 1 << 0,
@@ -2032,6 +2054,7 @@ bitflags! {
 }
 
 bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     flags ThermalPowerFeaturesEcx: u32 {
         /// Hardware Coordination Feedback Capability (Presence of IA32_MPERF and IA32_APERF). The capability to provide a measure of delivered processor performance (since last reset of the counters), as a percentage of expected processor performance at frequency specified in CPUID Brand String Bits 02 - 01
         const CPU_FEATURE_HW_COORD_FEEDBACK = 1 << 0,
@@ -2049,6 +2072,7 @@ impl ThermalPowerInfo {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedFeatures {
     eax: u32,
     ebx: ExtendedFeaturesEbx,
@@ -2147,6 +2171,7 @@ impl ExtendedFeatures {
 
 
 bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     flags ExtendedFeaturesEbx: u32 {
         /// FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1. (Bit 00)
         const CPU_FEATURE_FSGSBASE = 1 << 0,
@@ -2192,6 +2217,7 @@ bitflags! {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DirectCacheAccessInfo {
     eax: u32,
 }
@@ -2205,6 +2231,7 @@ impl DirectCacheAccessInfo {
 
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct PerformanceMonitoringInfo {
     eax: u32,
     ebx: PerformanceMonitoringFeaturesEbx,
@@ -2281,6 +2308,7 @@ impl PerformanceMonitoringInfo {
 }
 
 bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     flags PerformanceMonitoringFeaturesEbx: u32 {
         /// Core cycle event not available if 1. (Bit 0)
         const CPU_FEATURE_CORE_CYC_EV_UNAVAILABLE = 1 << 0,
@@ -2300,11 +2328,13 @@ bitflags! {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedTopologyIter {
     level: u32,
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedTopologyLevel {
     eax: u32,
     ebx: u32,
@@ -2347,6 +2377,7 @@ impl ExtendedTopologyLevel {
 }
 
 #[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum TopologyType {
     INVALID = 0,
     /// Hyper-thread (Simultaneous multithreading)
@@ -2376,6 +2407,7 @@ impl Iterator for ExtendedTopologyIter {
 }
 
 #[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[allow(non_camel_case_types)]
 enum ExtendedStateIdent {
     /// legacy x87 (Bit 00).
@@ -2401,6 +2433,7 @@ enum ExtendedStateIdent {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedStateInfo {
     eax: u32,
     ebx: u32,
@@ -2482,6 +2515,7 @@ impl ExtendedStateInfo {
     }
 }
 
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedStateIter {
     level: u32,
     xcr0_supported: u64,
@@ -2523,6 +2557,7 @@ impl Iterator for ExtendedStateIter {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedState {
     pub subleaf: u32,
     eax: u32,
@@ -2565,6 +2600,7 @@ impl ExtendedState {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct QoSInfo {
     ebx0: u32,
     edx0: u32,
@@ -2601,6 +2637,7 @@ impl QoSInfo {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct QoSEnforcementInfo {
     ebx0: u32,
     eax1: u32,
@@ -2625,6 +2662,7 @@ impl QoSEnforcementInfo {
 }
 
 /// Iterator over the QoSEnforcement sub-leafs.
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct QoSEnforcementIter {
     current: u8,
     ebx0: u32,
@@ -2654,6 +2692,7 @@ impl Iterator for QoSEnforcementIter {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct QoSEnforcement {
     eax: u32,
     ebx: u32,
@@ -2689,6 +2728,7 @@ impl QoSEnforcement {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorTraceInfo {
     eax: u32,
     ebx: u32,
@@ -2756,6 +2796,7 @@ impl ProcessorTraceInfo {
 
 /// Iterator over the Processor Trace sub-leafs.
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorTraceIter {
     current: u32,
     count: u32,
@@ -2780,6 +2821,7 @@ impl Iterator for ProcessorTraceIter {
 
 /// Processor Trace information sub-leaf.
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorTrace {
     eax: u32,
     ebx: u32,
@@ -2809,6 +2851,7 @@ impl ProcessorTrace {
 
 /// Contains time stamp counter information.
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct TscInfo {
     eax: u32,
     ebx: u32,
@@ -2828,6 +2871,7 @@ impl TscInfo {
 
 /// Processor Frequency Information
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorFrequencyInfo {
     eax: u32,
     ebx: u32,
@@ -2852,6 +2896,7 @@ impl ProcessorFrequencyInfo {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorInfo {
     /// MaxSOCID_Index
     eax: u32,
@@ -2893,6 +2938,7 @@ impl SoCVendorInfo {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorAttributesIter {
     count: u32,
     current: u32
@@ -2912,6 +2958,7 @@ impl Iterator for SoCVendorAttributesIter {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorBrand {
     #[allow(dead_code)]
     data: [CpuIdResult; 3]
@@ -2936,12 +2983,14 @@ impl fmt::Display for SoCVendorBrand {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedFunctionInfo {
     max_eax_value: u32,
     data: [CpuIdResult; 9],
 }
 
 #[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum L2Associativity {
     Disabled = 0x0,
     DirectMapped = 0x1,
@@ -3100,6 +3149,7 @@ impl ExtendedFunctionInfo {
 }
 
 bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     flags ExtendedFunctionInfoEcx: u32 {
         /// LAHF/SAHF available in 64-bit mode.
         const CPU_FEATURE_LAHF_SAHF = 1 << 0,
@@ -3111,6 +3161,7 @@ bitflags! {
 }
 
 bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     flags ExtendedFunctionInfoEdx: u32 {
         /// SYSCALL/SYSRET available in 64-bit mode (Bit 11).
         const CPU_FEATURE_SYSCALL_SYSRET = 1 << 11,
