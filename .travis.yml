@@ -75,15 +75,8 @@ before_deploy:
   - sh ci/before_deploy.sh
 
 deploy:
-  api_key:
-    secure: "PnWf/uxF327qqMDwqYoTXonXmJ6mvcNzTX6sYocXejepZ3D2HeLFJOa6SKXQuw6ql6nsJw92osfPaX6lv/AH51x2oNTc1DAZ1E64jRWG5SIT0r4qYYuYFYNXt8VeEcJepHvfMgMJLgXvGaFaWYAU+xr2Tj4TZMwg2fehnCaf4AE="
-  file_glob: true
-  file: $CRATE_NAME-$TRAVIS_TAG-$TARGET.*
   on:
-    condition: $TRAVIS_RUST_VERSION = nightly
-    tags: true
-  provider: releases
-  skip_cleanup: true
+    condition: $DEPLOY = never
 
 cache: cargo
 before_cache:
