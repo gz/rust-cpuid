@@ -5,9 +5,6 @@ dist: trusty
 language: rust
 services: docker
 sudo: required
-rust:
-- nightly
-- stable
 
 env:
   global:
@@ -22,21 +19,44 @@ matrix:
     # Linux
     - env: TARGET=i686-unknown-linux-gnu
     - env: TARGET=x86_64-unknown-linux-gnu
-
     # OSX
     - env: TARGET=i686-apple-darwin
       os: osx
     - env: TARGET=x86_64-apple-darwin
       os: osx
-
     # *BSD
     - env: TARGET=i686-unknown-freebsd
     - env: TARGET=x86_64-unknown-freebsd
     - env: TARGET=x86_64-unknown-netbsd
-
     # Windows
     - env: TARGET=x86_64-pc-windows-gnu
+    - env: TARGET=i686-pc-windows-gnu
 
+    # Test nightly channel
+    # Linux
+    - env: TARGET=i686-unknown-linux-gnu
+      rust: nightly
+    - env: TARGET=x86_64-unknown-linux-gnu
+      rust: nightly
+    # OSX
+    - env: TARGET=i686-apple-darwin
+      os: osx
+      rust: nightly
+    - env: TARGET=x86_64-apple-darwin
+      os: osx
+      rust: nightly
+    # *BSD
+    - env: TARGET=i686-unknown-freebsd
+      rust: nightly
+    - env: TARGET=x86_64-unknown-freebsd
+      rust: nightly
+    - env: TARGET=x86_64-unknown-netbsd
+      rust: nightly
+    # Windows
+    - env: TARGET=x86_64-pc-windows-gnu
+      rust: nightly
+    - env: TARGET=i686-pc-windows-gnu
+      rust: nightly
 
 before_install:
   - set -e
