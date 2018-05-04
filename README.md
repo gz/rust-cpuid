@@ -34,4 +34,4 @@ match cpuid.get_cache_parameters() {
 ```
 
 ## Documentation
-* [API Documentation](http://gz.github.io/rust-cpuid/raw_cpuid/)
+* [API Documentation](https://docs.rs/raw-cpuid/)
