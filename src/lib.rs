@@ -1197,6 +1197,7 @@ impl fmt::Display for VendorInfo {
     }
 }
 
+#[derive(Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorSerial {
     ecx: u32,
@@ -1778,6 +1779,7 @@ bitflags! {
     }
 }
 
+#[derive(Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParametersIter {
     current: u32,

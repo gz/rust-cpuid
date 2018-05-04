@@ -13,6 +13,10 @@ readme = "README.md"
 keywords = ["cpuid", "x86", "amd64", "os", "libcore"]
 license = "MIT"
 
+[[bin]]
+name = "cpuid"
+path = "src/bin/cpuid.rs"
+
 [dependencies]
 bitflags = "0.7"
 serde = { version = "1.0", optional = true }
