@@ -7,7 +7,7 @@ build = "build.rs"
 description = "A library to parse the x86 CPUID instruction, written in rust with no external dependencies. The implementation closely resembles the Intel CPUID manual description. The library does only depend on libcore."
 homepage = "https://github.com/gz/rust-cpuid"
 repository = "https://github.com/gz/rust-cpuid"
-documentation = "http://gz.github.io/rust-cpuid/raw_cpuid/"
+documentation = "https://docs.rs/raw-cpuid/"
 
 readme = "README.md"
 keywords = ["cpuid", "x86", "amd64", "os", "libcore"]
