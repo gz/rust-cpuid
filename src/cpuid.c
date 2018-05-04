@@ -17,11 +17,16 @@ void cpuid(uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
       "mov %%ebx, %%edi;"
       "cpuid;"
       "xchgl %%ebx, %%edi;"
+      :
+      "+a" (*eax),
+      "=D" (*ebx),
 #else
       "cpuid"
-#endif
       :
       "+a"(*eax),
-      "=b"(*ebx), "+c"(*ecx), "=d"(*edx));
+      "=b"(*ebx),
+#endif
+      "+c"(*ecx),
+      "=d"(*edx));
 #endif
 }
