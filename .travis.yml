@@ -27,7 +27,7 @@ matrix:
     # *BSD
     - env: TARGET=i686-unknown-freebsd DISABLE_TESTS=1
     - env: TARGET=x86_64-unknown-freebsd DISABLE_TESTS=1
-    - env: TARGET=x86_64-unknown-netbsd DISABLE_TESTS=1
+    #- env: TARGET=x86_64-unknown-netbsd DISABLE_TESTS=1
     # Windows
     - env: TARGET=x86_64-pc-windows-gnu
     - env: TARGET=i686-pc-windows-gnu
@@ -50,8 +50,8 @@ matrix:
       rust: nightly
     - env: TARGET=x86_64-unknown-freebsd DISABLE_TESTS=1
       rust: nightly
-    - env: TARGET=x86_64-unknown-netbsd DISABLE_TESTS=1
-      rust: nightly
+    #- env: TARGET=x86_64-unknown-netbsd DISABLE_TESTS=1
+    #  rust: nightly
     # Windows
     - env: TARGET=x86_64-pc-windows-gnu
       rust: nightly
