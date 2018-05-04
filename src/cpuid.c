@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-void c_cpuid(uint32_t* a, uint32_t* b, uint32_t* c, uint32_t* d) {
+void cpuid(uint32_t* a, uint32_t* b, uint32_t* c, uint32_t* d) {
 #ifdef _MSC_VER
    uint32_t regs[4];
    __cpuidex((int*)regs, *a, *c);

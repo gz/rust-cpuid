@@ -13,11 +13,15 @@ extern crate std;
 
 #[cfg(not(feature = "nightly"))]
 extern "C" {
-    fn c_cpuid(a: *mut u32, b: *mut u32, c: *mut u32, d: *mut u32);
+    /// This is a low-level function to query cpuid directly.
+    /// If in doubt use `CpuId` instead.
+    pub fn cpuid(a: *mut u32, b: *mut u32, c: *mut u32, d: *mut u32);
 }
 
 #[cfg(feature = "nightly")]
-unsafe fn c_cpuid(a: &mut u32, b: &mut u32, c: &mut u32, d: &mut u32) {
+/// This is a low-level function to query cpuid directly.
+/// If in doubt use `CpuId` instead.
+pub unsafe fn cpuid(a: &mut u32, b: &mut u32, c: &mut u32, d: &mut u32) {
     asm!("cpuid"
       : "+{eax}"(*a), "={ebx}"(*b), "+{ecx}"(*c), "={edx}"(*d)
       : : : "volatile"
@@ -58,7 +62,7 @@ pub fn cpuid2(mut eax: u32, mut ecx: u32) -> CpuIdResult {
     let mut edx: u32 = 0;
 
     unsafe {
-        c_cpuid(&mut eax, &mut ebx, &mut ecx, &mut edx);
+        cpuid(&mut eax, &mut ebx, &mut ecx, &mut edx);
     }
 
     CpuIdResult {
@@ -78,7 +82,7 @@ pub fn cpuid1(mut eax: u32) -> CpuIdResult {
     let mut edx: u32 = 0;
 
     unsafe {
-        c_cpuid(&mut eax, &mut ebx, &mut ecx, &mut edx);
+        cpuid(&mut eax, &mut ebx, &mut ecx, &mut edx);
     }
 
     CpuIdResult {
