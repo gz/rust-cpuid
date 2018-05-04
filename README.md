@@ -4,7 +4,7 @@ A library to parse the x86 CPUID instruction, written in rust with no external d
 
 The code should be in sync with the latest December 2015 revision of the Intel Architectures Software Developer’s Manual.
 
-## Usage
+## Library usage
 ```rust
 let cpuid = CpuId::new();
 
