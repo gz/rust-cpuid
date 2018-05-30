@@ -1,6 +1,5 @@
 #![no_std]
 #![cfg_attr(feature = "nightly", feature(asm))]
-
 #![crate_name = "raw_cpuid"]
 #![crate_type = "lib"]
 
@@ -35,11 +34,11 @@ pub unsafe fn cpuid(a: &mut u32, b: &mut u32, c: &mut u32, d: &mut u32) {
     );
 }
 
-use core::str;
-use core::mem::transmute;
-use core::fmt;
-use core::slice;
 use core::cmp::min;
+use core::fmt;
+use core::mem::transmute;
+use core::slice;
+use core::str;
 
 #[cfg(not(test))]
 mod std {
@@ -47,18 +46,18 @@ mod std {
     pub use core::option;
 }
 
-
 /// Macro to choose between `cpuid1` and `cpuid2`.
 /// Note: This is a low-level macro to query cpuid directly.
 /// If in doubt use `CpuId` instead.
 #[macro_export]
 macro_rules! cpuid {
-    ($eax:expr)
-        => ( $crate::cpuid1($eax as u32) );
+    ($eax:expr) => {
+        $crate::cpuid1($eax as u32)
+    };
 
-    ($eax:expr, $ecx:expr)
-        => ( $crate::cpuid2($eax as u32, $ecx as u32) );
-
+    ($eax:expr, $ecx:expr) => {
+        $crate::cpuid2($eax as u32, $ecx as u32)
+    };
 }
 
 /// Execute CPUID instruction with eax and ecx register set.
@@ -128,9 +127,9 @@ macro_rules! check_flag {
 }
 
 macro_rules! is_bit_set {
-    ($field:expr, $bit:expr) => (
+    ($field:expr, $bit:expr) => {
         $field & (1 << $bit) > 0
-    )
+    };
 }
 
 macro_rules! check_bit_fn {
@@ -187,7 +186,9 @@ impl CpuId {
     /// Return new CPUID struct.
     pub fn new() -> CpuId {
         let res = cpuid!(EAX_VENDOR_INFO);
-        CpuId { max_eax_value: res.eax }
+        CpuId {
+            max_eax_value: res.eax,
+        }
     }
 
     fn leaf_is_supported(&self, val: u32) -> bool {
@@ -217,7 +218,9 @@ impl CpuId {
             Some(FeatureInfo {
                 eax: res.eax,
                 ebx: res.ebx,
-                edx_ecx: FeatureInfoFlags { bits: (((res.edx as u64) << 32) | (res.ecx as u64)) },
+                edx_ecx: FeatureInfoFlags {
+                    bits: (((res.edx as u64) << 32) | (res.ecx as u64)),
+                },
             })
         } else {
             None
@@ -252,7 +255,6 @@ impl CpuId {
         } else {
             None
         }
-
     }
 
     /// Retrieve more elaborate information about caches (as opposed
@@ -310,7 +312,6 @@ impl CpuId {
         } else {
             None
         }
-
     }
 
     /// Direct cache access info.
@@ -467,60 +468,62 @@ impl CpuId {
 
         let mut ef = ExtendedFunctionInfo {
             max_eax_value: res.eax - EAX_EXTENDED_FUNCTION_INFO,
-            data: [CpuIdResult {
-                       eax: res.eax,
-                       ebx: res.ebx,
-                       ecx: res.ecx,
-                       edx: res.edx,
-                   },
-                   CpuIdResult {
-                       eax: 0,
-                       ebx: 0,
-                       ecx: 0,
-                       edx: 0,
-                   },
-                   CpuIdResult {
-                       eax: 0,
-                       ebx: 0,
-                       ecx: 0,
-                       edx: 0,
-                   },
-                   CpuIdResult {
-                       eax: 0,
-                       ebx: 0,
-                       ecx: 0,
-                       edx: 0,
-                   },
-                   CpuIdResult {
-                       eax: 0,
-                       ebx: 0,
-                       ecx: 0,
-                       edx: 0,
-                   },
-                   CpuIdResult {
-                       eax: 0,
-                       ebx: 0,
-                       ecx: 0,
-                       edx: 0,
-                   },
-                   CpuIdResult {
-                       eax: 0,
-                       ebx: 0,
-                       ecx: 0,
-                       edx: 0,
-                   },
-                   CpuIdResult {
-                       eax: 0,
-                       ebx: 0,
-                       ecx: 0,
-                       edx: 0,
-                   },
-                   CpuIdResult {
-                       eax: 0,
-                       ebx: 0,
-                       ecx: 0,
-                       edx: 0,
-                   }],
+            data: [
+                CpuIdResult {
+                    eax: res.eax,
+                    ebx: res.ebx,
+                    ecx: res.ecx,
+                    edx: res.edx,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+                CpuIdResult {
+                    eax: 0,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                },
+            ],
         };
 
         let max_eax_value = min(ef.max_eax_value + 1, ef.data.len() as u32);
@@ -530,7 +533,6 @@ impl CpuId {
 
         Some(ef)
     }
-
 }
 
 #[derive(Debug)]
@@ -642,554 +644,555 @@ impl fmt::Display for CacheInfo {
 }
 
 /// This table is taken from Intel manual (Section CPUID instruction).
-pub const CACHE_INFO_TABLE: [CacheInfo; 107] =
-    [CacheInfo {
-         num: 0x00,
-         typ: CacheInfoType::GENERAL,
-         desc: "Null descriptor, this byte contains no information",
-     },
-     CacheInfo {
-         num: 0x01,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 4 KByte pages, 4-way set associative, 32 entries",
-     },
-     CacheInfo {
-         num: 0x02,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 4 MByte pages, fully associative, 2 entries",
-     },
-     CacheInfo {
-         num: 0x03,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB: 4 KByte pages, 4-way set associative, 64 entries",
-     },
-     CacheInfo {
-         num: 0x04,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB: 4 MByte pages, 4-way set associative, 8 entries",
-     },
-     CacheInfo {
-         num: 0x05,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB1: 4 MByte pages, 4-way set associative, 32 entries",
-     },
-     CacheInfo {
-         num: 0x06,
-         typ: CacheInfoType::CACHE,
-         desc: "1st-level instruction cache: 8 KBytes, 4-way set associative, 32 byte line size",
-     },
-     CacheInfo {
-         num: 0x08,
-         typ: CacheInfoType::CACHE,
-         desc: "1st-level instruction cache: 16 KBytes, 4-way set associative, 32 byte line size",
-     },
-     CacheInfo {
-         num: 0x09,
-         typ: CacheInfoType::CACHE,
-         desc: "1st-level instruction cache: 32KBytes, 4-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x0A,
-         typ: CacheInfoType::CACHE,
-         desc: "1st-level data cache: 8 KBytes, 2-way set associative, 32 byte line size",
-     },
-     CacheInfo {
-         num: 0x0B,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 4 MByte pages, 4-way set associative, 4 entries",
-     },
-     CacheInfo {
-         num: 0x0C,
-         typ: CacheInfoType::CACHE,
-         desc: "1st-level data cache: 16 KBytes, 4-way set associative, 32 byte line size",
-     },
-     CacheInfo {
-         num: 0x0D,
-         typ: CacheInfoType::CACHE,
-         desc: "1st-level data cache: 16 KBytes, 4-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x0E,
-         typ: CacheInfoType::CACHE,
-         desc: "1st-level data cache: 24 KBytes, 6-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x21,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 256 KBytes, 8-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x22,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 512 KBytes, 4-way set associative, 64 byte line size, 2 lines \
-                per sector",
-     },
-     CacheInfo {
-         num: 0x23,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 1 MBytes, 8-way set associative, 64 byte line size, 2 lines per \
-                sector",
-     },
-     CacheInfo {
-         num: 0x24,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 1 MBytes, 16-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x25,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 2 MBytes, 8-way set associative, 64 byte line size, 2 lines per \
-                sector",
-     },
-     CacheInfo {
-         num: 0x29,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 4 MBytes, 8-way set associative, 64 byte line size, 2 lines per \
-                sector",
-     },
-     CacheInfo {
-         num: 0x2C,
-         typ: CacheInfoType::CACHE,
-         desc: "1st-level data cache: 32 KBytes, 8-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x30,
-         typ: CacheInfoType::CACHE,
-         desc: "1st-level instruction cache: 32 KBytes, 8-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x40,
-         typ: CacheInfoType::CACHE,
-         desc: "No 2nd-level cache or, if processor contains a valid 2nd-level cache, no \
-                3rd-level cache",
-     },
-     CacheInfo {
-         num: 0x41,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 128 KBytes, 4-way set associative, 32 byte line size",
-     },
-     CacheInfo {
-         num: 0x42,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 256 KBytes, 4-way set associative, 32 byte line size",
-     },
-     CacheInfo {
-         num: 0x43,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 512 KBytes, 4-way set associative, 32 byte line size",
-     },
-     CacheInfo {
-         num: 0x44,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 1 MByte, 4-way set associative, 32 byte line size",
-     },
-     CacheInfo {
-         num: 0x45,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 2 MByte, 4-way set associative, 32 byte line size",
-     },
-     CacheInfo {
-         num: 0x46,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 4 MByte, 4-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x47,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 8 MByte, 8-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x48,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 3MByte, 12-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x49,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 4MB, 16-way set associative, 64-byte line size (Intel Xeon \
-                processor MP, Family 0FH, Model 06H); 2nd-level cache: 4 MByte, 16-way set \
-                associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x4A,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 6MByte, 12-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x4B,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 8MByte, 16-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x4C,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 12MByte, 12-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x4D,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 16MByte, 16-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x4E,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 6MByte, 24-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x4F,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 4 KByte pages, 32 entries",
-     },
-     CacheInfo {
-         num: 0x50,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 64 entries",
-     },
-     CacheInfo {
-         num: 0x51,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 128 entries",
-     },
-     CacheInfo {
-         num: 0x52,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 256 entries",
-     },
-     CacheInfo {
-         num: 0x55,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 2-MByte or 4-MByte pages, fully associative, 7 entries",
-     },
-     CacheInfo {
-         num: 0x56,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB0: 4 MByte pages, 4-way set associative, 16 entries",
-     },
-     CacheInfo {
-         num: 0x57,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB0: 4 KByte pages, 4-way associative, 16 entries",
-     },
-     CacheInfo {
-         num: 0x59,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB0: 4 KByte pages, fully associative, 16 entries",
-     },
-     CacheInfo {
-         num: 0x5A,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB0: 2-MByte or 4 MByte pages, 4-way set associative, 32 entries",
-     },
-     CacheInfo {
-         num: 0x5B,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB: 4 KByte and 4 MByte pages, 64 entries",
-     },
-     CacheInfo {
-         num: 0x5C,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB: 4 KByte and 4 MByte pages,128 entries",
-     },
-     CacheInfo {
-         num: 0x5D,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB: 4 KByte and 4 MByte pages,256 entries",
-     },
-     CacheInfo {
-         num: 0x60,
-         typ: CacheInfoType::CACHE,
-         desc: "1st-level data cache: 16 KByte, 8-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x61,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 4 KByte pages, fully associative, 48 entries",
-     },
-     CacheInfo {
-         num: 0x63,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB: 1 GByte pages, 4-way set associative, 4 entries",
-     },
-     CacheInfo {
-         num: 0x66,
-         typ: CacheInfoType::CACHE,
-         desc: "1st-level data cache: 8 KByte, 4-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x67,
-         typ: CacheInfoType::CACHE,
-         desc: "1st-level data cache: 16 KByte, 4-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x68,
-         typ: CacheInfoType::CACHE,
-         desc: "1st-level data cache: 32 KByte, 4-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x6A,
-         typ: CacheInfoType::CACHE,
-         desc: "uTLB: 4 KByte pages, 8-way set associative, 64 entries",
-     },
-     CacheInfo {
-         num: 0x6B,
-         typ: CacheInfoType::CACHE,
-         desc: "DTLB: 4 KByte pages, 8-way set associative, 256 entries",
-     },
-     CacheInfo {
-         num: 0x6C,
-         typ: CacheInfoType::CACHE,
-         desc: "DTLB: 2M/4M pages, 8-way set associative, 128 entries",
-     },
-     CacheInfo {
-         num: 0x6D,
-         typ: CacheInfoType::CACHE,
-         desc: "DTLB: 1 GByte pages, fully associative, 16 entries",
-     },
-     CacheInfo {
-         num: 0x70,
-         typ: CacheInfoType::CACHE,
-         desc: "Trace cache: 12 K-μop, 8-way set associative",
-     },
-     CacheInfo {
-         num: 0x71,
-         typ: CacheInfoType::CACHE,
-         desc: "Trace cache: 16 K-μop, 8-way set associative",
-     },
-     CacheInfo {
-         num: 0x72,
-         typ: CacheInfoType::CACHE,
-         desc: "Trace cache: 32 K-μop, 8-way set associative",
-     },
-     CacheInfo {
-         num: 0x76,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 2M/4M pages, fully associative, 8 entries",
-     },
-     CacheInfo {
-         num: 0x78,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 1 MByte, 4-way set associative, 64byte line size",
-     },
-     CacheInfo {
-         num: 0x79,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 128 KByte, 8-way set associative, 64 byte line size, 2 lines per \
-                sector",
-     },
-     CacheInfo {
-         num: 0x7A,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 256 KByte, 8-way set associative, 64 byte line size, 2 lines per \
-                sector",
-     },
-     CacheInfo {
-         num: 0x7B,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 512 KByte, 8-way set associative, 64 byte line size, 2 lines per \
-                sector",
-     },
-     CacheInfo {
-         num: 0x7C,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 1 MByte, 8-way set associative, 64 byte line size, 2 lines per \
-                sector",
-     },
-     CacheInfo {
-         num: 0x7D,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 2 MByte, 8-way set associative, 64byte line size",
-     },
-     CacheInfo {
-         num: 0x7F,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 512 KByte, 2-way set associative, 64-byte line size",
-     },
-     CacheInfo {
-         num: 0x80,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 512 KByte, 8-way set associative, 64-byte line size",
-     },
-     CacheInfo {
-         num: 0x82,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 256 KByte, 8-way set associative, 32 byte line size",
-     },
-     CacheInfo {
-         num: 0x83,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 512 KByte, 8-way set associative, 32 byte line size",
-     },
-     CacheInfo {
-         num: 0x84,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 1 MByte, 8-way set associative, 32 byte line size",
-     },
-     CacheInfo {
-         num: 0x85,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 2 MByte, 8-way set associative, 32 byte line size",
-     },
-     CacheInfo {
-         num: 0x86,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 512 KByte, 4-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0x87,
-         typ: CacheInfoType::CACHE,
-         desc: "2nd-level cache: 1 MByte, 8-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xB0,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 4 KByte pages, 4-way set associative, 128 entries",
-     },
-     CacheInfo {
-         num: 0xB1,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 2M pages, 4-way, 8 entries or 4M pages, 4-way, 4 entries",
-     },
-     CacheInfo {
-         num: 0xB2,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 4KByte pages, 4-way set associative, 64 entries",
-     },
-     CacheInfo {
-         num: 0xB3,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB: 4 KByte pages, 4-way set associative, 128 entries",
-     },
-     CacheInfo {
-         num: 0xB4,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB1: 4 KByte pages, 4-way associative, 256 entries",
-     },
-     CacheInfo {
-         num: 0xB5,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 4KByte pages, 8-way set associative, 64 entries",
-     },
-     CacheInfo {
-         num: 0xB6,
-         typ: CacheInfoType::TLB,
-         desc: "Instruction TLB: 4KByte pages, 8-way set associative, 128 entries",
-     },
-     CacheInfo {
-         num: 0xBA,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB1: 4 KByte pages, 4-way associative, 64 entries",
-     },
-     CacheInfo {
-         num: 0xC0,
-         typ: CacheInfoType::TLB,
-         desc: "Data TLB: 4 KByte and 4 MByte pages, 4-way associative, 8 entries",
-     },
-     CacheInfo {
-         num: 0xC1,
-         typ: CacheInfoType::STLB,
-         desc: "Shared 2nd-Level TLB: 4 KByte/2MByte pages, 8-way associative, 1024 entries",
-     },
-     CacheInfo {
-         num: 0xC2,
-         typ: CacheInfoType::DTLB,
-         desc: "DTLB: 2 MByte/$MByte pages, 4-way associative, 16 entries",
-     },
-     CacheInfo {
-         num: 0xCA,
-         typ: CacheInfoType::STLB,
-         desc: "Shared 2nd-Level TLB: 4 KByte pages, 4-way associative, 512 entries",
-     },
-     CacheInfo {
-         num: 0xD0,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 512 KByte, 4-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xD1,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 1 MByte, 4-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xD2,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 2 MByte, 4-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xD6,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 1 MByte, 8-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xD7,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 2 MByte, 8-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xD8,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 4 MByte, 8-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xDC,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 1.5 MByte, 12-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xDD,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 3 MByte, 12-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xDE,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 6 MByte, 12-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xE2,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 2 MByte, 16-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xE3,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 4 MByte, 16-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xE4,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 8 MByte, 16-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xEA,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 12MByte, 24-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xEB,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 18MByte, 24-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xEC,
-         typ: CacheInfoType::CACHE,
-         desc: "3rd-level cache: 24MByte, 24-way set associative, 64 byte line size",
-     },
-     CacheInfo {
-         num: 0xF0,
-         typ: CacheInfoType::PREFETCH,
-         desc: "64-Byte prefetching",
-     },
-     CacheInfo {
-         num: 0xF1,
-         typ: CacheInfoType::PREFETCH,
-         desc: "128-Byte prefetching",
-     },
-     CacheInfo {
-         num: 0xFF,
-         typ: CacheInfoType::GENERAL,
-         desc: "CPUID leaf 2 does not report cache descriptor information, use CPUID leaf 4 to \
-                query cache parameters",
-     }];
+pub const CACHE_INFO_TABLE: [CacheInfo; 107] = [
+    CacheInfo {
+        num: 0x00,
+        typ: CacheInfoType::GENERAL,
+        desc: "Null descriptor, this byte contains no information",
+    },
+    CacheInfo {
+        num: 0x01,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 4 KByte pages, 4-way set associative, 32 entries",
+    },
+    CacheInfo {
+        num: 0x02,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 4 MByte pages, fully associative, 2 entries",
+    },
+    CacheInfo {
+        num: 0x03,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB: 4 KByte pages, 4-way set associative, 64 entries",
+    },
+    CacheInfo {
+        num: 0x04,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB: 4 MByte pages, 4-way set associative, 8 entries",
+    },
+    CacheInfo {
+        num: 0x05,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB1: 4 MByte pages, 4-way set associative, 32 entries",
+    },
+    CacheInfo {
+        num: 0x06,
+        typ: CacheInfoType::CACHE,
+        desc: "1st-level instruction cache: 8 KBytes, 4-way set associative, 32 byte line size",
+    },
+    CacheInfo {
+        num: 0x08,
+        typ: CacheInfoType::CACHE,
+        desc: "1st-level instruction cache: 16 KBytes, 4-way set associative, 32 byte line size",
+    },
+    CacheInfo {
+        num: 0x09,
+        typ: CacheInfoType::CACHE,
+        desc: "1st-level instruction cache: 32KBytes, 4-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x0A,
+        typ: CacheInfoType::CACHE,
+        desc: "1st-level data cache: 8 KBytes, 2-way set associative, 32 byte line size",
+    },
+    CacheInfo {
+        num: 0x0B,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 4 MByte pages, 4-way set associative, 4 entries",
+    },
+    CacheInfo {
+        num: 0x0C,
+        typ: CacheInfoType::CACHE,
+        desc: "1st-level data cache: 16 KBytes, 4-way set associative, 32 byte line size",
+    },
+    CacheInfo {
+        num: 0x0D,
+        typ: CacheInfoType::CACHE,
+        desc: "1st-level data cache: 16 KBytes, 4-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x0E,
+        typ: CacheInfoType::CACHE,
+        desc: "1st-level data cache: 24 KBytes, 6-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x21,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 256 KBytes, 8-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x22,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 512 KBytes, 4-way set associative, 64 byte line size, 2 lines \
+               per sector",
+    },
+    CacheInfo {
+        num: 0x23,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 1 MBytes, 8-way set associative, 64 byte line size, 2 lines per \
+               sector",
+    },
+    CacheInfo {
+        num: 0x24,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 1 MBytes, 16-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x25,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 2 MBytes, 8-way set associative, 64 byte line size, 2 lines per \
+               sector",
+    },
+    CacheInfo {
+        num: 0x29,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 4 MBytes, 8-way set associative, 64 byte line size, 2 lines per \
+               sector",
+    },
+    CacheInfo {
+        num: 0x2C,
+        typ: CacheInfoType::CACHE,
+        desc: "1st-level data cache: 32 KBytes, 8-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x30,
+        typ: CacheInfoType::CACHE,
+        desc: "1st-level instruction cache: 32 KBytes, 8-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x40,
+        typ: CacheInfoType::CACHE,
+        desc: "No 2nd-level cache or, if processor contains a valid 2nd-level cache, no \
+               3rd-level cache",
+    },
+    CacheInfo {
+        num: 0x41,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 128 KBytes, 4-way set associative, 32 byte line size",
+    },
+    CacheInfo {
+        num: 0x42,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 256 KBytes, 4-way set associative, 32 byte line size",
+    },
+    CacheInfo {
+        num: 0x43,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 512 KBytes, 4-way set associative, 32 byte line size",
+    },
+    CacheInfo {
+        num: 0x44,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 1 MByte, 4-way set associative, 32 byte line size",
+    },
+    CacheInfo {
+        num: 0x45,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 2 MByte, 4-way set associative, 32 byte line size",
+    },
+    CacheInfo {
+        num: 0x46,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 4 MByte, 4-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x47,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 8 MByte, 8-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x48,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 3MByte, 12-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x49,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 4MB, 16-way set associative, 64-byte line size (Intel Xeon \
+               processor MP, Family 0FH, Model 06H); 2nd-level cache: 4 MByte, 16-way set \
+               associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x4A,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 6MByte, 12-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x4B,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 8MByte, 16-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x4C,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 12MByte, 12-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x4D,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 16MByte, 16-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x4E,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 6MByte, 24-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x4F,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 4 KByte pages, 32 entries",
+    },
+    CacheInfo {
+        num: 0x50,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 64 entries",
+    },
+    CacheInfo {
+        num: 0x51,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 128 entries",
+    },
+    CacheInfo {
+        num: 0x52,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 256 entries",
+    },
+    CacheInfo {
+        num: 0x55,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 2-MByte or 4-MByte pages, fully associative, 7 entries",
+    },
+    CacheInfo {
+        num: 0x56,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB0: 4 MByte pages, 4-way set associative, 16 entries",
+    },
+    CacheInfo {
+        num: 0x57,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB0: 4 KByte pages, 4-way associative, 16 entries",
+    },
+    CacheInfo {
+        num: 0x59,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB0: 4 KByte pages, fully associative, 16 entries",
+    },
+    CacheInfo {
+        num: 0x5A,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB0: 2-MByte or 4 MByte pages, 4-way set associative, 32 entries",
+    },
+    CacheInfo {
+        num: 0x5B,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB: 4 KByte and 4 MByte pages, 64 entries",
+    },
+    CacheInfo {
+        num: 0x5C,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB: 4 KByte and 4 MByte pages,128 entries",
+    },
+    CacheInfo {
+        num: 0x5D,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB: 4 KByte and 4 MByte pages,256 entries",
+    },
+    CacheInfo {
+        num: 0x60,
+        typ: CacheInfoType::CACHE,
+        desc: "1st-level data cache: 16 KByte, 8-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x61,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 4 KByte pages, fully associative, 48 entries",
+    },
+    CacheInfo {
+        num: 0x63,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB: 1 GByte pages, 4-way set associative, 4 entries",
+    },
+    CacheInfo {
+        num: 0x66,
+        typ: CacheInfoType::CACHE,
+        desc: "1st-level data cache: 8 KByte, 4-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x67,
+        typ: CacheInfoType::CACHE,
+        desc: "1st-level data cache: 16 KByte, 4-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x68,
+        typ: CacheInfoType::CACHE,
+        desc: "1st-level data cache: 32 KByte, 4-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x6A,
+        typ: CacheInfoType::CACHE,
+        desc: "uTLB: 4 KByte pages, 8-way set associative, 64 entries",
+    },
+    CacheInfo {
+        num: 0x6B,
+        typ: CacheInfoType::CACHE,
+        desc: "DTLB: 4 KByte pages, 8-way set associative, 256 entries",
+    },
+    CacheInfo {
+        num: 0x6C,
+        typ: CacheInfoType::CACHE,
+        desc: "DTLB: 2M/4M pages, 8-way set associative, 128 entries",
+    },
+    CacheInfo {
+        num: 0x6D,
+        typ: CacheInfoType::CACHE,
+        desc: "DTLB: 1 GByte pages, fully associative, 16 entries",
+    },
+    CacheInfo {
+        num: 0x70,
+        typ: CacheInfoType::CACHE,
+        desc: "Trace cache: 12 K-μop, 8-way set associative",
+    },
+    CacheInfo {
+        num: 0x71,
+        typ: CacheInfoType::CACHE,
+        desc: "Trace cache: 16 K-μop, 8-way set associative",
+    },
+    CacheInfo {
+        num: 0x72,
+        typ: CacheInfoType::CACHE,
+        desc: "Trace cache: 32 K-μop, 8-way set associative",
+    },
+    CacheInfo {
+        num: 0x76,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 2M/4M pages, fully associative, 8 entries",
+    },
+    CacheInfo {
+        num: 0x78,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 1 MByte, 4-way set associative, 64byte line size",
+    },
+    CacheInfo {
+        num: 0x79,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 128 KByte, 8-way set associative, 64 byte line size, 2 lines per \
+               sector",
+    },
+    CacheInfo {
+        num: 0x7A,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 256 KByte, 8-way set associative, 64 byte line size, 2 lines per \
+               sector",
+    },
+    CacheInfo {
+        num: 0x7B,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 512 KByte, 8-way set associative, 64 byte line size, 2 lines per \
+               sector",
+    },
+    CacheInfo {
+        num: 0x7C,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 1 MByte, 8-way set associative, 64 byte line size, 2 lines per \
+               sector",
+    },
+    CacheInfo {
+        num: 0x7D,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 2 MByte, 8-way set associative, 64byte line size",
+    },
+    CacheInfo {
+        num: 0x7F,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 512 KByte, 2-way set associative, 64-byte line size",
+    },
+    CacheInfo {
+        num: 0x80,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 512 KByte, 8-way set associative, 64-byte line size",
+    },
+    CacheInfo {
+        num: 0x82,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 256 KByte, 8-way set associative, 32 byte line size",
+    },
+    CacheInfo {
+        num: 0x83,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 512 KByte, 8-way set associative, 32 byte line size",
+    },
+    CacheInfo {
+        num: 0x84,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 1 MByte, 8-way set associative, 32 byte line size",
+    },
+    CacheInfo {
+        num: 0x85,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 2 MByte, 8-way set associative, 32 byte line size",
+    },
+    CacheInfo {
+        num: 0x86,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 512 KByte, 4-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0x87,
+        typ: CacheInfoType::CACHE,
+        desc: "2nd-level cache: 1 MByte, 8-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xB0,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 4 KByte pages, 4-way set associative, 128 entries",
+    },
+    CacheInfo {
+        num: 0xB1,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 2M pages, 4-way, 8 entries or 4M pages, 4-way, 4 entries",
+    },
+    CacheInfo {
+        num: 0xB2,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 4KByte pages, 4-way set associative, 64 entries",
+    },
+    CacheInfo {
+        num: 0xB3,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB: 4 KByte pages, 4-way set associative, 128 entries",
+    },
+    CacheInfo {
+        num: 0xB4,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB1: 4 KByte pages, 4-way associative, 256 entries",
+    },
+    CacheInfo {
+        num: 0xB5,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 4KByte pages, 8-way set associative, 64 entries",
+    },
+    CacheInfo {
+        num: 0xB6,
+        typ: CacheInfoType::TLB,
+        desc: "Instruction TLB: 4KByte pages, 8-way set associative, 128 entries",
+    },
+    CacheInfo {
+        num: 0xBA,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB1: 4 KByte pages, 4-way associative, 64 entries",
+    },
+    CacheInfo {
+        num: 0xC0,
+        typ: CacheInfoType::TLB,
+        desc: "Data TLB: 4 KByte and 4 MByte pages, 4-way associative, 8 entries",
+    },
+    CacheInfo {
+        num: 0xC1,
+        typ: CacheInfoType::STLB,
+        desc: "Shared 2nd-Level TLB: 4 KByte/2MByte pages, 8-way associative, 1024 entries",
+    },
+    CacheInfo {
+        num: 0xC2,
+        typ: CacheInfoType::DTLB,
+        desc: "DTLB: 2 MByte/$MByte pages, 4-way associative, 16 entries",
+    },
+    CacheInfo {
+        num: 0xCA,
+        typ: CacheInfoType::STLB,
+        desc: "Shared 2nd-Level TLB: 4 KByte pages, 4-way associative, 512 entries",
+    },
+    CacheInfo {
+        num: 0xD0,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 512 KByte, 4-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xD1,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 1 MByte, 4-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xD2,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 2 MByte, 4-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xD6,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 1 MByte, 8-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xD7,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 2 MByte, 8-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xD8,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 4 MByte, 8-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xDC,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 1.5 MByte, 12-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xDD,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 3 MByte, 12-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xDE,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 6 MByte, 12-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xE2,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 2 MByte, 16-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xE3,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 4 MByte, 16-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xE4,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 8 MByte, 16-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xEA,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 12MByte, 24-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xEB,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 18MByte, 24-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xEC,
+        typ: CacheInfoType::CACHE,
+        desc: "3rd-level cache: 24MByte, 24-way set associative, 64 byte line size",
+    },
+    CacheInfo {
+        num: 0xF0,
+        typ: CacheInfoType::PREFETCH,
+        desc: "64-Byte prefetching",
+    },
+    CacheInfo {
+        num: 0xF1,
+        typ: CacheInfoType::PREFETCH,
+        desc: "128-Byte prefetching",
+    },
+    CacheInfo {
+        num: 0xFF,
+        typ: CacheInfoType::GENERAL,
+        desc: "CPUID leaf 2 does not report cache descriptor information, use CPUID leaf 4 to \
+               query cache parameters",
+    },
+];
 
 impl fmt::Display for VendorInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -1272,383 +1275,497 @@ impl FeatureInfo {
         get_bits(self.ebx, 16, 23) as u8
     }
 
-    check_flag!(doc = "Streaming SIMD Extensions 3 (SSE3). A value of 1 indicates the processor \
-                       supports this technology.",
-                has_sse3,
-                edx_ecx,
-                CPU_FEATURE_SSE3);
+    check_flag!(
+        doc = "Streaming SIMD Extensions 3 (SSE3). A value of 1 indicates the processor \
+               supports this technology.",
+        has_sse3,
+        edx_ecx,
+        CPU_FEATURE_SSE3
+    );
 
-    check_flag!(doc = "PCLMULQDQ. A value of 1 indicates the processor supports the PCLMULQDQ \
-                       instruction",
-                has_pclmulqdq,
-                edx_ecx,
-                CPU_FEATURE_PCLMULQDQ);
+    check_flag!(
+        doc = "PCLMULQDQ. A value of 1 indicates the processor supports the PCLMULQDQ \
+               instruction",
+        has_pclmulqdq,
+        edx_ecx,
+        CPU_FEATURE_PCLMULQDQ
+    );
 
-    check_flag!(doc = "64-bit DS Area. A value of 1 indicates the processor supports DS area \
-                       using 64-bit layout",
-                has_ds_area,
-                edx_ecx,
-                CPU_FEATURE_DTES64);
+    check_flag!(
+        doc = "64-bit DS Area. A value of 1 indicates the processor supports DS area \
+               using 64-bit layout",
+        has_ds_area,
+        edx_ecx,
+        CPU_FEATURE_DTES64
+    );
 
-    check_flag!(doc = "MONITOR/MWAIT. A value of 1 indicates the processor supports this feature.",
-                has_monitor_mwait,
-                edx_ecx,
-                CPU_FEATURE_MONITOR);
+    check_flag!(
+        doc = "MONITOR/MWAIT. A value of 1 indicates the processor supports this feature.",
+        has_monitor_mwait,
+        edx_ecx,
+        CPU_FEATURE_MONITOR
+    );
 
-    check_flag!(doc = "CPL Qualified Debug Store. A value of 1 indicates the processor supports \
-                       the extensions to the  Debug Store feature to allow for branch message \
-                       storage qualified by CPL.",
-                has_cpl,
-                edx_ecx,
-                CPU_FEATURE_DSCPL);
+    check_flag!(
+        doc = "CPL Qualified Debug Store. A value of 1 indicates the processor supports \
+               the extensions to the  Debug Store feature to allow for branch message \
+               storage qualified by CPL.",
+        has_cpl,
+        edx_ecx,
+        CPU_FEATURE_DSCPL
+    );
 
-    check_flag!(doc = "Virtual Machine Extensions. A value of 1 indicates that the processor \
-                       supports this technology.",
-                has_vmx,
-                edx_ecx,
-                CPU_FEATURE_VMX);
+    check_flag!(
+        doc = "Virtual Machine Extensions. A value of 1 indicates that the processor \
+               supports this technology.",
+        has_vmx,
+        edx_ecx,
+        CPU_FEATURE_VMX
+    );
 
-    check_flag!(doc = "Safer Mode Extensions. A value of 1 indicates that the processor supports \
-                       this technology. See Chapter 5, Safer Mode Extensions Reference.",
-                has_smx,
-                edx_ecx,
-                CPU_FEATURE_SMX);
+    check_flag!(
+        doc = "Safer Mode Extensions. A value of 1 indicates that the processor supports \
+               this technology. See Chapter 5, Safer Mode Extensions Reference.",
+        has_smx,
+        edx_ecx,
+        CPU_FEATURE_SMX
+    );
 
-    check_flag!(doc = "Enhanced Intel SpeedStep® technology. A value of 1 indicates that the \
-                       processor supports this technology.",
-                has_eist,
-                edx_ecx,
-                CPU_FEATURE_EIST);
+    check_flag!(
+        doc = "Enhanced Intel SpeedStep® technology. A value of 1 indicates that the \
+               processor supports this technology.",
+        has_eist,
+        edx_ecx,
+        CPU_FEATURE_EIST
+    );
 
-    check_flag!(doc = "Thermal Monitor 2. A value of 1 indicates whether the processor supports \
-                       this technology.",
-                has_tm2,
-                edx_ecx,
-                CPU_FEATURE_TM2);
+    check_flag!(
+        doc = "Thermal Monitor 2. A value of 1 indicates whether the processor supports \
+               this technology.",
+        has_tm2,
+        edx_ecx,
+        CPU_FEATURE_TM2
+    );
 
-    check_flag!(doc = "A value of 1 indicates the presence of the Supplemental Streaming SIMD \
-                       Extensions 3 (SSSE3). A value of 0 indicates the instruction extensions \
-                       are not present in the processor",
-                has_ssse3,
-                edx_ecx,
-                CPU_FEATURE_SSSE3);
+    check_flag!(
+        doc = "A value of 1 indicates the presence of the Supplemental Streaming SIMD \
+               Extensions 3 (SSSE3). A value of 0 indicates the instruction extensions \
+               are not present in the processor",
+        has_ssse3,
+        edx_ecx,
+        CPU_FEATURE_SSSE3
+    );
 
-    check_flag!(doc = "L1 Context ID. A value of 1 indicates the L1 data cache mode can be set \
-                       to either adaptive mode or shared mode. A value of 0 indicates this \
-                       feature is not supported. See definition of the IA32_MISC_ENABLE MSR Bit \
-                       24 (L1 Data Cache Context Mode) for details.",
-                has_cnxtid,
-                edx_ecx,
-                CPU_FEATURE_CNXTID);
+    check_flag!(
+        doc = "L1 Context ID. A value of 1 indicates the L1 data cache mode can be set \
+               to either adaptive mode or shared mode. A value of 0 indicates this \
+               feature is not supported. See definition of the IA32_MISC_ENABLE MSR Bit \
+               24 (L1 Data Cache Context Mode) for details.",
+        has_cnxtid,
+        edx_ecx,
+        CPU_FEATURE_CNXTID
+    );
 
-    check_flag!(doc = "A value of 1 indicates the processor supports FMA extensions using YMM \
-                       state.",
-                has_fma,
-                edx_ecx,
-                CPU_FEATURE_FMA);
+    check_flag!(
+        doc = "A value of 1 indicates the processor supports FMA extensions using YMM \
+               state.",
+        has_fma,
+        edx_ecx,
+        CPU_FEATURE_FMA
+    );
 
-    check_flag!(doc = "CMPXCHG16B Available. A value of 1 indicates that the feature is \
-                       available. See the CMPXCHG8B/CMPXCHG16B Compare and Exchange Bytes \
-                       section. 14",
-                has_cmpxchg16b,
-                edx_ecx,
-                CPU_FEATURE_CMPXCHG16B);
+    check_flag!(
+        doc = "CMPXCHG16B Available. A value of 1 indicates that the feature is \
+               available. See the CMPXCHG8B/CMPXCHG16B Compare and Exchange Bytes \
+               section. 14",
+        has_cmpxchg16b,
+        edx_ecx,
+        CPU_FEATURE_CMPXCHG16B
+    );
 
-    check_flag!(doc = "Perfmon and Debug Capability: A value of 1 indicates the processor \
-                       supports the performance   and debug feature indication MSR \
-                       IA32_PERF_CAPABILITIES.",
-                has_pdcm,
-                edx_ecx,
-                CPU_FEATURE_PDCM);
+    check_flag!(
+        doc = "Perfmon and Debug Capability: A value of 1 indicates the processor \
+               supports the performance   and debug feature indication MSR \
+               IA32_PERF_CAPABILITIES.",
+        has_pdcm,
+        edx_ecx,
+        CPU_FEATURE_PDCM
+    );
 
-    check_flag!(doc = "Process-context identifiers. A value of 1 indicates that the processor \
-                       supports PCIDs and the software may set CR4.PCIDE to 1.",
-                has_pcid,
-                edx_ecx,
-                CPU_FEATURE_PCID);
+    check_flag!(
+        doc = "Process-context identifiers. A value of 1 indicates that the processor \
+               supports PCIDs and the software may set CR4.PCIDE to 1.",
+        has_pcid,
+        edx_ecx,
+        CPU_FEATURE_PCID
+    );
 
-    check_flag!(doc = "A value of 1 indicates the processor supports the ability to prefetch \
-                       data from a memory mapped device.",
-                has_dca,
-                edx_ecx,
-                CPU_FEATURE_DCA);
+    check_flag!(
+        doc = "A value of 1 indicates the processor supports the ability to prefetch \
+               data from a memory mapped device.",
+        has_dca,
+        edx_ecx,
+        CPU_FEATURE_DCA
+    );
 
-    check_flag!(doc = "A value of 1 indicates that the processor supports SSE4.1.",
-                has_sse41,
-                edx_ecx,
-                CPU_FEATURE_SSE41);
+    check_flag!(
+        doc = "A value of 1 indicates that the processor supports SSE4.1.",
+        has_sse41,
+        edx_ecx,
+        CPU_FEATURE_SSE41
+    );
 
-    check_flag!(doc = "A value of 1 indicates that the processor supports SSE4.2.",
-                has_sse42,
-                edx_ecx,
-                CPU_FEATURE_SSE42);
+    check_flag!(
+        doc = "A value of 1 indicates that the processor supports SSE4.2.",
+        has_sse42,
+        edx_ecx,
+        CPU_FEATURE_SSE42
+    );
 
-    check_flag!(doc = "A value of 1 indicates that the processor supports x2APIC feature.",
-                has_x2apic,
-                edx_ecx,
-                CPU_FEATURE_X2APIC);
+    check_flag!(
+        doc = "A value of 1 indicates that the processor supports x2APIC feature.",
+        has_x2apic,
+        edx_ecx,
+        CPU_FEATURE_X2APIC
+    );
 
-    check_flag!(doc = "A value of 1 indicates that the processor supports MOVBE instruction.",
-                has_movbe,
-                edx_ecx,
-                CPU_FEATURE_MOVBE);
+    check_flag!(
+        doc = "A value of 1 indicates that the processor supports MOVBE instruction.",
+        has_movbe,
+        edx_ecx,
+        CPU_FEATURE_MOVBE
+    );
 
-    check_flag!(doc = "A value of 1 indicates that the processor supports the POPCNT instruction.",
-                has_popcnt,
-                edx_ecx,
-                CPU_FEATURE_POPCNT);
+    check_flag!(
+        doc = "A value of 1 indicates that the processor supports the POPCNT instruction.",
+        has_popcnt,
+        edx_ecx,
+        CPU_FEATURE_POPCNT
+    );
 
-    check_flag!(doc = "A value of 1 indicates that the processors local APIC timer supports \
-                       one-shot operation using a TSC deadline value.",
-                has_tsc_deadline,
-                edx_ecx,
-                CPU_FEATURE_TSC_DEADLINE);
+    check_flag!(
+        doc = "A value of 1 indicates that the processors local APIC timer supports \
+               one-shot operation using a TSC deadline value.",
+        has_tsc_deadline,
+        edx_ecx,
+        CPU_FEATURE_TSC_DEADLINE
+    );
 
-    check_flag!(doc = "A value of 1 indicates that the processor supports the AESNI instruction \
-                       extensions.",
-                has_aesni,
-                edx_ecx,
-                CPU_FEATURE_AESNI);
+    check_flag!(
+        doc = "A value of 1 indicates that the processor supports the AESNI instruction \
+               extensions.",
+        has_aesni,
+        edx_ecx,
+        CPU_FEATURE_AESNI
+    );
 
-    check_flag!(doc = "A value of 1 indicates that the processor supports the XSAVE/XRSTOR \
-                       processor extended states feature, the XSETBV/XGETBV instructions, and \
-                       XCR0.",
-                has_xsave,
-                edx_ecx,
-                CPU_FEATURE_XSAVE);
+    check_flag!(
+        doc = "A value of 1 indicates that the processor supports the XSAVE/XRSTOR \
+               processor extended states feature, the XSETBV/XGETBV instructions, and \
+               XCR0.",
+        has_xsave,
+        edx_ecx,
+        CPU_FEATURE_XSAVE
+    );
 
-    check_flag!(doc = "A value of 1 indicates that the OS has enabled XSETBV/XGETBV instructions \
-                       to access XCR0, and support for processor extended state management using \
-                       XSAVE/XRSTOR.",
-                has_oxsave,
-                edx_ecx,
-                CPU_FEATURE_OSXSAVE);
+    check_flag!(
+        doc = "A value of 1 indicates that the OS has enabled XSETBV/XGETBV instructions \
+               to access XCR0, and support for processor extended state management using \
+               XSAVE/XRSTOR.",
+        has_oxsave,
+        edx_ecx,
+        CPU_FEATURE_OSXSAVE
+    );
 
-    check_flag!(doc = "A value of 1 indicates the processor supports the AVX instruction \
-                       extensions.",
-                has_avx,
-                edx_ecx,
-                CPU_FEATURE_AVX);
+    check_flag!(
+        doc = "A value of 1 indicates the processor supports the AVX instruction \
+               extensions.",
+        has_avx,
+        edx_ecx,
+        CPU_FEATURE_AVX
+    );
 
-    check_flag!(doc = "A value of 1 indicates that processor supports 16-bit floating-point \
-                       conversion instructions.",
-                has_f16c,
-                edx_ecx,
-                CPU_FEATURE_F16C);
+    check_flag!(
+        doc = "A value of 1 indicates that processor supports 16-bit floating-point \
+               conversion instructions.",
+        has_f16c,
+        edx_ecx,
+        CPU_FEATURE_F16C
+    );
 
-    check_flag!(doc = "A value of 1 indicates that processor supports RDRAND instruction.",
-                has_rdrand,
-                edx_ecx,
-                CPU_FEATURE_RDRAND);
+    check_flag!(
+        doc = "A value of 1 indicates that processor supports RDRAND instruction.",
+        has_rdrand,
+        edx_ecx,
+        CPU_FEATURE_RDRAND
+    );
 
-    check_flag!(doc = "Floating Point Unit On-Chip. The processor contains an x87 FPU.",
-                has_fpu,
-                edx_ecx,
-                CPU_FEATURE_FPU);
+    check_flag!(
+        doc = "Floating Point Unit On-Chip. The processor contains an x87 FPU.",
+        has_fpu,
+        edx_ecx,
+        CPU_FEATURE_FPU
+    );
 
-    check_flag!(doc = "Virtual 8086 Mode Enhancements. Virtual 8086 mode enhancements, including \
-                       CR4.VME for controlling the feature, CR4.PVI for protected mode virtual \
-                       interrupts, software interrupt indirection, expansion of the TSS with the \
-                       software indirection bitmap, and EFLAGS.VIF and EFLAGS.VIP flags.",
-                has_vme,
-                edx_ecx,
-                CPU_FEATURE_VME);
+    check_flag!(
+        doc = "Virtual 8086 Mode Enhancements. Virtual 8086 mode enhancements, including \
+               CR4.VME for controlling the feature, CR4.PVI for protected mode virtual \
+               interrupts, software interrupt indirection, expansion of the TSS with the \
+               software indirection bitmap, and EFLAGS.VIF and EFLAGS.VIP flags.",
+        has_vme,
+        edx_ecx,
+        CPU_FEATURE_VME
+    );
 
-    check_flag!(doc = "Debugging Extensions. Support for I/O breakpoints, including CR4.DE for \
-                       controlling the feature, and optional trapping of accesses to DR4 and DR5.",
-                has_de,
-                edx_ecx,
-                CPU_FEATURE_DE);
+    check_flag!(
+        doc = "Debugging Extensions. Support for I/O breakpoints, including CR4.DE for \
+               controlling the feature, and optional trapping of accesses to DR4 and DR5.",
+        has_de,
+        edx_ecx,
+        CPU_FEATURE_DE
+    );
 
-    check_flag!(doc = "Page Size Extension. Large pages of size 4 MByte are supported, including \
-                       CR4.PSE for controlling the feature, the defined dirty bit in PDE (Page \
-                       Directory Entries), optional reserved bit trapping in CR3, PDEs, and PTEs.",
-                has_pse,
-                edx_ecx,
-                CPU_FEATURE_PSE);
+    check_flag!(
+        doc = "Page Size Extension. Large pages of size 4 MByte are supported, including \
+               CR4.PSE for controlling the feature, the defined dirty bit in PDE (Page \
+               Directory Entries), optional reserved bit trapping in CR3, PDEs, and PTEs.",
+        has_pse,
+        edx_ecx,
+        CPU_FEATURE_PSE
+    );
 
-    check_flag!(doc = "Time Stamp Counter. The RDTSC instruction is supported, including CR4.TSD \
-                       for controlling privilege.",
-                has_tsc,
-                edx_ecx,
-                CPU_FEATURE_TSC);
+    check_flag!(
+        doc = "Time Stamp Counter. The RDTSC instruction is supported, including CR4.TSD \
+               for controlling privilege.",
+        has_tsc,
+        edx_ecx,
+        CPU_FEATURE_TSC
+    );
 
-    check_flag!(doc = "Model Specific Registers RDMSR and WRMSR Instructions. The RDMSR and \
-                       WRMSR instructions are supported. Some of the MSRs are implementation \
-                       dependent.",
-                has_msr,
-                edx_ecx,
-                CPU_FEATURE_MSR);
+    check_flag!(
+        doc = "Model Specific Registers RDMSR and WRMSR Instructions. The RDMSR and \
+               WRMSR instructions are supported. Some of the MSRs are implementation \
+               dependent.",
+        has_msr,
+        edx_ecx,
+        CPU_FEATURE_MSR
+    );
 
-    check_flag!(doc = "Physical Address Extension. Physical addresses greater than 32 bits are \
-                       supported: extended page table entry formats, an extra level in the page \
-                       translation tables is defined, 2-MByte pages are supported instead of 4 \
-                       Mbyte pages if PAE bit is 1.",
-                has_pae,
-                edx_ecx,
-                CPU_FEATURE_PAE);
+    check_flag!(
+        doc = "Physical Address Extension. Physical addresses greater than 32 bits are \
+               supported: extended page table entry formats, an extra level in the page \
+               translation tables is defined, 2-MByte pages are supported instead of 4 \
+               Mbyte pages if PAE bit is 1.",
+        has_pae,
+        edx_ecx,
+        CPU_FEATURE_PAE
+    );
 
-    check_flag!(doc = "Machine Check Exception. Exception 18 is defined for Machine Checks, \
-                       including CR4.MCE for controlling the feature. This feature does not \
-                       define the model-specific implementations of machine-check error logging, \
-                       reporting, and processor shutdowns. Machine Check exception handlers may \
-                       have to depend on processor version to do model specific processing of \
-                       the exception, or test for the presence of the Machine Check feature.",
-                has_mce,
-                edx_ecx,
-                CPU_FEATURE_MCE);
+    check_flag!(
+        doc = "Machine Check Exception. Exception 18 is defined for Machine Checks, \
+               including CR4.MCE for controlling the feature. This feature does not \
+               define the model-specific implementations of machine-check error logging, \
+               reporting, and processor shutdowns. Machine Check exception handlers may \
+               have to depend on processor version to do model specific processing of \
+               the exception, or test for the presence of the Machine Check feature.",
+        has_mce,
+        edx_ecx,
+        CPU_FEATURE_MCE
+    );
 
-    check_flag!(doc = "CMPXCHG8B Instruction. The compare-and-exchange 8 bytes (64 bits) \
-                       instruction is supported (implicitly locked and atomic).",
-                has_cmpxchg8b,
-                edx_ecx,
-                CPU_FEATURE_CX8);
+    check_flag!(
+        doc = "CMPXCHG8B Instruction. The compare-and-exchange 8 bytes (64 bits) \
+               instruction is supported (implicitly locked and atomic).",
+        has_cmpxchg8b,
+        edx_ecx,
+        CPU_FEATURE_CX8
+    );
 
-    check_flag!(doc = "APIC On-Chip. The processor contains an Advanced Programmable Interrupt \
-                       Controller (APIC), responding to memory mapped commands in the physical \
-                       address range FFFE0000H to FFFE0FFFH (by default - some processors permit \
-                       the APIC to be relocated).",
-                has_apic,
-                edx_ecx,
-                CPU_FEATURE_APIC);
+    check_flag!(
+        doc = "APIC On-Chip. The processor contains an Advanced Programmable Interrupt \
+               Controller (APIC), responding to memory mapped commands in the physical \
+               address range FFFE0000H to FFFE0FFFH (by default - some processors permit \
+               the APIC to be relocated).",
+        has_apic,
+        edx_ecx,
+        CPU_FEATURE_APIC
+    );
 
-    check_flag!(doc = "SYSENTER and SYSEXIT Instructions. The SYSENTER and SYSEXIT and \
-                       associated MSRs are supported.",
-                has_sysenter_sysexit,
-                edx_ecx,
-                CPU_FEATURE_SEP);
+    check_flag!(
+        doc = "SYSENTER and SYSEXIT Instructions. The SYSENTER and SYSEXIT and \
+               associated MSRs are supported.",
+        has_sysenter_sysexit,
+        edx_ecx,
+        CPU_FEATURE_SEP
+    );
 
-    check_flag!(doc = "Memory Type Range Registers. MTRRs are supported. The MTRRcap MSR \
-                       contains feature bits that describe what memory types are supported, how \
-                       many variable MTRRs are supported, and whether fixed MTRRs are supported.",
-                has_mtrr,
-                edx_ecx,
-                CPU_FEATURE_MTRR);
+    check_flag!(
+        doc = "Memory Type Range Registers. MTRRs are supported. The MTRRcap MSR \
+               contains feature bits that describe what memory types are supported, how \
+               many variable MTRRs are supported, and whether fixed MTRRs are supported.",
+        has_mtrr,
+        edx_ecx,
+        CPU_FEATURE_MTRR
+    );
 
-    check_flag!(doc = "Page Global Bit. The global bit is supported in paging-structure entries \
-                       that map a page, indicating TLB entries that are common to different \
-                       processes and need not be flushed. The CR4.PGE bit controls this feature.",
-                has_pge,
-                edx_ecx,
-                CPU_FEATURE_PGE);
+    check_flag!(
+        doc = "Page Global Bit. The global bit is supported in paging-structure entries \
+               that map a page, indicating TLB entries that are common to different \
+               processes and need not be flushed. The CR4.PGE bit controls this feature.",
+        has_pge,
+        edx_ecx,
+        CPU_FEATURE_PGE
+    );
 
-    check_flag!(doc = "Machine Check Architecture. The Machine Check Architecture, which \
-                       provides a compatible mechanism for error reporting in P6 family, Pentium \
-                       4, Intel Xeon processors, and future processors, is supported. The \
-                       MCG_CAP MSR contains feature bits describing how many banks of error \
-                       reporting MSRs are supported.",
-                has_mca,
-                edx_ecx,
-                CPU_FEATURE_MCA);
+    check_flag!(
+        doc = "Machine Check Architecture. The Machine Check Architecture, which \
+               provides a compatible mechanism for error reporting in P6 family, Pentium \
+               4, Intel Xeon processors, and future processors, is supported. The \
+               MCG_CAP MSR contains feature bits describing how many banks of error \
+               reporting MSRs are supported.",
+        has_mca,
+        edx_ecx,
+        CPU_FEATURE_MCA
+    );
 
-    check_flag!(doc = "Conditional Move Instructions. The conditional move instruction CMOV is \
-                       supported. In addition, if x87 FPU is present as indicated by the \
-                       CPUID.FPU feature bit, then the FCOMI and FCMOV instructions are supported",
-                has_cmov,
-                edx_ecx,
-                CPU_FEATURE_CMOV);
+    check_flag!(
+        doc = "Conditional Move Instructions. The conditional move instruction CMOV is \
+               supported. In addition, if x87 FPU is present as indicated by the \
+               CPUID.FPU feature bit, then the FCOMI and FCMOV instructions are supported",
+        has_cmov,
+        edx_ecx,
+        CPU_FEATURE_CMOV
+    );
 
-    check_flag!(doc = "Page Attribute Table. Page Attribute Table is supported. This feature \
-                       augments the Memory Type Range Registers (MTRRs), allowing an operating \
-                       system to specify attributes of memory accessed through a linear address \
-                       on a 4KB granularity.",
-                has_pat,
-                edx_ecx,
-                CPU_FEATURE_PAT);
+    check_flag!(
+        doc = "Page Attribute Table. Page Attribute Table is supported. This feature \
+               augments the Memory Type Range Registers (MTRRs), allowing an operating \
+               system to specify attributes of memory accessed through a linear address \
+               on a 4KB granularity.",
+        has_pat,
+        edx_ecx,
+        CPU_FEATURE_PAT
+    );
 
-    check_flag!(doc = "36-Bit Page Size Extension. 4-MByte pages addressing physical memory \
-                       beyond 4 GBytes are supported with 32-bit paging. This feature indicates \
-                       that upper bits of the physical address of a 4-MByte page are encoded in \
-                       bits 20:13 of the page-directory entry. Such physical addresses are \
-                       limited by MAXPHYADDR and may be up to 40 bits in size.",
-                has_pse36,
-                edx_ecx,
-                CPU_FEATURE_PSE36);
+    check_flag!(
+        doc = "36-Bit Page Size Extension. 4-MByte pages addressing physical memory \
+               beyond 4 GBytes are supported with 32-bit paging. This feature indicates \
+               that upper bits of the physical address of a 4-MByte page are encoded in \
+               bits 20:13 of the page-directory entry. Such physical addresses are \
+               limited by MAXPHYADDR and may be up to 40 bits in size.",
+        has_pse36,
+        edx_ecx,
+        CPU_FEATURE_PSE36
+    );
 
-    check_flag!(doc = "Processor Serial Number. The processor supports the 96-bit processor \
-                       identification number feature and the feature is enabled.",
-                has_psn,
-                edx_ecx,
-                CPU_FEATURE_PSN);
+    check_flag!(
+        doc = "Processor Serial Number. The processor supports the 96-bit processor \
+               identification number feature and the feature is enabled.",
+        has_psn,
+        edx_ecx,
+        CPU_FEATURE_PSN
+    );
 
-    check_flag!(doc = "CLFLUSH Instruction. CLFLUSH Instruction is supported.",
-                has_clflush,
-                edx_ecx,
-                CPU_FEATURE_CLFSH);
+    check_flag!(
+        doc = "CLFLUSH Instruction. CLFLUSH Instruction is supported.",
+        has_clflush,
+        edx_ecx,
+        CPU_FEATURE_CLFSH
+    );
 
-    check_flag!(doc = "Debug Store. The processor supports the ability to write debug \
-                       information into a memory resident buffer. This feature is used by the \
-                       branch trace store (BTS) and precise event-based sampling (PEBS) \
-                       facilities (see Chapter 23, Introduction to Virtual-Machine Extensions, \
-                       in the Intel® 64 and IA-32 Architectures Software Developers Manual, \
-                       Volume 3C).",
-                has_ds,
-                edx_ecx,
-                CPU_FEATURE_DS);
+    check_flag!(
+        doc = "Debug Store. The processor supports the ability to write debug \
+               information into a memory resident buffer. This feature is used by the \
+               branch trace store (BTS) and precise event-based sampling (PEBS) \
+               facilities (see Chapter 23, Introduction to Virtual-Machine Extensions, \
+               in the Intel® 64 and IA-32 Architectures Software Developers Manual, \
+               Volume 3C).",
+        has_ds,
+        edx_ecx,
+        CPU_FEATURE_DS
+    );
 
-    check_flag!(doc = "Thermal Monitor and Software Controlled Clock Facilities. The processor \
-                       implements internal MSRs that allow processor temperature to be monitored \
-                       and processor performance to be modulated in predefined duty cycles under \
-                       software control.",
-                has_acpi,
-                edx_ecx,
-                CPU_FEATURE_ACPI);
+    check_flag!(
+        doc = "Thermal Monitor and Software Controlled Clock Facilities. The processor \
+               implements internal MSRs that allow processor temperature to be monitored \
+               and processor performance to be modulated in predefined duty cycles under \
+               software control.",
+        has_acpi,
+        edx_ecx,
+        CPU_FEATURE_ACPI
+    );
 
-    check_flag!(doc = "Intel MMX Technology. The processor supports the Intel MMX technology.",
-                has_mmx,
-                edx_ecx,
-                CPU_FEATURE_MMX);
+    check_flag!(
+        doc = "Intel MMX Technology. The processor supports the Intel MMX technology.",
+        has_mmx,
+        edx_ecx,
+        CPU_FEATURE_MMX
+    );
 
-    check_flag!(doc = "FXSAVE and FXRSTOR Instructions. The FXSAVE and FXRSTOR instructions are \
-                       supported for fast save and restore of the floating point context. \
-                       Presence of this bit also indicates that CR4.OSFXSR is available for an \
-                       operating system to indicate that it supports the FXSAVE and FXRSTOR \
-                       instructions.",
-                has_fxsave_fxstor,
-                edx_ecx,
-                CPU_FEATURE_FXSR);
+    check_flag!(
+        doc = "FXSAVE and FXRSTOR Instructions. The FXSAVE and FXRSTOR instructions are \
+               supported for fast save and restore of the floating point context. \
+               Presence of this bit also indicates that CR4.OSFXSR is available for an \
+               operating system to indicate that it supports the FXSAVE and FXRSTOR \
+               instructions.",
+        has_fxsave_fxstor,
+        edx_ecx,
+        CPU_FEATURE_FXSR
+    );
 
-    check_flag!(doc = "SSE. The processor supports the SSE extensions.",
-                has_sse,
-                edx_ecx,
-                CPU_FEATURE_SSE);
+    check_flag!(
+        doc = "SSE. The processor supports the SSE extensions.",
+        has_sse,
+        edx_ecx,
+        CPU_FEATURE_SSE
+    );
 
-    check_flag!(doc = "SSE2. The processor supports the SSE2 extensions.",
-                has_sse2,
-                edx_ecx,
-                CPU_FEATURE_SSE2);
+    check_flag!(
+        doc = "SSE2. The processor supports the SSE2 extensions.",
+        has_sse2,
+        edx_ecx,
+        CPU_FEATURE_SSE2
+    );
 
-    check_flag!(doc = "Self Snoop. The processor supports the management of conflicting memory \
-                       types by performing a snoop of its own cache structure for transactions \
-                       issued to the bus.",
-                has_ss,
-                edx_ecx,
-                CPU_FEATURE_SS);
+    check_flag!(
+        doc = "Self Snoop. The processor supports the management of conflicting memory \
+               types by performing a snoop of its own cache structure for transactions \
+               issued to the bus.",
+        has_ss,
+        edx_ecx,
+        CPU_FEATURE_SS
+    );
 
-    check_flag!(doc = "Max APIC IDs reserved field is Valid. A value of 0 for HTT indicates \
-                       there is only a single logical processor in the package and software \
-                       should assume only a single APIC ID is reserved.  A value of 1 for HTT \
-                       indicates the value in CPUID.1.EBX[23:16] (the Maximum number of \
-                       addressable IDs for logical processors in this package) is valid for the \
-                       package.",
-                has_htt,
-                edx_ecx,
-                CPU_FEATURE_HTT);
+    check_flag!(
+        doc = "Max APIC IDs reserved field is Valid. A value of 0 for HTT indicates \
+               there is only a single logical processor in the package and software \
+               should assume only a single APIC ID is reserved.  A value of 1 for HTT \
+               indicates the value in CPUID.1.EBX[23:16] (the Maximum number of \
+               addressable IDs for logical processors in this package) is valid for the \
+               package.",
+        has_htt,
+        edx_ecx,
+        CPU_FEATURE_HTT
+    );
 
-    check_flag!(doc = "Thermal Monitor. The processor implements the thermal monitor automatic \
-                       thermal control circuitry (TCC).",
-                has_tm,
-                edx_ecx,
-                CPU_FEATURE_TM);
+    check_flag!(
+        doc = "Thermal Monitor. The processor implements the thermal monitor automatic \
+               thermal control circuitry (TCC).",
+        has_tm,
+        edx_ecx,
+        CPU_FEATURE_TM
+    );
 
-    check_flag!(doc = "Pending Break Enable. The processor supports the use of the FERR#/PBE# \
-                       pin when the processor is in the stop-clock state (STPCLK# is asserted) \
-                       to signal the processor that an interrupt is pending and that the \
-                       processor should return to normal operation to handle the interrupt. Bit \
-                       10 (PBE enable) in the IA32_MISC_ENABLE MSR enables this capability.",
-                has_pbe,
-                edx_ecx,
-                CPU_FEATURE_PBE);
+    check_flag!(
+        doc = "Pending Break Enable. The processor supports the use of the FERR#/PBE# \
+               pin when the processor is in the stop-clock state (STPCLK# is asserted) \
+               to signal the processor that an interrupt is pending and that the \
+               processor should return to normal operation to handle the interrupt. Bit \
+               10 (PBE enable) in the IA32_MISC_ENABLE MSR enables this capability.",
+        has_pbe,
+        edx_ecx,
+        CPU_FEATURE_PBE
+    );
 }
 
 bitflags! {
@@ -1993,52 +2110,68 @@ pub struct ThermalPowerInfo {
 }
 
 impl ThermalPowerInfo {
-    check_flag!(doc = "Digital temperature sensor is supported if set.",
-                has_dts,
-                eax,
-                CPU_FEATURE_DTS);
+    check_flag!(
+        doc = "Digital temperature sensor is supported if set.",
+        has_dts,
+        eax,
+        CPU_FEATURE_DTS
+    );
 
-    check_flag!(doc = "Intel Turbo Boost Technology Available (see description of \
-                       IA32_MISC_ENABLE[38]).",
-                has_turbo_boost,
-                eax,
-                CPU_FEATURE_TURBO_BOOST);
+    check_flag!(
+        doc = "Intel Turbo Boost Technology Available (see description of \
+               IA32_MISC_ENABLE[38]).",
+        has_turbo_boost,
+        eax,
+        CPU_FEATURE_TURBO_BOOST
+    );
 
-    check_flag!(doc = "ARAT. APIC-Timer-always-running feature is supported if set.",
-                has_arat,
-                eax,
-                CPU_FEATURE_ARAT);
+    check_flag!(
+        doc = "ARAT. APIC-Timer-always-running feature is supported if set.",
+        has_arat,
+        eax,
+        CPU_FEATURE_ARAT
+    );
 
-    check_flag!(doc = "PLN. Power limit notification controls are supported if set.",
-                has_pln,
-                eax,
-                CPU_FEATURE_PLN);
+    check_flag!(
+        doc = "PLN. Power limit notification controls are supported if set.",
+        has_pln,
+        eax,
+        CPU_FEATURE_PLN
+    );
 
-    check_flag!(doc = "ECMD. Clock modulation duty cycle extension is supported if set.",
-                has_ecmd,
-                eax,
-                CPU_FEATURE_ECMD);
+    check_flag!(
+        doc = "ECMD. Clock modulation duty cycle extension is supported if set.",
+        has_ecmd,
+        eax,
+        CPU_FEATURE_ECMD
+    );
 
-    check_flag!(doc = "PTM. Package thermal management is supported if set.",
-                has_ptm,
-                eax,
-                CPU_FEATURE_PTM);
+    check_flag!(
+        doc = "PTM. Package thermal management is supported if set.",
+        has_ptm,
+        eax,
+        CPU_FEATURE_PTM
+    );
 
-    check_flag!(doc = "Hardware Coordination Feedback Capability (Presence of IA32_MPERF and \
-                       IA32_APERF). The capability to provide a measure of delivered processor \
-                       performance (since last reset of the counters), as a percentage of \
-                       expected processor performance at frequency specified in CPUID Brand \
-                       String Bits 02 - 01",
-                has_hw_coord_feedback,
-                ecx,
-                CPU_FEATURE_HW_COORD_FEEDBACK);
+    check_flag!(
+        doc = "Hardware Coordination Feedback Capability (Presence of IA32_MPERF and \
+               IA32_APERF). The capability to provide a measure of delivered processor \
+               performance (since last reset of the counters), as a percentage of \
+               expected processor performance at frequency specified in CPUID Brand \
+               String Bits 02 - 01",
+        has_hw_coord_feedback,
+        ecx,
+        CPU_FEATURE_HW_COORD_FEEDBACK
+    );
 
-    check_flag!(doc = "The processor supports performance-energy bias preference if \
-                       CPUID.06H:ECX.SETBH[bit 3] is set and it also implies the presence of a \
-                       new architectural MSR called IA32_ENERGY_PERF_BIAS (1B0H)",
-                has_energy_bias_pref,
-                ecx,
-                CPU_FEATURE_ENERGY_BIAS_PREF);
+    check_flag!(
+        doc = "The processor supports performance-energy bias preference if \
+               CPUID.06H:ECX.SETBH[bit 3] is set and it also implies the presence of a \
+               new architectural MSR called IA32_ENERGY_PERF_BIAS (1B0H)",
+        has_energy_bias_pref,
+        ecx,
+        CPU_FEATURE_ENERGY_BIAS_PREF
+    );
 }
 
 bitflags! {
@@ -2087,15 +2220,19 @@ pub struct ExtendedFeatures {
 }
 
 impl ExtendedFeatures {
-    check_flag!(doc = "FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1.",
-                has_fsgsbase,
-                ebx,
-                CPU_FEATURE_FSGSBASE);
+    check_flag!(
+        doc = "FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1.",
+        has_fsgsbase,
+        ebx,
+        CPU_FEATURE_FSGSBASE
+    );
 
-    check_flag!(doc = "IA32_TSC_ADJUST MSR is supported if 1.",
-                has_tsc_adjust_msr,
-                ebx,
-                CPU_FEATURE_ADJUST_MSR);
+    check_flag!(
+        doc = "IA32_TSC_ADJUST MSR is supported if 1.",
+        has_tsc_adjust_msr,
+        ebx,
+        CPU_FEATURE_ADJUST_MSR
+    );
 
     check_flag!(doc = "BMI1", has_bmi1, ebx, CPU_FEATURE_BMI1);
 
@@ -2103,83 +2240,102 @@ impl ExtendedFeatures {
 
     check_flag!(doc = "AVX2", has_avx2, ebx, CPU_FEATURE_AVX2);
 
-    check_flag!(doc = "FDP_EXCPTN_ONLY. x87 FPU Data Pointer updated only on x87 exceptions if 1.", 
-                has_fdp, 
-                ebx, 
-                CPU_FEATURE_FDP);
+    check_flag!(
+        doc = "FDP_EXCPTN_ONLY. x87 FPU Data Pointer updated only on x87 exceptions if 1.",
+        has_fdp,
+        ebx,
+        CPU_FEATURE_FDP
+    );
 
-    check_flag!(doc = "SMEP. Supports Supervisor-Mode Execution Prevention if 1.",
-                has_smep,
-                ebx,
-                CPU_FEATURE_SMEP);
+    check_flag!(
+        doc = "SMEP. Supports Supervisor-Mode Execution Prevention if 1.",
+        has_smep,
+        ebx,
+        CPU_FEATURE_SMEP
+    );
 
     check_flag!(doc = "BMI2", has_bmi2, ebx, CPU_FEATURE_BMI2);
 
-    check_flag!(doc = "Supports Enhanced REP MOVSB/STOSB if 1.",
-                has_rep_movsb_stosb,
-                ebx,
-                CPU_FEATURE_REP_MOVSB_STOSB);
+    check_flag!(
+        doc = "Supports Enhanced REP MOVSB/STOSB if 1.",
+        has_rep_movsb_stosb,
+        ebx,
+        CPU_FEATURE_REP_MOVSB_STOSB
+    );
 
-    check_flag!(doc = "INVPCID. If 1, supports INVPCID instruction for system software that \
-                       manages process-context identifiers.",
-                has_invpcid,
-                ebx,
-                CPU_FEATURE_INVPCID);
+    check_flag!(
+        doc = "INVPCID. If 1, supports INVPCID instruction for system software that \
+               manages process-context identifiers.",
+        has_invpcid,
+        ebx,
+        CPU_FEATURE_INVPCID
+    );
 
     check_flag!(doc = "RTM", has_rtm, ebx, CPU_FEATURE_RTM);
 
-    check_flag!(doc = "Supports Quality of Service Monitoring (QM) capability if 1.",
-                has_qm,
-                ebx,
-                CPU_FEATURE_QM);
+    check_flag!(
+        doc = "Supports Quality of Service Monitoring (QM) capability if 1.",
+        has_qm,
+        ebx,
+        CPU_FEATURE_QM
+    );
 
-    check_flag!(doc = "Deprecates FPU CS and FPU DS values if 1.",
-                has_fpu_cs_ds_deprecated,
-                ebx,
-                CPU_FEATURE_DEPRECATE_FPU_CS_DS);
+    check_flag!(
+        doc = "Deprecates FPU CS and FPU DS values if 1.",
+        has_fpu_cs_ds_deprecated,
+        ebx,
+        CPU_FEATURE_DEPRECATE_FPU_CS_DS
+    );
 
-    check_flag!(doc = "MPX. Supports Intel Memory Protection Extensions if 1.",
-                has_mpx,
-                ebx,
-                CPU_FEATURE_MPX);
+    check_flag!(
+        doc = "MPX. Supports Intel Memory Protection Extensions if 1.",
+        has_mpx,
+        ebx,
+        CPU_FEATURE_MPX
+    );
 
-    check_flag!(doc = "Supports Platform Quality of Service Enforcement (PQE) capability if 1.",
-                has_pqe,
-                ebx,
-                CPU_FEATURE_PQE);
+    check_flag!(
+        doc = "Supports Platform Quality of Service Enforcement (PQE) capability if 1.",
+        has_pqe,
+        ebx,
+        CPU_FEATURE_PQE
+    );
 
-    check_flag!(doc = "Supports RDSEED.",
-                has_rdseed,
-                ebx,
-                CPU_FEATURE_RDSEED);
+    check_flag!(
+        doc = "Supports RDSEED.",
+        has_rdseed,
+        ebx,
+        CPU_FEATURE_RDSEED
+    );
 
-    check_flag!(doc = "Supports RDSEED (deprecated alias).",
-                has_rdseet,
-                ebx,
-                CPU_FEATURE_RDSEED);
+    check_flag!(
+        doc = "Supports RDSEED (deprecated alias).",
+        has_rdseet,
+        ebx,
+        CPU_FEATURE_RDSEED
+    );
 
-    check_flag!(doc = "Supports ADX.",
-                has_adx,
-                ebx,
-                CPU_FEATURE_ADX);
+    check_flag!(doc = "Supports ADX.", has_adx, ebx, CPU_FEATURE_ADX);
 
     check_flag!(doc = "SMAP. Supports Supervisor-Mode Access Prevention (and the CLAC/STAC instructions) if 1.",
                 has_smap,
                 ebx,
                 CPU_FEATURE_SMAP);
 
-    check_flag!(doc = "Supports CLFLUSHOPT.",
-                has_clflushopt,
-                ebx,
-                CPU_FEATURE_CLFLUSHOPT);
+    check_flag!(
+        doc = "Supports CLFLUSHOPT.",
+        has_clflushopt,
+        ebx,
+        CPU_FEATURE_CLFLUSHOPT
+    );
 
-    check_flag!(doc = "Supports Intel Processor Trace.",
-                has_processor_trace,
-                ebx,
-                CPU_FEATURE_PROCESSOR_TRACE);
-
+    check_flag!(
+        doc = "Supports Intel Processor Trace.",
+        has_processor_trace,
+        ebx,
+        CPU_FEATURE_PROCESSOR_TRACE
+    );
 }
-
 
 bitflags! {
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -2240,7 +2396,6 @@ impl DirectCacheAccessInfo {
     }
 }
 
-
 #[derive(Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct PerformanceMonitoringInfo {
@@ -2281,41 +2436,54 @@ impl PerformanceMonitoringInfo {
         get_bits(self.edx, 5, 12) as u8
     }
 
+    check_flag!(
+        doc = "Core cycle event not available if 1.",
+        is_core_cyc_ev_unavailable,
+        ebx,
+        CPU_FEATURE_CORE_CYC_EV_UNAVAILABLE
+    );
 
-    check_flag!(doc = "Core cycle event not available if 1.",
-                is_core_cyc_ev_unavailable,
-                ebx,
-                CPU_FEATURE_CORE_CYC_EV_UNAVAILABLE);
+    check_flag!(
+        doc = "Instruction retired event not available if 1.",
+        is_inst_ret_ev_unavailable,
+        ebx,
+        CPU_FEATURE_INST_RET_EV_UNAVAILABLE
+    );
 
-    check_flag!(doc = "Instruction retired event not available if 1.",
-                is_inst_ret_ev_unavailable,
-                ebx,
-                CPU_FEATURE_INST_RET_EV_UNAVAILABLE);
+    check_flag!(
+        doc = "Reference cycles event not available if 1.",
+        is_ref_cycle_ev_unavailable,
+        ebx,
+        CPU_FEATURE_REF_CYC_EV_UNAVAILABLE
+    );
 
-    check_flag!(doc = "Reference cycles event not available if 1.",
-                is_ref_cycle_ev_unavailable,
-                ebx,
-                CPU_FEATURE_REF_CYC_EV_UNAVAILABLE);
+    check_flag!(
+        doc = "Last-level cache reference event not available if 1.",
+        is_cache_ref_ev_unavailable,
+        ebx,
+        CPU_FEATURE_CACHE_REF_EV_UNAVAILABLE
+    );
 
-    check_flag!(doc = "Last-level cache reference event not available if 1.",
-                is_cache_ref_ev_unavailable,
-                ebx,
-                CPU_FEATURE_CACHE_REF_EV_UNAVAILABLE);
+    check_flag!(
+        doc = "Last-level cache misses event not available if 1.",
+        is_ll_cache_miss_ev_unavailable,
+        ebx,
+        CPU_FEATURE_LL_CACHE_MISS_EV_UNAVAILABLE
+    );
 
-    check_flag!(doc = "Last-level cache misses event not available if 1.",
-                is_ll_cache_miss_ev_unavailable,
-                ebx,
-                CPU_FEATURE_LL_CACHE_MISS_EV_UNAVAILABLE);
+    check_flag!(
+        doc = "Branch instruction retired event not available if 1.",
+        is_branch_inst_ret_ev_unavailable,
+        ebx,
+        CPU_FEATURE_BRANCH_INST_RET_EV_UNAVAILABLE
+    );
 
-    check_flag!(doc = "Branch instruction retired event not available if 1.",
-                is_branch_inst_ret_ev_unavailable,
-                ebx,
-                CPU_FEATURE_BRANCH_INST_RET_EV_UNAVAILABLE);
-
-    check_flag!(doc = "Branch mispredict retired event not available if 1.",
-                is_branch_midpred_ev_unavailable,
-                ebx,
-                CPU_FEATURE_BRANCH_MISPRED_EV_UNAVAILABLE);
+    check_flag!(
+        doc = "Branch mispredict retired event not available if 1.",
+        is_branch_midpred_ev_unavailable,
+        ebx,
+        CPU_FEATURE_BRANCH_MISPRED_EV_UNAVAILABLE
+    );
 }
 
 bitflags! {
@@ -2658,10 +2826,12 @@ pub struct QoSEnforcementInfo {
 }
 
 impl QoSEnforcementInfo {
-    check_bit_fn!(doc = "Supports L3 Cache QoS enforcement if true.",
-                  has_l3_qos_enforcement,
-                  ebx0,
-                  0);
+    check_bit_fn!(
+        doc = "Supports L3 Cache QoS enforcement if true.",
+        has_l3_qos_enforcement,
+        ebx0,
+        0
+    );
 
     /// Iterator over QoS enforcements.
     pub fn iter(&self) -> QoSEnforcementIter {
@@ -2727,15 +2897,19 @@ impl QoSEnforcement {
         get_bits(self.edx, 0, 15) as u16
     }
 
-    check_bit_fn!(doc = "Updates of COS should be infrequent if true.",
-                  has_infrequent_cos_updates,
-                  ecx,
-                  1);
+    check_bit_fn!(
+        doc = "Updates of COS should be infrequent if true.",
+        has_infrequent_cos_updates,
+        ecx,
+        1
+    );
 
-    check_bit_fn!(doc = "Is Code and Data Prioritization Technology supported?",
-                  has_code_data_prioritization,
-                  ecx,
-                  2);
+    check_bit_fn!(
+        doc = "Is Code and Data Prioritization Technology supported?",
+        has_code_data_prioritization,
+        ecx,
+        2
+    );
 }
 
 #[derive(Debug)]
@@ -2749,52 +2923,70 @@ pub struct ProcessorTraceInfo {
 
 impl ProcessorTraceInfo {
     // EBX features
-    check_bit_fn!(doc = "If true, Indicates that IA32_RTIT_CTL.CR3Filter can be set to 1, and \
-                         that IA32_RTIT_CR3_MATCH MSR can be accessed.",
-                  has_rtit_cr3_match,
-                  ebx,
-                  0);
-    check_bit_fn!(doc = "If true, Indicates support of Configurable PSB and Cycle-Accurate Mode.",
-                  has_configurable_psb_and_cycle_accurate_mode,
-                  ebx,
-                  1);
-    check_bit_fn!(doc = "If true, Indicates support of IP Filtering, TraceStop filtering, and \
-                         preservation of Intel PT MSRs across warm reset.",
-                  has_ip_tracestop_filtering,
-                  ebx,
-                  2);
-    check_bit_fn!(doc = "If true, Indicates support of MTC timing packet and suppression of \
-                         COFI-based packets.",
-                  has_mtc_timing_packet_coefi_suppression,
-                  ebx,
-                  3);
+    check_bit_fn!(
+        doc = "If true, Indicates that IA32_RTIT_CTL.CR3Filter can be set to 1, and \
+               that IA32_RTIT_CR3_MATCH MSR can be accessed.",
+        has_rtit_cr3_match,
+        ebx,
+        0
+    );
+    check_bit_fn!(
+        doc = "If true, Indicates support of Configurable PSB and Cycle-Accurate Mode.",
+        has_configurable_psb_and_cycle_accurate_mode,
+        ebx,
+        1
+    );
+    check_bit_fn!(
+        doc = "If true, Indicates support of IP Filtering, TraceStop filtering, and \
+               preservation of Intel PT MSRs across warm reset.",
+        has_ip_tracestop_filtering,
+        ebx,
+        2
+    );
+    check_bit_fn!(
+        doc = "If true, Indicates support of MTC timing packet and suppression of \
+               COFI-based packets.",
+        has_mtc_timing_packet_coefi_suppression,
+        ebx,
+        3
+    );
 
     // ECX features
-    check_bit_fn!(doc = "If true, Tracing can be enabled with IA32_RTIT_CTL.ToPA = 1, hence \
-                         utilizing the ToPA output scheme; IA32_RTIT_OUTPUT_BASE and \
-                         IA32_RTIT_OUTPUT_MASK_PTRS MSRs can be accessed.",
-                  has_topa,
-                  ecx,
-                  0);
-    check_bit_fn!(doc = "If true, ToPA tables can hold any number of output entries, up to the \
-                         maximum allowed by the MaskOrTableOffset field of \
-                         IA32_RTIT_OUTPUT_MASK_PTRS.",
-                  has_topa_maximum_entries,
-                  ecx,
-                  1);
-    check_bit_fn!(doc = "If true, Indicates support of Single-Range Output scheme.",
-                  has_single_range_output_scheme,
-                  ecx,
-                  2);
-    check_bit_fn!(doc = "If true, Indicates support of output to Trace Transport subsystem.",
-                  has_trace_transport_subsystem,
-                  ecx,
-                  3);
-    check_bit_fn!(doc = "If true, Generated packets which contain IP payloads have LIP values, \
-                         which include the CS base component.",
-                  has_lip_with_cs_base,
-                  ecx,
-                  31);
+    check_bit_fn!(
+        doc = "If true, Tracing can be enabled with IA32_RTIT_CTL.ToPA = 1, hence \
+               utilizing the ToPA output scheme; IA32_RTIT_OUTPUT_BASE and \
+               IA32_RTIT_OUTPUT_MASK_PTRS MSRs can be accessed.",
+        has_topa,
+        ecx,
+        0
+    );
+    check_bit_fn!(
+        doc = "If true, ToPA tables can hold any number of output entries, up to the \
+               maximum allowed by the MaskOrTableOffset field of \
+               IA32_RTIT_OUTPUT_MASK_PTRS.",
+        has_topa_maximum_entries,
+        ecx,
+        1
+    );
+    check_bit_fn!(
+        doc = "If true, Indicates support of Single-Range Output scheme.",
+        has_single_range_output_scheme,
+        ecx,
+        2
+    );
+    check_bit_fn!(
+        doc = "If true, Indicates support of output to Trace Transport subsystem.",
+        has_trace_transport_subsystem,
+        ecx,
+        3
+    );
+    check_bit_fn!(
+        doc = "If true, Generated packets which contain IP payloads have LIP values, \
+               which include the CS base component.",
+        has_lip_with_cs_base,
+        ecx,
+        31
+    );
 
     /// Iterator over processor trace info sub-leafs.
     pub fn iter(&self) -> ProcessorTraceIter {
@@ -2913,11 +3105,10 @@ pub struct SoCVendorInfo {
     eax: u32,
     ebx: u32,
     ecx: u32,
-    edx: u32
+    edx: u32,
 }
 
 impl SoCVendorInfo {
-
     pub fn get_soc_vendor_id(&self) -> u16 {
         get_bits(self.ebx, 0, 15) as u16
     }
@@ -2940,9 +3131,11 @@ impl SoCVendorInfo {
 
     pub fn get_vendor_attributes(&self) -> Option<SoCVendorAttributesIter> {
         if self.eax > 3 {
-            Some(SoCVendorAttributesIter { count: self.eax, current: 3 })
-        }
-        else {
+            Some(SoCVendorAttributesIter {
+                count: self.eax,
+                current: 3,
+            })
+        } else {
             None
         }
     }
@@ -2952,7 +3145,7 @@ impl SoCVendorInfo {
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorAttributesIter {
     count: u32,
-    current: u32
+    current: u32,
 }
 
 impl Iterator for SoCVendorAttributesIter {
@@ -2972,15 +3165,15 @@ impl Iterator for SoCVendorAttributesIter {
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorBrand {
     #[allow(dead_code)]
-    data: [CpuIdResult; 3]
+    data: [CpuIdResult; 3],
 }
 
 impl SoCVendorBrand {
-
     pub fn as_string(&self) -> &str {
         unsafe {
             let brand_string_start = self as *const SoCVendorBrand as *const u8;
-            let slice = slice::from_raw_parts(brand_string_start, core::mem::size_of::<SoCVendorBrand>());
+            let slice =
+                slice::from_raw_parts(brand_string_start, core::mem::size_of::<SoCVendorBrand>());
             let byte_array: &'static [u8] = transmute(slice);
             str::from_utf8_unchecked(byte_array)
         }
@@ -3112,50 +3305,58 @@ impl ExtendedFunctionInfo {
 
     /// Is LAHF/SAHF available in 64-bit mode?
     pub fn has_lahf_sahf(&self) -> bool {
-        self.leaf_is_supported(1) &&
-        ExtendedFunctionInfoEcx { bits: self.data[1].ecx }.contains(CPU_FEATURE_LAHF_SAHF)
+        self.leaf_is_supported(1) && ExtendedFunctionInfoEcx {
+            bits: self.data[1].ecx,
+        }.contains(CPU_FEATURE_LAHF_SAHF)
     }
 
     /// Is LZCNT available?
     pub fn has_lzcnt(&self) -> bool {
-        self.leaf_is_supported(1) &&
-        ExtendedFunctionInfoEcx { bits: self.data[1].ecx }.contains(CPU_FEATURE_LZCNT)
+        self.leaf_is_supported(1) && ExtendedFunctionInfoEcx {
+            bits: self.data[1].ecx,
+        }.contains(CPU_FEATURE_LZCNT)
     }
 
     /// Is PREFETCHW available?
     pub fn has_prefetchw(&self) -> bool {
-        self.leaf_is_supported(1) &&
-        ExtendedFunctionInfoEcx { bits: self.data[1].ecx }.contains(CPU_FEATURE_PREFETCHW)
+        self.leaf_is_supported(1) && ExtendedFunctionInfoEcx {
+            bits: self.data[1].ecx,
+        }.contains(CPU_FEATURE_PREFETCHW)
     }
 
     /// Are fast system calls available.
     pub fn has_syscall_sysret(&self) -> bool {
-        self.leaf_is_supported(1) &&
-        ExtendedFunctionInfoEdx { bits: self.data[1].edx }.contains(CPU_FEATURE_SYSCALL_SYSRET)
+        self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
+            bits: self.data[1].edx,
+        }.contains(CPU_FEATURE_SYSCALL_SYSRET)
     }
 
     /// Is there support for execute disable bit.
     pub fn has_execute_disable(&self) -> bool {
-        self.leaf_is_supported(1) &&
-        ExtendedFunctionInfoEdx { bits: self.data[1].edx }.contains(CPU_FEATURE_EXECUTE_DISABLE)
+        self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
+            bits: self.data[1].edx,
+        }.contains(CPU_FEATURE_EXECUTE_DISABLE)
     }
 
     /// Is there support for 1GiB pages.
     pub fn has_1gib_pages(&self) -> bool {
-        self.leaf_is_supported(1) &&
-        ExtendedFunctionInfoEdx { bits: self.data[1].edx }.contains(CPU_FEATURE_1GIB_PAGES)
+        self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
+            bits: self.data[1].edx,
+        }.contains(CPU_FEATURE_1GIB_PAGES)
     }
 
     /// Check support for rdtscp instruction.
     pub fn has_rdtscp(&self) -> bool {
-        self.leaf_is_supported(1) &&
-        ExtendedFunctionInfoEdx { bits: self.data[1].edx }.contains(CPU_FEATURE_RDTSCP)
+        self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
+            bits: self.data[1].edx,
+        }.contains(CPU_FEATURE_RDTSCP)
     }
 
     /// Check support for 64-bit mode.
     pub fn has_64bit_mode(&self) -> bool {
-        self.leaf_is_supported(1) &&
-        ExtendedFunctionInfoEdx { bits: self.data[1].edx }.contains(CPU_FEATURE_64BIT_MODE)
+        self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
+            bits: self.data[1].edx,
+        }.contains(CPU_FEATURE_64BIT_MODE)
     }
 }
 
@@ -3203,7 +3404,9 @@ fn feature_info() {
     let finfo = FeatureInfo {
         eax: 198313,
         ebx: 34605056,
-        edx_ecx: FeatureInfoFlags { bits: 2109399999 | 3219913727 << 32 },
+        edx_ecx: FeatureInfoFlags {
+            bits: 2109399999 | 3219913727 << 32,
+        },
     };
 
     assert!(finfo.model_id() == 10);
@@ -3243,31 +3446,32 @@ fn cache_info() {
 
 #[test]
 fn cache_parameters() {
-    let caches: [CacheParameter; 4] = [CacheParameter {
-                                           eax: 469778721,
-                                           ebx: 29360191,
-                                           ecx: 63,
-                                           edx: 0,
-                                       },
-                                       CacheParameter {
-                                           eax: 469778722,
-                                           ebx: 29360191,
-                                           ecx: 63,
-                                           edx: 0,
-                                       },
-                                       CacheParameter {
-                                           eax: 469778755,
-                                           ebx: 29360191,
-                                           ecx: 511,
-                                           edx: 0,
-                                       },
-                                       CacheParameter {
-                                           eax: 470008163,
-                                           ebx: 46137407,
-                                           ecx: 4095,
-                                           edx: 6,
-                                       }];
-
+    let caches: [CacheParameter; 4] = [
+        CacheParameter {
+            eax: 469778721,
+            ebx: 29360191,
+            ecx: 63,
+            edx: 0,
+        },
+        CacheParameter {
+            eax: 469778722,
+            ebx: 29360191,
+            ecx: 63,
+            edx: 0,
+        },
+        CacheParameter {
+            eax: 469778755,
+            ebx: 29360191,
+            ecx: 511,
+            edx: 0,
+        },
+        CacheParameter {
+            eax: 470008163,
+            ebx: 46137407,
+            ecx: 4095,
+            edx: 6,
+        },
+    ];
 
     for (idx, cache) in caches.into_iter().enumerate() {
         match idx {
@@ -3403,7 +3607,6 @@ fn extended_features() {
     assert!(!tpfeatures.ebx.contains(CPU_FEATURE_RTM));
     assert!(!tpfeatures.ebx.contains(CPU_FEATURE_QM));
     assert!(!tpfeatures.ebx.contains(CPU_FEATURE_DEPRECATE_FPU_CS_DS));
-
 }
 
 #[test]
@@ -3436,7 +3639,6 @@ fn performance_monitoring_info() {
     assert!(!pm.ebx.contains(CPU_FEATURE_BRANCH_INST_RET_EV_UNAVAILABLE));
     assert!(!pm.ebx.contains(CPU_FEATURE_BRANCH_MISPRED_EV_UNAVAILABLE));
 }
-
 
 #[cfg(test)]
 #[test]
@@ -3515,64 +3717,68 @@ fn quality_of_service_info() {
 fn extended_functions() {
     let ef = ExtendedFunctionInfo {
         max_eax_value: 8,
-        data: [CpuIdResult {
-                   eax: 2147483656,
-                   ebx: 0,
-                   ecx: 0,
-                   edx: 0,
-               },
-               CpuIdResult {
-                   eax: 0,
-                   ebx: 0,
-                   ecx: 1,
-                   edx: 672139264,
-               },
-               CpuIdResult {
-                   eax: 538976288,
-                   ebx: 1226842144,
-                   ecx: 1818588270,
-                   edx: 539578920,
-               },
-               CpuIdResult {
-                   eax: 1701998403,
-                   ebx: 692933672,
-                   ecx: 758475040,
-                   edx: 926102323,
-               },
-               CpuIdResult {
-                   eax: 1346576469,
-                   ebx: 541073493,
-                   ecx: 808988209,
-                   edx: 8013895,
-               },
-               CpuIdResult {
-                   eax: 0,
-                   ebx: 0,
-                   ecx: 0,
-                   edx: 0,
-               },
-               CpuIdResult {
-                   eax: 0,
-                   ebx: 0,
-                   ecx: 16801856,
-                   edx: 0,
-               },
-               CpuIdResult {
-                   eax: 0,
-                   ebx: 0,
-                   ecx: 0,
-                   edx: 256,
-               },
-               CpuIdResult {
-                   eax: 12324,
-                   ebx: 0,
-                   ecx: 0,
-                   edx: 0,
-               }],
+        data: [
+            CpuIdResult {
+                eax: 2147483656,
+                ebx: 0,
+                ecx: 0,
+                edx: 0,
+            },
+            CpuIdResult {
+                eax: 0,
+                ebx: 0,
+                ecx: 1,
+                edx: 672139264,
+            },
+            CpuIdResult {
+                eax: 538976288,
+                ebx: 1226842144,
+                ecx: 1818588270,
+                edx: 539578920,
+            },
+            CpuIdResult {
+                eax: 1701998403,
+                ebx: 692933672,
+                ecx: 758475040,
+                edx: 926102323,
+            },
+            CpuIdResult {
+                eax: 1346576469,
+                ebx: 541073493,
+                ecx: 808988209,
+                edx: 8013895,
+            },
+            CpuIdResult {
+                eax: 0,
+                ebx: 0,
+                ecx: 0,
+                edx: 0,
+            },
+            CpuIdResult {
+                eax: 0,
+                ebx: 0,
+                ecx: 16801856,
+                edx: 0,
+            },
+            CpuIdResult {
+                eax: 0,
+                ebx: 0,
+                ecx: 0,
+                edx: 256,
+            },
+            CpuIdResult {
+                eax: 12324,
+                ebx: 0,
+                ecx: 0,
+                edx: 0,
+            },
+        ],
     };
 
-    assert_eq!(ef.processor_brand_string().unwrap(),
-               "       Intel(R) Core(TM) i5-3337U CPU @ 1.80GHz");
+    assert_eq!(
+        ef.processor_brand_string().unwrap(),
+        "       Intel(R) Core(TM) i5-3337U CPU @ 1.80GHz"
+    );
     assert!(ef.has_lahf_sahf());
     assert!(!ef.has_lzcnt());
     assert!(!ef.has_prefetchw());
