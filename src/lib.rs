@@ -2149,6 +2149,11 @@ impl ExtendedFeatures {
                 CPU_FEATURE_PQE);
 
     check_flag!(doc = "Supports RDSEED.",
+                has_rdseed,
+                ebx,
+                CPU_FEATURE_RDSEED);
+
+    check_flag!(doc = "Supports RDSEED (deprecated alias).",
                 has_rdseet,
                 ebx,
                 CPU_FEATURE_RDSEED);
