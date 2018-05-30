@@ -2308,6 +2308,10 @@ impl ExtendedFeatures {
         CPU_FEATURE_RDSEED
     );
 
+    #[deprecated(
+        since = "3.2",
+        note = "Deprecated due to typo in name, users should use has_rdseed() instead."
+    )]
     check_flag!(
         doc = "Supports RDSEED (deprecated alias).",
         has_rdseet,
