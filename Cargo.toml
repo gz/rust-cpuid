@@ -1,6 +1,6 @@
 [package]
 name = "raw-cpuid"
-version = "3.1.0"
+version = "4.0.0"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 build = "build.rs"
 
@@ -18,14 +18,15 @@ name = "cpuid"
 path = "src/bin/cpuid.rs"
 
 [dependencies]
-bitflags = "1"
-serde = { version = "1.0", optional = true }
-serde_derive = { version = "1.0", optional = true }
+bitflags = "1.0"
+serde = { version = "1.0", default-features = false }
+serde_derive = "1.0"
+
+[dev-dependencies]
+serde_json = "1.0"
 
 [build-dependencies]
 cc = "1"
 
 [features]
 nightly = []
-serialize = ["serde", "serde_derive"]
-
