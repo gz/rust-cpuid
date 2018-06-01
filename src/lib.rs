@@ -3,19 +3,18 @@
 #![crate_name = "raw_cpuid"]
 #![crate_type = "lib"]
 
-#[cfg(feature = "serialize")]
-extern crate serde;
+#[cfg(test)]
+#[macro_use]
+extern crate std;
 
-#[cfg(feature = "serialize")]
+#[cfg(test)]
+mod tests;
+
 #[macro_use]
 extern crate serde_derive;
 
 #[macro_use]
 extern crate bitflags;
-
-#[cfg(test)]
-#[macro_use]
-extern crate std;
 
 #[cfg(not(feature = "nightly"))]
 extern "C" {
@@ -142,15 +141,13 @@ macro_rules! check_bit_fn {
 }
 
 /// Main type used to query for information about the CPU we're running on.
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct CpuId {
     max_eax_value: u32,
 }
 
 /// Low-level data-structure to store result of cpuid instruction.
-#[derive(Debug, Copy, Clone, Default)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Copy, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct CpuIdResult {
     /// Return value EAX register
     pub eax: u32,
@@ -535,8 +532,7 @@ impl CpuId {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct VendorInfo {
     ebx: u32,
     edx: u32,
@@ -545,19 +541,18 @@ pub struct VendorInfo {
 
 impl VendorInfo {
     /// Return vendor identification as human readable string.
-    pub fn as_string(&self) -> &str {
+    pub fn as_string<'a>(&'a self) -> &'a str {
         unsafe {
             let brand_string_start = self as *const VendorInfo as *const u8;
             let slice = slice::from_raw_parts(brand_string_start, 3 * 4);
-            let byte_array: &'static [u8] = transmute(slice);
+            let byte_array: &'a [u8] = transmute(slice);
             str::from_utf8_unchecked(byte_array)
         }
     }
 }
 
 /// Used to iterate over cache information contained in cpuid instruction.
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct CacheInfoIter {
     current: u32,
     eax: u32,
@@ -605,8 +600,7 @@ impl Iterator for CacheInfoIter {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum CacheInfoType {
     GENERAL,
     CACHE,
@@ -616,16 +610,135 @@ pub enum CacheInfoType {
     PREFETCH,
 }
 
+impl Default for CacheInfoType {
+    fn default() -> CacheInfoType {
+        CacheInfoType::GENERAL
+    }
+}
+
 /// Describes any kind of cache (TLB, Data and Instruction caches plus prefetchers).
-#[derive(Copy, Clone, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Copy, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct CacheInfo {
     /// Number as retrieved from cpuid
     pub num: u8,
     /// Cache type
     pub typ: CacheInfoType,
+}
+
+impl CacheInfo {
     /// Description of the cache (from Intel Manual)
-    pub desc: &'static str,
+    pub fn desc(&self) -> &'static str {
+        match self.num {
+            0x00 => "Null descriptor, this byte contains no information",
+            0x01 => "Instruction TLB: 4 KByte pages, 4-way set associative, 32 entries",
+            0x02 => "Instruction TLB: 4 MByte pages, fully associative, 2 entries",
+            0x03 => "Data TLB: 4 KByte pages, 4-way set associative, 64 entries",
+            0x04 => "Data TLB: 4 MByte pages, 4-way set associative, 8 entries",
+            0x05 => "Data TLB1: 4 MByte pages, 4-way set associative, 32 entries",
+            0x06 => "1st-level instruction cache: 8 KBytes, 4-way set associative, 32 byte line size",
+            0x08 => "1st-level instruction cache: 16 KBytes, 4-way set associative, 32 byte line size",
+            0x09 => "1st-level instruction cache: 32KBytes, 4-way set associative, 64 byte line size",
+            0x0A => "1st-level data cache: 8 KBytes, 2-way set associative, 32 byte line size",
+            0x0B => "Instruction TLB: 4 MByte pages, 4-way set associative, 4 entries",
+            0x0C => "1st-level data cache: 16 KBytes, 4-way set associative, 32 byte line size",
+            0x0D => "1st-level data cache: 16 KBytes, 4-way set associative, 64 byte line size",
+            0x0E => "1st-level data cache: 24 KBytes, 6-way set associative, 64 byte line size",
+            0x21 => "2nd-level cache: 256 KBytes, 8-way set associative, 64 byte line size",
+            0x22 => "3rd-level cache: 512 KBytes, 4-way set associative, 64 byte line size, 2 lines per sector",
+            0x23 => "3rd-level cache: 1 MBytes, 8-way set associative, 64 byte line size, 2 lines per sector",
+            0x24 => "2nd-level cache: 1 MBytes, 16-way set associative, 64 byte line size",
+            0x25 => "3rd-level cache: 2 MBytes, 8-way set associative, 64 byte line size, 2 lines per sector",
+            0x29 => "3rd-level cache: 4 MBytes, 8-way set associative, 64 byte line size, 2 lines per sector",
+            0x2C => "1st-level data cache: 32 KBytes, 8-way set associative, 64 byte line size",
+            0x30 => "1st-level instruction cache: 32 KBytes, 8-way set associative, 64 byte line size",
+            0x40 => "No 2nd-level cache or, if processor contains a valid 2nd-level cache, no 3rd-level cache",
+            0x41 => "2nd-level cache: 128 KBytes, 4-way set associative, 32 byte line size",
+            0x42 => "2nd-level cache: 256 KBytes, 4-way set associative, 32 byte line size",
+            0x43 => "2nd-level cache: 512 KBytes, 4-way set associative, 32 byte line size",
+            0x44 => "2nd-level cache: 1 MByte, 4-way set associative, 32 byte line size",
+            0x45 => "2nd-level cache: 2 MByte, 4-way set associative, 32 byte line size",
+            0x46 => "3rd-level cache: 4 MByte, 4-way set associative, 64 byte line size",
+            0x47 => "3rd-level cache: 8 MByte, 8-way set associative, 64 byte line size",
+            0x48 => "2nd-level cache: 3MByte, 12-way set associative, 64 byte line size",
+            0x49 => "3rd-level cache: 4MB, 16-way set associative, 64-byte line size (Intel Xeon processor MP, Family 0FH, Model 06H); 2nd-level cache: 4 MByte, 16-way set ssociative, 64 byte line size",
+            0x4A => "3rd-level cache: 6MByte, 12-way set associative, 64 byte line size",
+            0x4B => "3rd-level cache: 8MByte, 16-way set associative, 64 byte line size",
+            0x4C => "3rd-level cache: 12MByte, 12-way set associative, 64 byte line size",
+            0x4D => "3rd-level cache: 16MByte, 16-way set associative, 64 byte line size",
+            0x4E => "2nd-level cache: 6MByte, 24-way set associative, 64 byte line size",
+            0x4F => "Instruction TLB: 4 KByte pages, 32 entries",
+            0x50 => "Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 64 entries",
+            0x51 => "Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 128 entries",
+            0x52 => "Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 256 entries",
+            0x55 => "Instruction TLB: 2-MByte or 4-MByte pages, fully associative, 7 entries",
+            0x56 => "Data TLB0: 4 MByte pages, 4-way set associative, 16 entries",
+            0x57 => "Data TLB0: 4 KByte pages, 4-way associative, 16 entries",
+            0x59 => "Data TLB0: 4 KByte pages, fully associative, 16 entries",
+            0x5A => "Data TLB0: 2-MByte or 4 MByte pages, 4-way set associative, 32 entries",
+            0x5B => "Data TLB: 4 KByte and 4 MByte pages, 64 entries",
+            0x5C => "Data TLB: 4 KByte and 4 MByte pages,128 entries",
+            0x5D => "Data TLB: 4 KByte and 4 MByte pages,256 entries",
+            0x60 => "1st-level data cache: 16 KByte, 8-way set associative, 64 byte line size",
+            0x61 => "Instruction TLB: 4 KByte pages, fully associative, 48 entries",
+            0x63 => "Data TLB: 1 GByte pages, 4-way set associative, 4 entries",
+            0x66 => "1st-level data cache: 8 KByte, 4-way set associative, 64 byte line size",
+            0x67 => "1st-level data cache: 16 KByte, 4-way set associative, 64 byte line size",
+            0x68 => "1st-level data cache: 32 KByte, 4-way set associative, 64 byte line size",
+            0x6A => "uTLB: 4 KByte pages, 8-way set associative, 64 entries",
+            0x6B => "DTLB: 4 KByte pages, 8-way set associative, 256 entries",
+            0x6C => "DTLB: 2M/4M pages, 8-way set associative, 128 entries",
+            0x6D => "DTLB: 1 GByte pages, fully associative, 16 entries",
+            0x70 => "Trace cache: 12 K-μop, 8-way set associative",
+            0x71 => "Trace cache: 16 K-μop, 8-way set associative",
+            0x72 => "Trace cache: 32 K-μop, 8-way set associative",
+            0x76 => "Instruction TLB: 2M/4M pages, fully associative, 8 entries",
+            0x78 => "2nd-level cache: 1 MByte, 4-way set associative, 64byte line size",
+            0x79 => "2nd-level cache: 128 KByte, 8-way set associative, 64 byte line size, 2 lines per sector",
+            0x7A => "2nd-level cache: 256 KByte, 8-way set associative, 64 byte line size, 2 lines per sector",
+            0x7B => "2nd-level cache: 512 KByte, 8-way set associative, 64 byte line size, 2 lines per sector",
+            0x7C => "2nd-level cache: 1 MByte, 8-way set associative, 64 byte line size, 2 lines per sector",
+            0x7D => "2nd-level cache: 2 MByte, 8-way set associative, 64byte line size",
+            0x7F => "2nd-level cache: 512 KByte, 2-way set associative, 64-byte line size",
+            0x80 => "2nd-level cache: 512 KByte, 8-way set associative, 64-byte line size",
+            0x82 => "2nd-level cache: 256 KByte, 8-way set associative, 32 byte line size",
+            0x83 => "2nd-level cache: 512 KByte, 8-way set associative, 32 byte line size",
+            0x84 => "2nd-level cache: 1 MByte, 8-way set associative, 32 byte line size",
+            0x85 => "2nd-level cache: 2 MByte, 8-way set associative, 32 byte line size",
+            0x86 => "2nd-level cache: 512 KByte, 4-way set associative, 64 byte line size",
+            0x87 => "2nd-level cache: 1 MByte, 8-way set associative, 64 byte line size",
+            0xB0 => "Instruction TLB: 4 KByte pages, 4-way set associative, 128 entries",
+            0xB1 => "Instruction TLB: 2M pages, 4-way, 8 entries or 4M pages, 4-way, 4 entries",
+            0xB2 => "Instruction TLB: 4KByte pages, 4-way set associative, 64 entries",
+            0xB3 => "Data TLB: 4 KByte pages, 4-way set associative, 128 entries",
+            0xB4 => "Data TLB1: 4 KByte pages, 4-way associative, 256 entries",
+            0xB5 => "Instruction TLB: 4KByte pages, 8-way set associative, 64 entries",
+            0xB6 => "Instruction TLB: 4KByte pages, 8-way set associative, 128 entries",
+            0xBA => "Data TLB1: 4 KByte pages, 4-way associative, 64 entries",
+            0xC0 => "Data TLB: 4 KByte and 4 MByte pages, 4-way associative, 8 entries",
+            0xC1 => "Shared 2nd-Level TLB: 4 KByte/2MByte pages, 8-way associative, 1024 entries",
+            0xC2 => "DTLB: 2 MByte/$MByte pages, 4-way associative, 16 entries",
+            0xCA => "Shared 2nd-Level TLB: 4 KByte pages, 4-way associative, 512 entries",
+            0xD0 => "3rd-level cache: 512 KByte, 4-way set associative, 64 byte line size",
+            0xD1 => "3rd-level cache: 1 MByte, 4-way set associative, 64 byte line size",
+            0xD2 => "3rd-level cache: 2 MByte, 4-way set associative, 64 byte line size",
+            0xD6 => "3rd-level cache: 1 MByte, 8-way set associative, 64 byte line size",
+            0xD7 => "3rd-level cache: 2 MByte, 8-way set associative, 64 byte line size",
+            0xD8 => "3rd-level cache: 4 MByte, 8-way set associative, 64 byte line size",
+            0xDC => "3rd-level cache: 1.5 MByte, 12-way set associative, 64 byte line size",
+            0xDD => "3rd-level cache: 3 MByte, 12-way set associative, 64 byte line size",
+            0xDE => "3rd-level cache: 6 MByte, 12-way set associative, 64 byte line size",
+            0xE2 => "3rd-level cache: 2 MByte, 16-way set associative, 64 byte line size",
+            0xE3 => "3rd-level cache: 4 MByte, 16-way set associative, 64 byte line size",
+            0xE4 => "3rd-level cache: 8 MByte, 16-way set associative, 64 byte line size",
+            0xEA => "3rd-level cache: 12MByte, 24-way set associative, 64 byte line size",
+            0xEB => "3rd-level cache: 18MByte, 24-way set associative, 64 byte line size",
+            0xEC => "3rd-level cache: 24MByte, 24-way set associative, 64 byte line size",
+            0xF0 => "64-Byte prefetching",
+            0xF1 => "128-Byte prefetching",
+            0xFF => "CPUID leaf 2 does not report cache descriptor information, use CPUID leaf 4 to query cache parameters",
+            _ => "Unknown cache type!"
+        }
+    }
 }
 
 impl fmt::Display for CacheInfo {
@@ -639,7 +752,7 @@ impl fmt::Display for CacheInfo {
             CacheInfoType::PREFETCH => "Prefetcher",
         };
 
-        write!(f, "{:x}:\t {}: {}", self.num, typ, self.desc)
+        write!(f, "{:x}:\t {}: {}", self.num, typ, self.desc())
     }
 }
 
@@ -648,549 +761,430 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 107] = [
     CacheInfo {
         num: 0x00,
         typ: CacheInfoType::GENERAL,
-        desc: "Null descriptor, this byte contains no information",
     },
     CacheInfo {
         num: 0x01,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 4 KByte pages, 4-way set associative, 32 entries",
     },
     CacheInfo {
         num: 0x02,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 4 MByte pages, fully associative, 2 entries",
     },
     CacheInfo {
         num: 0x03,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB: 4 KByte pages, 4-way set associative, 64 entries",
     },
     CacheInfo {
         num: 0x04,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB: 4 MByte pages, 4-way set associative, 8 entries",
     },
     CacheInfo {
         num: 0x05,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB1: 4 MByte pages, 4-way set associative, 32 entries",
     },
     CacheInfo {
         num: 0x06,
         typ: CacheInfoType::CACHE,
-        desc: "1st-level instruction cache: 8 KBytes, 4-way set associative, 32 byte line size",
     },
     CacheInfo {
         num: 0x08,
         typ: CacheInfoType::CACHE,
-        desc: "1st-level instruction cache: 16 KBytes, 4-way set associative, 32 byte line size",
     },
     CacheInfo {
         num: 0x09,
         typ: CacheInfoType::CACHE,
-        desc: "1st-level instruction cache: 32KBytes, 4-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x0A,
         typ: CacheInfoType::CACHE,
-        desc: "1st-level data cache: 8 KBytes, 2-way set associative, 32 byte line size",
     },
     CacheInfo {
         num: 0x0B,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 4 MByte pages, 4-way set associative, 4 entries",
     },
     CacheInfo {
         num: 0x0C,
         typ: CacheInfoType::CACHE,
-        desc: "1st-level data cache: 16 KBytes, 4-way set associative, 32 byte line size",
     },
     CacheInfo {
         num: 0x0D,
         typ: CacheInfoType::CACHE,
-        desc: "1st-level data cache: 16 KBytes, 4-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x0E,
         typ: CacheInfoType::CACHE,
-        desc: "1st-level data cache: 24 KBytes, 6-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x21,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 256 KBytes, 8-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x22,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 512 KBytes, 4-way set associative, 64 byte line size, 2 lines \
-               per sector",
     },
     CacheInfo {
         num: 0x23,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 1 MBytes, 8-way set associative, 64 byte line size, 2 lines per \
-               sector",
     },
     CacheInfo {
         num: 0x24,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 1 MBytes, 16-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x25,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 2 MBytes, 8-way set associative, 64 byte line size, 2 lines per \
-               sector",
     },
     CacheInfo {
         num: 0x29,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 4 MBytes, 8-way set associative, 64 byte line size, 2 lines per \
-               sector",
     },
     CacheInfo {
         num: 0x2C,
         typ: CacheInfoType::CACHE,
-        desc: "1st-level data cache: 32 KBytes, 8-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x30,
         typ: CacheInfoType::CACHE,
-        desc: "1st-level instruction cache: 32 KBytes, 8-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x40,
         typ: CacheInfoType::CACHE,
-        desc: "No 2nd-level cache or, if processor contains a valid 2nd-level cache, no \
-               3rd-level cache",
     },
     CacheInfo {
         num: 0x41,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 128 KBytes, 4-way set associative, 32 byte line size",
     },
     CacheInfo {
         num: 0x42,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 256 KBytes, 4-way set associative, 32 byte line size",
     },
     CacheInfo {
         num: 0x43,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 512 KBytes, 4-way set associative, 32 byte line size",
     },
     CacheInfo {
         num: 0x44,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 1 MByte, 4-way set associative, 32 byte line size",
     },
     CacheInfo {
         num: 0x45,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 2 MByte, 4-way set associative, 32 byte line size",
     },
     CacheInfo {
         num: 0x46,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 4 MByte, 4-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x47,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 8 MByte, 8-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x48,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 3MByte, 12-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x49,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 4MB, 16-way set associative, 64-byte line size (Intel Xeon \
-               processor MP, Family 0FH, Model 06H); 2nd-level cache: 4 MByte, 16-way set \
-               associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x4A,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 6MByte, 12-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x4B,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 8MByte, 16-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x4C,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 12MByte, 12-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x4D,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 16MByte, 16-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x4E,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 6MByte, 24-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x4F,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 4 KByte pages, 32 entries",
     },
     CacheInfo {
         num: 0x50,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 64 entries",
     },
     CacheInfo {
         num: 0x51,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 128 entries",
     },
     CacheInfo {
         num: 0x52,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 256 entries",
     },
     CacheInfo {
         num: 0x55,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 2-MByte or 4-MByte pages, fully associative, 7 entries",
     },
     CacheInfo {
         num: 0x56,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB0: 4 MByte pages, 4-way set associative, 16 entries",
     },
     CacheInfo {
         num: 0x57,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB0: 4 KByte pages, 4-way associative, 16 entries",
     },
     CacheInfo {
         num: 0x59,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB0: 4 KByte pages, fully associative, 16 entries",
     },
     CacheInfo {
         num: 0x5A,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB0: 2-MByte or 4 MByte pages, 4-way set associative, 32 entries",
     },
     CacheInfo {
         num: 0x5B,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB: 4 KByte and 4 MByte pages, 64 entries",
     },
     CacheInfo {
         num: 0x5C,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB: 4 KByte and 4 MByte pages,128 entries",
     },
     CacheInfo {
         num: 0x5D,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB: 4 KByte and 4 MByte pages,256 entries",
     },
     CacheInfo {
         num: 0x60,
         typ: CacheInfoType::CACHE,
-        desc: "1st-level data cache: 16 KByte, 8-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x61,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 4 KByte pages, fully associative, 48 entries",
     },
     CacheInfo {
         num: 0x63,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB: 1 GByte pages, 4-way set associative, 4 entries",
     },
     CacheInfo {
         num: 0x66,
         typ: CacheInfoType::CACHE,
-        desc: "1st-level data cache: 8 KByte, 4-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x67,
         typ: CacheInfoType::CACHE,
-        desc: "1st-level data cache: 16 KByte, 4-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x68,
         typ: CacheInfoType::CACHE,
-        desc: "1st-level data cache: 32 KByte, 4-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x6A,
         typ: CacheInfoType::CACHE,
-        desc: "uTLB: 4 KByte pages, 8-way set associative, 64 entries",
     },
     CacheInfo {
         num: 0x6B,
         typ: CacheInfoType::CACHE,
-        desc: "DTLB: 4 KByte pages, 8-way set associative, 256 entries",
     },
     CacheInfo {
         num: 0x6C,
         typ: CacheInfoType::CACHE,
-        desc: "DTLB: 2M/4M pages, 8-way set associative, 128 entries",
     },
     CacheInfo {
         num: 0x6D,
         typ: CacheInfoType::CACHE,
-        desc: "DTLB: 1 GByte pages, fully associative, 16 entries",
     },
     CacheInfo {
         num: 0x70,
         typ: CacheInfoType::CACHE,
-        desc: "Trace cache: 12 K-μop, 8-way set associative",
     },
     CacheInfo {
         num: 0x71,
         typ: CacheInfoType::CACHE,
-        desc: "Trace cache: 16 K-μop, 8-way set associative",
     },
     CacheInfo {
         num: 0x72,
         typ: CacheInfoType::CACHE,
-        desc: "Trace cache: 32 K-μop, 8-way set associative",
     },
     CacheInfo {
         num: 0x76,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 2M/4M pages, fully associative, 8 entries",
     },
     CacheInfo {
         num: 0x78,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 1 MByte, 4-way set associative, 64byte line size",
     },
     CacheInfo {
         num: 0x79,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 128 KByte, 8-way set associative, 64 byte line size, 2 lines per \
-               sector",
     },
     CacheInfo {
         num: 0x7A,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 256 KByte, 8-way set associative, 64 byte line size, 2 lines per \
-               sector",
     },
     CacheInfo {
         num: 0x7B,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 512 KByte, 8-way set associative, 64 byte line size, 2 lines per \
-               sector",
     },
     CacheInfo {
         num: 0x7C,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 1 MByte, 8-way set associative, 64 byte line size, 2 lines per \
-               sector",
     },
     CacheInfo {
         num: 0x7D,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 2 MByte, 8-way set associative, 64byte line size",
     },
     CacheInfo {
         num: 0x7F,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 512 KByte, 2-way set associative, 64-byte line size",
     },
     CacheInfo {
         num: 0x80,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 512 KByte, 8-way set associative, 64-byte line size",
     },
     CacheInfo {
         num: 0x82,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 256 KByte, 8-way set associative, 32 byte line size",
     },
     CacheInfo {
         num: 0x83,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 512 KByte, 8-way set associative, 32 byte line size",
     },
     CacheInfo {
         num: 0x84,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 1 MByte, 8-way set associative, 32 byte line size",
     },
     CacheInfo {
         num: 0x85,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 2 MByte, 8-way set associative, 32 byte line size",
     },
     CacheInfo {
         num: 0x86,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 512 KByte, 4-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0x87,
         typ: CacheInfoType::CACHE,
-        desc: "2nd-level cache: 1 MByte, 8-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xB0,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 4 KByte pages, 4-way set associative, 128 entries",
     },
     CacheInfo {
         num: 0xB1,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 2M pages, 4-way, 8 entries or 4M pages, 4-way, 4 entries",
     },
     CacheInfo {
         num: 0xB2,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 4KByte pages, 4-way set associative, 64 entries",
     },
     CacheInfo {
         num: 0xB3,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB: 4 KByte pages, 4-way set associative, 128 entries",
     },
     CacheInfo {
         num: 0xB4,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB1: 4 KByte pages, 4-way associative, 256 entries",
     },
     CacheInfo {
         num: 0xB5,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 4KByte pages, 8-way set associative, 64 entries",
     },
     CacheInfo {
         num: 0xB6,
         typ: CacheInfoType::TLB,
-        desc: "Instruction TLB: 4KByte pages, 8-way set associative, 128 entries",
     },
     CacheInfo {
         num: 0xBA,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB1: 4 KByte pages, 4-way associative, 64 entries",
     },
     CacheInfo {
         num: 0xC0,
         typ: CacheInfoType::TLB,
-        desc: "Data TLB: 4 KByte and 4 MByte pages, 4-way associative, 8 entries",
     },
     CacheInfo {
         num: 0xC1,
         typ: CacheInfoType::STLB,
-        desc: "Shared 2nd-Level TLB: 4 KByte/2MByte pages, 8-way associative, 1024 entries",
     },
     CacheInfo {
         num: 0xC2,
         typ: CacheInfoType::DTLB,
-        desc: "DTLB: 2 MByte/$MByte pages, 4-way associative, 16 entries",
     },
     CacheInfo {
         num: 0xCA,
         typ: CacheInfoType::STLB,
-        desc: "Shared 2nd-Level TLB: 4 KByte pages, 4-way associative, 512 entries",
     },
     CacheInfo {
         num: 0xD0,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 512 KByte, 4-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xD1,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 1 MByte, 4-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xD2,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 2 MByte, 4-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xD6,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 1 MByte, 8-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xD7,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 2 MByte, 8-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xD8,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 4 MByte, 8-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xDC,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 1.5 MByte, 12-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xDD,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 3 MByte, 12-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xDE,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 6 MByte, 12-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xE2,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 2 MByte, 16-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xE3,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 4 MByte, 16-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xE4,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 8 MByte, 16-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xEA,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 12MByte, 24-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xEB,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 18MByte, 24-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xEC,
         typ: CacheInfoType::CACHE,
-        desc: "3rd-level cache: 24MByte, 24-way set associative, 64 byte line size",
     },
     CacheInfo {
         num: 0xF0,
         typ: CacheInfoType::PREFETCH,
-        desc: "64-Byte prefetching",
     },
     CacheInfo {
         num: 0xF1,
         typ: CacheInfoType::PREFETCH,
-        desc: "128-Byte prefetching",
     },
     CacheInfo {
         num: 0xFF,
         typ: CacheInfoType::GENERAL,
-        desc: "CPUID leaf 2 does not report cache descriptor information, use CPUID leaf 4 to \
-               query cache parameters",
     },
 ];
 
@@ -1200,8 +1194,7 @@ impl fmt::Display for VendorInfo {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ProcessorSerial {
     ecx: u32,
     edx: u32,
@@ -1221,8 +1214,7 @@ impl ProcessorSerial {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct FeatureInfo {
     eax: u32,
     ebx: u32,
@@ -1769,10 +1761,8 @@ impl FeatureInfo {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    #[derive(Default, Serialize, Deserialize)]
     flags FeatureInfoFlags: u64 {
-
-
         // ECX flags
 
         /// Streaming SIMD Extensions 3 (SSE3). A value of 1 indicates the processor supports this technology.
@@ -1896,8 +1886,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct CacheParametersIter {
     current: u32,
 }
@@ -1928,8 +1917,7 @@ impl Iterator for CacheParametersIter {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Copy, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct CacheParameter {
     eax: u32,
     ebx: u32,
@@ -1937,8 +1925,7 @@ pub struct CacheParameter {
     edx: u32,
 }
 
-#[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum CacheType {
     /// Null - No more caches
     NULL = 0,
@@ -1947,6 +1934,12 @@ pub enum CacheType {
     UNIFIED,
     /// 4-31 = Reserved
     RESERVED,
+}
+
+impl Default for CacheType {
+    fn default() -> CacheType {
+        CacheType::NULL
+    }
 }
 
 impl CacheParameter {
@@ -2029,8 +2022,7 @@ impl CacheParameter {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct MonitorMwaitInfo {
     eax: u32,
     ebx: u32,
@@ -2100,8 +2092,7 @@ impl MonitorMwaitInfo {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ThermalPowerInfo {
     eax: ThermalPowerFeaturesEax,
     ebx: u32,
@@ -2175,7 +2166,7 @@ impl ThermalPowerInfo {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    #[derive(Default, Serialize, Deserialize)]
     flags ThermalPowerFeaturesEax: u32 {
         /// Digital temperature sensor is supported if set. (Bit 00)
         const CPU_FEATURE_DTS = 1 << 0,
@@ -2193,7 +2184,7 @@ bitflags! {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    #[derive(Default, Serialize, Deserialize)]
     flags ThermalPowerFeaturesEcx: u32 {
         /// Hardware Coordination Feedback Capability (Presence of IA32_MPERF and IA32_APERF). The capability to provide a measure of delivered processor performance (since last reset of the counters), as a percentage of expected processor performance at frequency specified in CPUID Brand String Bits 02 - 01
         const CPU_FEATURE_HW_COORD_FEEDBACK = 1 << 0,
@@ -2210,8 +2201,7 @@ impl ThermalPowerInfo {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ExtendedFeatures {
     eax: u32,
     ebx: ExtendedFeaturesEbx,
@@ -2342,7 +2332,7 @@ impl ExtendedFeatures {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    #[derive(Default, Serialize, Deserialize)]
     flags ExtendedFeaturesEbx: u32 {
         /// FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1. (Bit 00)
         const CPU_FEATURE_FSGSBASE = 1 << 0,
@@ -2387,8 +2377,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct DirectCacheAccessInfo {
     eax: u32,
 }
@@ -2400,8 +2389,7 @@ impl DirectCacheAccessInfo {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct PerformanceMonitoringInfo {
     eax: u32,
     ebx: PerformanceMonitoringFeaturesEbx,
@@ -2491,7 +2479,7 @@ impl PerformanceMonitoringInfo {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    #[derive(Default, Serialize, Deserialize)]
     flags PerformanceMonitoringFeaturesEbx: u32 {
         /// Core cycle event not available if 1. (Bit 0)
         const CPU_FEATURE_CORE_CYC_EV_UNAVAILABLE = 1 << 0,
@@ -2510,14 +2498,12 @@ bitflags! {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ExtendedTopologyIter {
     level: u32,
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ExtendedTopologyLevel {
     eax: u32,
     ebx: u32,
@@ -2559,13 +2545,18 @@ impl ExtendedTopologyLevel {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum TopologyType {
     INVALID = 0,
     /// Hyper-thread (Simultaneous multithreading)
     SMT = 1,
     CORE = 2,
+}
+
+impl Default for TopologyType {
+    fn default() -> TopologyType {
+        TopologyType::INVALID
+    }
 }
 
 impl Iterator for ExtendedTopologyIter {
@@ -2589,8 +2580,7 @@ impl Iterator for ExtendedTopologyIter {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
 enum ExtendedStateIdent {
     /// legacy x87 (Bit 00).
@@ -2615,8 +2605,13 @@ enum ExtendedStateIdent {
     PKRU = 1 << 9,
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+impl Default for ExtendedStateIdent {
+    fn default() -> ExtendedStateIdent {
+        ExtendedStateIdent::Legacy87
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ExtendedStateInfo {
     eax: u32,
     ebx: u32,
@@ -2698,7 +2693,7 @@ impl ExtendedStateInfo {
     }
 }
 
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ExtendedStateIter {
     level: u32,
     xcr0_supported: u64,
@@ -2739,8 +2734,7 @@ impl Iterator for ExtendedStateIter {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ExtendedState {
     pub subleaf: u32,
     eax: u32,
@@ -2782,8 +2776,7 @@ impl ExtendedState {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct QoSInfo {
     ebx0: u32,
     edx0: u32,
@@ -2819,8 +2812,7 @@ impl QoSInfo {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct QoSEnforcementInfo {
     ebx0: u32,
     eax1: u32,
@@ -2847,7 +2839,7 @@ impl QoSEnforcementInfo {
 }
 
 /// Iterator over the QoSEnforcement sub-leafs.
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct QoSEnforcementIter {
     current: u8,
     ebx0: u32,
@@ -2876,8 +2868,7 @@ impl Iterator for QoSEnforcementIter {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct QoSEnforcement {
     eax: u32,
     ebx: u32,
@@ -2916,8 +2907,7 @@ impl QoSEnforcement {
     );
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ProcessorTraceInfo {
     eax: u32,
     ebx: u32,
@@ -3002,8 +2992,7 @@ impl ProcessorTraceInfo {
 }
 
 /// Iterator over the Processor Trace sub-leafs.
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ProcessorTraceIter {
     current: u32,
     count: u32,
@@ -3027,8 +3016,7 @@ impl Iterator for ProcessorTraceIter {
 }
 
 /// Processor Trace information sub-leaf.
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ProcessorTrace {
     eax: u32,
     ebx: u32,
@@ -3057,8 +3045,7 @@ impl ProcessorTrace {
 }
 
 /// Contains time stamp counter information.
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct TscInfo {
     eax: u32,
     ebx: u32,
@@ -3077,8 +3064,7 @@ impl TscInfo {
 }
 
 /// Processor Frequency Information
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ProcessorFrequencyInfo {
     eax: u32,
     ebx: u32,
@@ -3102,8 +3088,7 @@ impl ProcessorFrequencyInfo {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct SoCVendorInfo {
     /// MaxSOCID_Index
     eax: u32,
@@ -3145,8 +3130,7 @@ impl SoCVendorInfo {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct SoCVendorAttributesIter {
     count: u32,
     current: u32,
@@ -3165,20 +3149,19 @@ impl Iterator for SoCVendorAttributesIter {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct SoCVendorBrand {
     #[allow(dead_code)]
     data: [CpuIdResult; 3],
 }
 
 impl SoCVendorBrand {
-    pub fn as_string(&self) -> &str {
+    pub fn as_string<'a>(&'a self) -> &'a str {
         unsafe {
             let brand_string_start = self as *const SoCVendorBrand as *const u8;
             let slice =
                 slice::from_raw_parts(brand_string_start, core::mem::size_of::<SoCVendorBrand>());
-            let byte_array: &'static [u8] = transmute(slice);
+            let byte_array: &'a [u8] = transmute(slice);
             str::from_utf8_unchecked(byte_array)
         }
     }
@@ -3190,15 +3173,13 @@ impl fmt::Display for SoCVendorBrand {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ExtendedFunctionInfo {
     max_eax_value: u32,
     data: [CpuIdResult; 9],
 }
 
-#[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum L2Associativity {
     Disabled = 0x0,
     DirectMapped = 0x1,
@@ -3208,6 +3189,12 @@ pub enum L2Associativity {
     SixteenWay = 0x8,
     FullyAssiciative = 0xF,
     Unknown,
+}
+
+impl Default for L2Associativity {
+    fn default() -> L2Associativity {
+        L2Associativity::Unknown
+    }
 }
 
 const EAX_EXTENDED_PROC_SIGNATURE: u32 = 0x1;
@@ -3220,7 +3207,7 @@ impl ExtendedFunctionInfo {
     }
 
     /// Retrieve processor brand string.
-    pub fn processor_brand_string(&self) -> Option<&str> {
+    pub fn processor_brand_string<'a>(&'a self) -> Option<&'a str> {
         if self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING) {
             Some(unsafe {
                 let brand_string_start = &self.data[2] as *const CpuIdResult as *const u8;
@@ -3231,7 +3218,7 @@ impl ExtendedFunctionInfo {
                     None => (),
                 }
 
-                let byte_array: &'static [u8] = transmute(slice);
+                let byte_array: &'a [u8] = transmute(slice);
                 str::from_utf8_unchecked(byte_array)
             })
         } else {
@@ -3365,7 +3352,7 @@ impl ExtendedFunctionInfo {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    #[derive(Default, Serialize, Deserialize)]
     flags ExtendedFunctionInfoEcx: u32 {
         /// LAHF/SAHF available in 64-bit mode.
         const CPU_FEATURE_LAHF_SAHF = 1 << 0,
@@ -3377,7 +3364,7 @@ bitflags! {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    #[derive(Default, Serialize, Deserialize)]
     flags ExtendedFunctionInfoEdx: u32 {
         /// SYSCALL/SYSRET available in 64-bit mode (Bit 11).
         const CPU_FEATURE_SYSCALL_SYSRET = 1 << 11,
@@ -3390,444 +3377,4 @@ bitflags! {
         /// Intel ® 64 Architecture available if 1 (Bit 29).
         const CPU_FEATURE_64BIT_MODE = 1 << 29,
     }
-}
-
-#[cfg(test)]
-#[test]
-fn genuine_intel() {
-    let vf = VendorInfo {
-        ebx: 1970169159,
-        edx: 1231384169,
-        ecx: 1818588270,
-    };
-    assert!(vf.as_string() == "GenuineIntel");
-}
-
-#[test]
-fn feature_info() {
-    let finfo = FeatureInfo {
-        eax: 198313,
-        ebx: 34605056,
-        edx_ecx: FeatureInfoFlags {
-            bits: 2109399999 | 3219913727 << 32,
-        },
-    };
-
-    assert!(finfo.model_id() == 10);
-    assert!(finfo.extended_model_id() == 3);
-    assert!(finfo.stepping_id() == 9);
-    assert!(finfo.extended_family_id() == 0);
-    assert!(finfo.family_id() == 6);
-    assert!(finfo.stepping_id() == 9);
-    assert!(finfo.brand_index() == 0);
-
-    assert!(finfo.edx_ecx.contains(CPU_FEATURE_SSE2));
-    assert!(finfo.edx_ecx.contains(CPU_FEATURE_SSE41));
-}
-
-#[test]
-fn cache_info() {
-    let cinfos = CacheInfoIter {
-        current: 1,
-        eax: 1979931137,
-        ebx: 15774463,
-        ecx: 0,
-        edx: 13238272,
-    };
-    for (idx, cache) in cinfos.enumerate() {
-        match idx {
-            0 => assert!(cache.num == 0xff),
-            1 => assert!(cache.num == 0x5a),
-            2 => assert!(cache.num == 0xb2),
-            3 => assert!(cache.num == 0x03),
-            4 => assert!(cache.num == 0xf0),
-            5 => assert!(cache.num == 0xca),
-            6 => assert!(cache.num == 0x76),
-            _ => unreachable!(),
-        }
-    }
-}
-
-#[test]
-fn cache_parameters() {
-    let caches: [CacheParameter; 4] = [
-        CacheParameter {
-            eax: 469778721,
-            ebx: 29360191,
-            ecx: 63,
-            edx: 0,
-        },
-        CacheParameter {
-            eax: 469778722,
-            ebx: 29360191,
-            ecx: 63,
-            edx: 0,
-        },
-        CacheParameter {
-            eax: 469778755,
-            ebx: 29360191,
-            ecx: 511,
-            edx: 0,
-        },
-        CacheParameter {
-            eax: 470008163,
-            ebx: 46137407,
-            ecx: 4095,
-            edx: 6,
-        },
-    ];
-
-    for (idx, cache) in caches.into_iter().enumerate() {
-        match idx {
-            0 => {
-                assert!(cache.cache_type() == CacheType::DATA);
-                assert!(cache.level() == 1);
-                assert!(cache.is_self_initializing());
-                assert!(!cache.is_fully_associative());
-                assert!(cache.max_cores_for_cache() == 2);
-                assert!(cache.max_cores_for_package() == 8);
-                assert!(cache.coherency_line_size() == 64);
-                assert!(cache.physical_line_partitions() == 1);
-                assert!(cache.associativity() == 8);
-                assert!(!cache.is_write_back_invalidate());
-                assert!(!cache.is_inclusive());
-                assert!(!cache.has_complex_indexing());
-                assert!(cache.sets() == 64);
-            }
-            1 => {
-                assert!(cache.cache_type() == CacheType::INSTRUCTION);
-                assert!(cache.level() == 1);
-                assert!(cache.is_self_initializing());
-                assert!(!cache.is_fully_associative());
-                assert!(cache.max_cores_for_cache() == 2);
-                assert!(cache.max_cores_for_package() == 8);
-                assert!(cache.coherency_line_size() == 64);
-                assert!(cache.physical_line_partitions() == 1);
-                assert!(cache.associativity() == 8);
-                assert!(!cache.is_write_back_invalidate());
-                assert!(!cache.is_inclusive());
-                assert!(!cache.has_complex_indexing());
-                assert!(cache.sets() == 64);
-            }
-            2 => {
-                assert!(cache.cache_type() == CacheType::UNIFIED);
-                assert!(cache.level() == 2);
-                assert!(cache.is_self_initializing());
-                assert!(!cache.is_fully_associative());
-                assert!(cache.max_cores_for_cache() == 2);
-                assert!(cache.max_cores_for_package() == 8);
-                assert!(cache.coherency_line_size() == 64);
-                assert!(cache.physical_line_partitions() == 1);
-                assert!(cache.associativity() == 8);
-                assert!(!cache.is_write_back_invalidate());
-                assert!(!cache.is_inclusive());
-                assert!(!cache.has_complex_indexing());
-                assert!(cache.sets() == 512);
-            }
-            3 => {
-                assert!(cache.cache_type() == CacheType::UNIFIED);
-                assert!(cache.level() == 3);
-                assert!(cache.is_self_initializing());
-                assert!(!cache.is_fully_associative());
-                assert!(cache.max_cores_for_cache() == 16);
-                assert!(cache.max_cores_for_package() == 8);
-                assert!(cache.coherency_line_size() == 64);
-                assert!(cache.physical_line_partitions() == 1);
-                assert!(cache.associativity() == 12);
-                assert!(!cache.is_write_back_invalidate());
-                assert!(cache.is_inclusive());
-                assert!(cache.has_complex_indexing());
-                assert!(cache.sets() == 4096);
-            }
-            _ => unreachable!(),
-        }
-    }
-}
-
-#[test]
-fn monitor_mwait_features() {
-    let mmfeatures = MonitorMwaitInfo {
-        eax: 64,
-        ebx: 64,
-        ecx: 3,
-        edx: 135456,
-    };
-    assert!(mmfeatures.smallest_monitor_line() == 64);
-    assert!(mmfeatures.largest_monitor_line() == 64);
-    assert!(mmfeatures.extensions_supported());
-    assert!(mmfeatures.interrupts_as_break_event());
-    assert!(mmfeatures.supported_c0_states() == 0);
-    assert!(mmfeatures.supported_c1_states() == 2);
-    assert!(mmfeatures.supported_c2_states() == 1);
-    assert!(mmfeatures.supported_c3_states() == 1);
-    assert!(mmfeatures.supported_c4_states() == 2);
-    assert!(mmfeatures.supported_c5_states() == 0);
-    assert!(mmfeatures.supported_c6_states() == 0);
-    assert!(mmfeatures.supported_c7_states() == 0);
-}
-
-#[test]
-fn thermal_power_features() {
-    let tpfeatures = ThermalPowerInfo {
-        eax: ThermalPowerFeaturesEax { bits: 119 },
-        ebx: 2,
-        ecx: ThermalPowerFeaturesEcx { bits: 9 },
-        edx: 0,
-    };
-
-    assert!(tpfeatures.eax.contains(CPU_FEATURE_DTS));
-    assert!(tpfeatures.eax.contains(CPU_FEATURE_TURBO_BOOST));
-    assert!(tpfeatures.eax.contains(CPU_FEATURE_ARAT));
-    assert!(tpfeatures.eax.contains(CPU_FEATURE_PLN));
-    assert!(tpfeatures.eax.contains(CPU_FEATURE_ECMD));
-    assert!(tpfeatures.eax.contains(CPU_FEATURE_PTM));
-
-    assert!(tpfeatures.ecx.contains(CPU_FEATURE_HW_COORD_FEEDBACK));
-    assert!(tpfeatures.ecx.contains(CPU_FEATURE_ENERGY_BIAS_PREF));
-
-    assert!(tpfeatures.dts_irq_threshold() == 0x2);
-}
-
-#[test]
-fn extended_features() {
-    let tpfeatures = ExtendedFeatures {
-        eax: 0,
-        ebx: ExtendedFeaturesEbx { bits: 641 },
-        ecx: 0,
-        edx: 0,
-    };
-
-    assert!(tpfeatures.eax == 0);
-
-    assert!(tpfeatures.ebx.contains(CPU_FEATURE_FSGSBASE));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_ADJUST_MSR));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_BMI1));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_HLE));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_AVX2));
-    assert!(tpfeatures.ebx.contains(CPU_FEATURE_SMEP));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_BMI2));
-    assert!(tpfeatures.ebx.contains(CPU_FEATURE_REP_MOVSB_STOSB));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_INVPCID));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_RTM));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_QM));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_DEPRECATE_FPU_CS_DS));
-}
-
-#[test]
-fn direct_cache_access_info() {
-    let dca = DirectCacheAccessInfo { eax: 0x1 };
-    assert!(dca.get_dca_cap_value() == 0x1);
-}
-
-#[test]
-fn performance_monitoring_info() {
-    let pm = PerformanceMonitoringInfo {
-        eax: 120587267,
-        ebx: PerformanceMonitoringFeaturesEbx { bits: 0 },
-        ecx: 0,
-        edx: 1539,
-    };
-
-    assert!(pm.version_id() == 3);
-    assert!(pm.number_of_counters() == 4);
-    assert!(pm.counter_bit_width() == 48);
-    assert!(pm.ebx_length() == 7);
-    assert!(pm.fixed_function_counters() == 3);
-    assert!(pm.fixed_function_counters_bit_width() == 48);
-
-    assert!(!pm.ebx.contains(CPU_FEATURE_CORE_CYC_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(CPU_FEATURE_INST_RET_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(CPU_FEATURE_REF_CYC_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(CPU_FEATURE_CACHE_REF_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(CPU_FEATURE_LL_CACHE_MISS_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(CPU_FEATURE_BRANCH_INST_RET_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(CPU_FEATURE_BRANCH_MISPRED_EV_UNAVAILABLE));
-}
-
-#[cfg(test)]
-#[test]
-fn extended_topology_info() {
-    let l1 = ExtendedTopologyLevel {
-        eax: 1,
-        ebx: 2,
-        ecx: 256,
-        edx: 3,
-    };
-    let l2 = ExtendedTopologyLevel {
-        eax: 4,
-        ebx: 4,
-        ecx: 513,
-        edx: 3,
-    };
-
-    assert!(l1.processors() == 2);
-    assert!(l1.level_number() == 0);
-    assert!(l1.level_type() == TopologyType::SMT);
-    assert!(l1.x2apic_id() == 3);
-    assert!(l1.shift_right_for_next_apic_id() == 1);
-
-    assert!(l2.processors() == 4);
-    assert!(l2.level_number() == 1);
-    assert!(l2.level_type() == TopologyType::CORE);
-    assert!(l2.x2apic_id() == 3);
-    assert!(l2.shift_right_for_next_apic_id() == 4);
-}
-
-#[test]
-fn extended_state_info() {
-    let es = ExtendedStateInfo {
-        eax: 7,
-        ebx: 832,
-        ecx: 832,
-        edx: 0,
-        eax1: 1,
-    };
-
-    assert!(es.xcr0_supported() == 7);
-    assert!(es.maximum_size_enabled_features() == 832);
-    assert!(es.maximum_size_supported_features() == 832);
-    assert!(es.has_xsaveopt());
-
-    for (idx, e) in es.iter().enumerate() {
-        match idx {
-            0 => {
-                assert!(e.subleaf == 2);
-                assert!(e.size() == 256);
-                assert!(e.offset() == 576);
-            }
-            _ => unreachable!(),
-        }
-    }
-}
-
-#[test]
-fn quality_of_service_info() {
-    let qos = QoSInfo {
-        ebx0: 832,
-        edx0: 0,
-        ebx1: 0,
-        ecx1: 0,
-        edx1: 0,
-    };
-
-    assert!(qos.maximum_rmid_range() == 832);
-    assert!(!qos.has_l3_qos());
-    assert!(qos.conversion_factor() == 0x0);
-    assert!(qos.maximum_range_l3_rmid() == 0x0);
-    assert!(!qos.has_l3_occupancy_monitoring());
-}
-
-#[test]
-fn extended_functions() {
-    let ef = ExtendedFunctionInfo {
-        max_eax_value: 8,
-        data: [
-            CpuIdResult {
-                eax: 2147483656,
-                ebx: 0,
-                ecx: 0,
-                edx: 0,
-            },
-            CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 1,
-                edx: 672139264,
-            },
-            CpuIdResult {
-                eax: 538976288,
-                ebx: 1226842144,
-                ecx: 1818588270,
-                edx: 539578920,
-            },
-            CpuIdResult {
-                eax: 1701998403,
-                ebx: 692933672,
-                ecx: 758475040,
-                edx: 926102323,
-            },
-            CpuIdResult {
-                eax: 1346576469,
-                ebx: 541073493,
-                ecx: 808988209,
-                edx: 8013895,
-            },
-            CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 0,
-                edx: 0,
-            },
-            CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 16801856,
-                edx: 0,
-            },
-            CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 0,
-                edx: 256,
-            },
-            CpuIdResult {
-                eax: 12324,
-                ebx: 0,
-                ecx: 0,
-                edx: 0,
-            },
-        ],
-    };
-
-    assert_eq!(
-        ef.processor_brand_string().unwrap(),
-        "       Intel(R) Core(TM) i5-3337U CPU @ 1.80GHz"
-    );
-    assert!(ef.has_lahf_sahf());
-    assert!(!ef.has_lzcnt());
-    assert!(!ef.has_prefetchw());
-    assert!(ef.has_syscall_sysret());
-    assert!(ef.has_execute_disable());
-    assert!(!ef.has_1gib_pages());
-    assert!(ef.has_rdtscp());
-    assert!(ef.has_64bit_mode());
-    assert!(ef.has_invariant_tsc());
-
-    assert!(ef.extended_signature().unwrap() == 0x0);
-    assert!(ef.cache_line_size().unwrap() == 64);
-    assert!(ef.l2_associativity().unwrap() == L2Associativity::EightWay);
-    assert!(ef.cache_size().unwrap() == 256);
-    assert!(ef.physical_address_bits().unwrap() == 36);
-    assert!(ef.linear_address_bits().unwrap() == 48);
-}
-
-#[cfg(test)]
-#[test]
-fn readme_test() {
-    // let cpuid = CpuId::new();
-    //
-    // match cpuid.get_vendor_info() {
-    // Some(vf) => assert!(vf.as_string() == "GenuineIntel"),
-    // None => ()
-    // }
-    //
-    // let has_sse = match cpuid.get_feature_info() {
-    // Some(finfo) => finfo.has_sse(),
-    // None => false
-    // };
-    //
-    // if has_sse {
-    // println!("CPU supports SSE!");
-    // }
-    //
-    // match cpuid.get_cache_parameters() {
-    // Some(cparams) => {
-    // for cache in cparams {
-    // let size = cache.associativity() * cache.physical_line_partitions() * cache.coherency_line_size() * cache.sets();
-    // println!("L{}-Cache size is {}", cache.level(), size);
-    // }
-    // },
-    // None => println!("No cache parameter information available"),
-    // }
-    //
 }
