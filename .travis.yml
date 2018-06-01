@@ -65,8 +65,6 @@ before_install:
 install:
   - sh ci/install.sh
   - source ~/.cargo/env || true
-
-before_script:
   - if [ "${TRAVIS_RUST_VERSION}" = "nightly" ]; then rustup component add rustfmt-nightly; fi
 
 script:
