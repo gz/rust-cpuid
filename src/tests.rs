@@ -185,14 +185,26 @@ fn thermal_power_features() {
     };
 
     assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::DTS));
-    assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::TURBO_BOOST));
+    assert!(
+        tpfeatures
+            .eax
+            .contains(ThermalPowerFeaturesEax::TURBO_BOOST)
+    );
     assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::ARAT));
     assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::PLN));
     assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::ECMD));
     assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::PTM));
 
-    assert!(tpfeatures.ecx.contains(ThermalPowerFeaturesEcx::HW_COORD_FEEDBACK));
-    assert!(tpfeatures.ecx.contains(ThermalPowerFeaturesEcx::ENERGY_BIAS_PREF));
+    assert!(
+        tpfeatures
+            .ecx
+            .contains(ThermalPowerFeaturesEcx::HW_COORD_FEEDBACK)
+    );
+    assert!(
+        tpfeatures
+            .ecx
+            .contains(ThermalPowerFeaturesEcx::ENERGY_BIAS_PREF)
+    );
 
     assert!(tpfeatures.dts_irq_threshold() == 0x2);
 }
@@ -215,11 +227,17 @@ fn extended_features() {
     assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::AVX2));
     assert!(tpfeatures.ebx.contains(ExtendedFeaturesEbx::SMEP));
     assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::BMI2));
-    assert!(tpfeatures.ebx.contains(ExtendedFeaturesEbx::REP_MOVSB_STOSB));
+    assert!(
+        tpfeatures
+            .ebx
+            .contains(ExtendedFeaturesEbx::REP_MOVSB_STOSB)
+    );
     assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::INVPCID));
     assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::RTM));
     assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::QM));
-    assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::DEPRECATE_FPU_CS_DS));
+    assert!(!tpfeatures
+        .ebx
+        .contains(ExtendedFeaturesEbx::DEPRECATE_FPU_CS_DS));
 }
 
 #[test]
@@ -244,13 +262,20 @@ fn performance_monitoring_info() {
     assert!(pm.fixed_function_counters() == 3);
     assert!(pm.fixed_function_counters_bit_width() == 48);
 
-    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::CORE_CYC_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::INST_RET_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::REF_CYC_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::CACHE_REF_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::LL_CACHE_MISS_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::BRANCH_INST_RET_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::BRANCH_MISPRED_EV_UNAVAILABLE));
+    assert!(!pm.ebx
+        .contains(PerformanceMonitoringFeaturesEbx::CORE_CYC_EV_UNAVAILABLE));
+    assert!(!pm.ebx
+        .contains(PerformanceMonitoringFeaturesEbx::INST_RET_EV_UNAVAILABLE));
+    assert!(!pm.ebx
+        .contains(PerformanceMonitoringFeaturesEbx::REF_CYC_EV_UNAVAILABLE));
+    assert!(!pm.ebx
+        .contains(PerformanceMonitoringFeaturesEbx::CACHE_REF_EV_UNAVAILABLE));
+    assert!(!pm.ebx
+        .contains(PerformanceMonitoringFeaturesEbx::LL_CACHE_MISS_EV_UNAVAILABLE));
+    assert!(!pm.ebx
+        .contains(PerformanceMonitoringFeaturesEbx::BRANCH_INST_RET_EV_UNAVAILABLE));
+    assert!(!pm.ebx
+        .contains(PerformanceMonitoringFeaturesEbx::BRANCH_MISPRED_EV_UNAVAILABLE));
 }
 
 #[cfg(test)]
