@@ -30,8 +30,8 @@ fn feature_info() {
     assert!(finfo.stepping_id() == 9);
     assert!(finfo.brand_index() == 0);
 
-    assert!(finfo.edx_ecx.contains(CPU_FEATURE_SSE2));
-    assert!(finfo.edx_ecx.contains(CPU_FEATURE_SSE41));
+    assert!(finfo.edx_ecx.contains(FeatureInfoFlags::SSE2));
+    assert!(finfo.edx_ecx.contains(FeatureInfoFlags::SSE41));
 }
 
 #[test]
@@ -184,15 +184,15 @@ fn thermal_power_features() {
         edx: 0,
     };
 
-    assert!(tpfeatures.eax.contains(CPU_FEATURE_DTS));
-    assert!(tpfeatures.eax.contains(CPU_FEATURE_TURBO_BOOST));
-    assert!(tpfeatures.eax.contains(CPU_FEATURE_ARAT));
-    assert!(tpfeatures.eax.contains(CPU_FEATURE_PLN));
-    assert!(tpfeatures.eax.contains(CPU_FEATURE_ECMD));
-    assert!(tpfeatures.eax.contains(CPU_FEATURE_PTM));
+    assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::DTS));
+    assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::TURBO_BOOST));
+    assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::ARAT));
+    assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::PLN));
+    assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::ECMD));
+    assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::PTM));
 
-    assert!(tpfeatures.ecx.contains(CPU_FEATURE_HW_COORD_FEEDBACK));
-    assert!(tpfeatures.ecx.contains(CPU_FEATURE_ENERGY_BIAS_PREF));
+    assert!(tpfeatures.ecx.contains(ThermalPowerFeaturesEcx::HW_COORD_FEEDBACK));
+    assert!(tpfeatures.ecx.contains(ThermalPowerFeaturesEcx::ENERGY_BIAS_PREF));
 
     assert!(tpfeatures.dts_irq_threshold() == 0x2);
 }
@@ -208,18 +208,18 @@ fn extended_features() {
 
     assert!(tpfeatures.eax == 0);
 
-    assert!(tpfeatures.ebx.contains(CPU_FEATURE_FSGSBASE));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_ADJUST_MSR));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_BMI1));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_HLE));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_AVX2));
-    assert!(tpfeatures.ebx.contains(CPU_FEATURE_SMEP));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_BMI2));
-    assert!(tpfeatures.ebx.contains(CPU_FEATURE_REP_MOVSB_STOSB));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_INVPCID));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_RTM));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_QM));
-    assert!(!tpfeatures.ebx.contains(CPU_FEATURE_DEPRECATE_FPU_CS_DS));
+    assert!(tpfeatures.ebx.contains(ExtendedFeaturesEbx::FSGSBASE));
+    assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::ADJUST_MSR));
+    assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::BMI1));
+    assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::HLE));
+    assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::AVX2));
+    assert!(tpfeatures.ebx.contains(ExtendedFeaturesEbx::SMEP));
+    assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::BMI2));
+    assert!(tpfeatures.ebx.contains(ExtendedFeaturesEbx::REP_MOVSB_STOSB));
+    assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::INVPCID));
+    assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::RTM));
+    assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::QM));
+    assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::DEPRECATE_FPU_CS_DS));
 }
 
 #[test]
@@ -244,13 +244,13 @@ fn performance_monitoring_info() {
     assert!(pm.fixed_function_counters() == 3);
     assert!(pm.fixed_function_counters_bit_width() == 48);
 
-    assert!(!pm.ebx.contains(CPU_FEATURE_CORE_CYC_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(CPU_FEATURE_INST_RET_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(CPU_FEATURE_REF_CYC_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(CPU_FEATURE_CACHE_REF_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(CPU_FEATURE_LL_CACHE_MISS_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(CPU_FEATURE_BRANCH_INST_RET_EV_UNAVAILABLE));
-    assert!(!pm.ebx.contains(CPU_FEATURE_BRANCH_MISPRED_EV_UNAVAILABLE));
+    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::CORE_CYC_EV_UNAVAILABLE));
+    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::INST_RET_EV_UNAVAILABLE));
+    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::REF_CYC_EV_UNAVAILABLE));
+    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::CACHE_REF_EV_UNAVAILABLE));
+    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::LL_CACHE_MISS_EV_UNAVAILABLE));
+    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::BRANCH_INST_RET_EV_UNAVAILABLE));
+    assert!(!pm.ebx.contains(PerformanceMonitoringFeaturesEbx::BRANCH_MISPRED_EV_UNAVAILABLE));
 }
 
 #[cfg(test)]
