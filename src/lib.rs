@@ -2310,7 +2310,12 @@ impl ExtendedFeatures {
         ExtendedFeaturesEbx::RDSEED
     );
 
-    check_flag!(doc = "Supports ADX.", has_adx, ebx, ExtendedFeaturesEbx::ADX);
+    check_flag!(
+        doc = "Supports ADX.",
+        has_adx,
+        ebx,
+        ExtendedFeaturesEbx::ADX
+    );
 
     check_flag!(doc = "SMAP. Supports Supervisor-Mode Access Prevention (and the CLAC/STAC instructions) if 1.",
                 has_smap,
@@ -3334,7 +3339,7 @@ impl ExtendedFunctionInfo {
     pub fn has_1gib_pages(&self) -> bool {
         self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
             bits: self.data[1].edx,
-        }.contains(ExtendedFunctionInfoEdx::_1GIB_PAGES)
+        }.contains(ExtendedFunctionInfoEdx::GIB_PAGES)
     }
 
     /// Check support for rdtscp instruction.
@@ -3348,7 +3353,7 @@ impl ExtendedFunctionInfo {
     pub fn has_64bit_mode(&self) -> bool {
         self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
             bits: self.data[1].edx,
-        }.contains(ExtendedFunctionInfoEdx::_64BIT_MODE)
+        }.contains(ExtendedFunctionInfoEdx::I64BIT_MODE)
     }
 }
 
@@ -3372,10 +3377,10 @@ bitflags! {
         /// Execute Disable Bit available (Bit 20).
         const EXECUTE_DISABLE = 1 << 20;
         /// 1-GByte pages are available if 1 (Bit 26).
-        const _1GIB_PAGES = 1 << 26;
+        const GIB_PAGES = 1 << 26;
         /// RDTSCP and IA32_TSC_AUX are available if 1 (Bit 27).
         const RDTSCP = 1 << 27;
         /// Intel ® 64 Architecture available if 1 (Bit 29).
-        const _64BIT_MODE = 1 << 29;
+        const I64BIT_MODE = 1 << 29;
     }
 }
