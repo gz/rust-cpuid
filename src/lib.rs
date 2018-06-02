@@ -2335,6 +2335,13 @@ impl ExtendedFeatures {
         ebx,
         ExtendedFeaturesEbx::PROCESSOR_TRACE
     );
+
+    check_flag!(
+        doc = "Supports SHA Instructions.",
+        has_sha,
+        ebx,
+        ExtendedFeaturesEbx::SHA
+    );
 }
 
 bitflags! {
@@ -2380,6 +2387,8 @@ bitflags! {
         const CLFLUSHOPT = 1 << 23;
         /// Bit 25: Intel Processor Trace
         const PROCESSOR_TRACE = 1 << 25;
+        /// Bit 29: Intel SHA Extensions
+        const SHA = 1 << 29;
     }
 }
 
