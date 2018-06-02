@@ -235,9 +235,11 @@ fn extended_features() {
     assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::INVPCID));
     assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::RTM));
     assert!(!tpfeatures.ebx.contains(ExtendedFeaturesEbx::QM));
-    assert!(!tpfeatures
-        .ebx
-        .contains(ExtendedFeaturesEbx::DEPRECATE_FPU_CS_DS));
+    assert!(
+        !tpfeatures
+            .ebx
+            .contains(ExtendedFeaturesEbx::DEPRECATE_FPU_CS_DS)
+    );
 }
 
 #[test]
@@ -262,20 +264,34 @@ fn performance_monitoring_info() {
     assert!(pm.fixed_function_counters() == 3);
     assert!(pm.fixed_function_counters_bit_width() == 48);
 
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::CORE_CYC_EV_UNAVAILABLE));
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::INST_RET_EV_UNAVAILABLE));
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::REF_CYC_EV_UNAVAILABLE));
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::CACHE_REF_EV_UNAVAILABLE));
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::LL_CACHE_MISS_EV_UNAVAILABLE));
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::BRANCH_INST_RET_EV_UNAVAILABLE));
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::BRANCH_MISPRED_EV_UNAVAILABLE));
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::CORE_CYC_EV_UNAVAILABLE)
+    );
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::INST_RET_EV_UNAVAILABLE)
+    );
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::REF_CYC_EV_UNAVAILABLE)
+    );
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::CACHE_REF_EV_UNAVAILABLE)
+    );
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::LL_CACHE_MISS_EV_UNAVAILABLE)
+    );
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::BRANCH_INST_RET_EV_UNAVAILABLE)
+    );
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::BRANCH_MISPRED_EV_UNAVAILABLE)
+    );
 }
 
 #[cfg(test)]
