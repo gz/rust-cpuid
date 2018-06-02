@@ -15,10 +15,6 @@ extern crate serde_derive;
 #[macro_use]
 extern crate bitflags;
 
-#[cfg(test)]
-#[macro_use]
-extern crate std;
-
 /// Provides `cpuid` on stable by linking against a C implementation.
 #[cfg(not(feature = "nightly"))]
 mod stable_cpuid {
