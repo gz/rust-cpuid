@@ -233,13 +233,20 @@ fn extended_features() {
 
     let tpfeatures2 = ExtendedFeatures {
         eax: 0,
-        ebx: ExtendedFeaturesEbx::FSGSBASE | ExtendedFeaturesEbx::ADJUST_MSR
-            | ExtendedFeaturesEbx::BMI1 | ExtendedFeaturesEbx::AVX2
-            | ExtendedFeaturesEbx::SMEP | ExtendedFeaturesEbx::BMI2
-            | ExtendedFeaturesEbx::REP_MOVSB_STOSB | ExtendedFeaturesEbx::INVPCID
-            | ExtendedFeaturesEbx::DEPRECATE_FPU_CS_DS | ExtendedFeaturesEbx::MPX
-            | ExtendedFeaturesEbx::RDSEED | ExtendedFeaturesEbx::ADX
-            | ExtendedFeaturesEbx::SMAP | ExtendedFeaturesEbx::CLFLUSHOPT
+        ebx: ExtendedFeaturesEbx::FSGSBASE
+            | ExtendedFeaturesEbx::ADJUST_MSR
+            | ExtendedFeaturesEbx::BMI1
+            | ExtendedFeaturesEbx::AVX2
+            | ExtendedFeaturesEbx::SMEP
+            | ExtendedFeaturesEbx::BMI2
+            | ExtendedFeaturesEbx::REP_MOVSB_STOSB
+            | ExtendedFeaturesEbx::INVPCID
+            | ExtendedFeaturesEbx::DEPRECATE_FPU_CS_DS
+            | ExtendedFeaturesEbx::MPX
+            | ExtendedFeaturesEbx::RDSEED
+            | ExtendedFeaturesEbx::ADX
+            | ExtendedFeaturesEbx::SMAP
+            | ExtendedFeaturesEbx::CLFLUSHOPT
             | ExtendedFeaturesEbx::PROCESSOR_TRACE,
         ecx: ExtendedFeaturesEcx { bits: 0 },
         edx: 201326592,
@@ -284,20 +291,34 @@ fn performance_monitoring_info() {
     assert!(pm.fixed_function_counters() == 3);
     assert!(pm.fixed_function_counters_bit_width() == 48);
 
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::CORE_CYC_EV_UNAVAILABLE));
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::INST_RET_EV_UNAVAILABLE));
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::REF_CYC_EV_UNAVAILABLE));
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::CACHE_REF_EV_UNAVAILABLE));
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::LL_CACHE_MISS_EV_UNAVAILABLE));
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::BRANCH_INST_RET_EV_UNAVAILABLE));
-    assert!(!pm.ebx
-        .contains(PerformanceMonitoringFeaturesEbx::BRANCH_MISPRED_EV_UNAVAILABLE));
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::CORE_CYC_EV_UNAVAILABLE)
+    );
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::INST_RET_EV_UNAVAILABLE)
+    );
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::REF_CYC_EV_UNAVAILABLE)
+    );
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::CACHE_REF_EV_UNAVAILABLE)
+    );
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::LL_CACHE_MISS_EV_UNAVAILABLE)
+    );
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::BRANCH_INST_RET_EV_UNAVAILABLE)
+    );
+    assert!(
+        !pm.ebx
+            .contains(PerformanceMonitoringFeaturesEbx::BRANCH_MISPRED_EV_UNAVAILABLE)
+    );
 }
 
 #[cfg(test)]
@@ -358,19 +379,10 @@ fn extended_state_info() {
 
 #[test]
 fn quality_of_service_info() {
-    let qos = QoSInfo {
-        ebx0: 832,
-        edx0: 0,
-        ebx1: 0,
-        ecx1: 0,
-        edx1: 0,
-    };
+    let qos = RdtMonitoringInfo { ebx: 832, edx: 0 };
 
-    assert!(qos.maximum_rmid_range() == 832);
-    assert!(!qos.has_l3_qos());
-    assert!(qos.conversion_factor() == 0x0);
-    assert!(qos.maximum_range_l3_rmid() == 0x0);
-    assert!(!qos.has_l3_occupancy_monitoring());
+    assert!(qos.rmid_range() == 832);
+    assert!(!qos.has_l3_monitoring());
 }
 
 #[test]
@@ -481,10 +493,10 @@ fn test_serializability() {
         _x17: ExtendedStateInfo,
         _x18: ExtendedStateIter,
         _x19: ExtendedState,
-        _x20: QoSInfo,
-        _x21: QoSEnforcementInfo,
-        _x22: QoSEnforcementIter,
-        _x23: QoSEnforcement,
+        _x20: RdtAllocationInfo,
+        _x21: RdtMonitoringInfo,
+        _x22: L3CatInfo,
+        _x23: L2CatInfo,
         _x24: ProcessorTraceInfo,
         _x25: ProcessorTraceIter,
         _x26: ProcessorTrace,
@@ -494,6 +506,8 @@ fn test_serializability() {
         _x30: SoCVendorAttributesIter,
         _x31: SoCVendorBrand,
         _x32: ExtendedFunctionInfo,
+        _x33: MemBwAllocationInfo,
+        _x34: L3MonitoringInfo,
     }
 
     let st: SerializeDeserializeTest = Default::default();

@@ -365,15 +365,11 @@ impl CpuId {
     /// Quality of service informations.
     pub fn get_qos_info(&self) -> Option<RdtMonitoringInfo> {
         let res = cpuid!(EAX_RDT_MONITORING, 0);
-        let res1 = cpuid!(EAX_RDT_MONITORING, 1);
 
         if self.leaf_is_supported(EAX_RDT_MONITORING) {
             Some(RdtMonitoringInfo {
-                ebx0: res.ebx,
-                edx0: res.edx,
-                ebx1: res1.ebx,
-                ecx1: res1.ecx,
-                edx1: res1.edx,
+                ebx: res.ebx,
+                edx: res.edx,
             })
         } else {
             None
@@ -2358,7 +2354,50 @@ impl ExtendedFeatures {
     );
 
     check_flag!(
-        doc = "Has PREFETCHWT1.",
+        doc = "AVX512_IFMA",
+        has_avx512_ifma,
+        ebx,
+        ExtendedFeaturesEbx::AVX512_IFMA
+    );
+
+    check_flag!(
+        doc = "AVX512PF",
+        has_avx512pf,
+        ebx,
+        ExtendedFeaturesEbx::AVX512PF
+    );
+    check_flag!(
+        doc = "AVX512ER",
+        has_avx512er,
+        ebx,
+        ExtendedFeaturesEbx::AVX512ER
+    );
+
+    check_flag!(
+        doc = "AVX512CD",
+        has_avx512cd,
+        ebx,
+        ExtendedFeaturesEbx::AVX512CD
+    );
+
+    check_flag!(
+        doc = "AVX512BW",
+        has_avx512bw,
+        ebx,
+        ExtendedFeaturesEbx::AVX512BW
+    );
+
+    check_flag!(
+        doc = "AVX512VL",
+        has_avx512vl,
+        ebx,
+        ExtendedFeaturesEbx::AVX512VL
+    );
+
+    check_flag!(doc = "CLWB", has_clwb, ebx, ExtendedFeaturesEbx::CLWB);
+
+    check_flag!(
+        doc = "Has PREFETCHWT1 (Intel® Xeon Phi™ only).",
         has_prefetchwt1,
         ecx,
         ExtendedFeaturesEcx::PREFETCHWT1
@@ -2393,11 +2432,16 @@ impl ExtendedFeatures {
     );
 
     check_flag!(
-        doc = "Supports SGX Launch ConfigurationPP.",
+        doc = "Supports SGX Launch Configuration.",
         has_sgx_lc,
         ecx,
         ExtendedFeaturesEcx::SGX_LC
     );
+
+    /// The value of MAWAU used by the BNDLDX and BNDSTX instructions in 64-bit mode.
+    pub fn mawau_value(&self) -> u8 {
+        get_bits(self.ecx.bits(), 17, 21) as u8
+    }
 }
 
 bitflags! {
@@ -2445,22 +2489,38 @@ bitflags! {
         const ADX = 1 << 19;
         /// SMAP. Supports Supervisor-Mode Access Prevention (and the CLAC/STAC instructions) if 1.
         const SMAP = 1 << 20;
+        /// Bit 21: AVX512_IFMA.
+        const AVX512_IFMA = 1 << 21;
+        // Bit 22: Reserved.
         /// Bit 23: CLFLUSHOPT
         const CLFLUSHOPT = 1 << 23;
+        /// Bit 24: CLWB.
+        const CLWB = 1 << 24;
         /// Bit 25: Intel Processor Trace
         const PROCESSOR_TRACE = 1 << 25;
+        /// Bit 26: AVX512PF. (Intel® Xeon Phi™ only.)
+        const AVX512PF = 1 << 26;
+        /// Bit 27: AVX512ER. (Intel® Xeon Phi™ only.)
+        const AVX512ER = 1 << 27;
+        /// Bit 28: AVX512CD.
+        const AVX512CD = 1 << 28;
         /// Bit 29: Intel SHA Extensions
         const SHA = 1 << 29;
+        /// Bit 30: AVX512BW.
+        const AVX512BW = 1 << 30;
+        /// Bit 31: AVX512VL.
+        const AVX512VL = 1 << 31;
     }
 }
 
 bitflags! {
     #[derive(Default, Serialize, Deserialize)]
     struct ExtendedFeaturesEcx: u32 {
-        /// Bit 0: Prefetch WT1
+        /// Bit 0: Prefetch WT1. (Intel® Xeon Phi™ only).
         const PREFETCHWT1 = 1 << 0;
 
-        // Bit 01: Reserved
+        // Bit 01: AVX512_VBMI
+        const AVX512VBMI = 1 << 1;
 
         /// Bit 02: UMIP. Supports user-mode instruction prevention if 1.
         const UMIP = 1 << 2;
@@ -2471,7 +2531,9 @@ bitflags! {
         /// Bit 04: OSPKE. If 1, OS has set CR4.PKE to enable protection keys (and the RDPKRU/WRPKRU instruc-tions).
         const OSPKE = 1 << 4;
 
-        // Bits 21 - 05: Reserved.
+        // Bits 16 - 5: Reserved.
+        // Bits 21 - 17: The value of MAWAU used by the BNDLDX and BNDSTX instructions in 64-bit mode.
+
 
         /// Bit 22: RDPID. Supports Read Processor ID if 1.
         const RDPID = 1 << 22;
@@ -2884,55 +2946,75 @@ impl ExtendedState {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct RdtMonitoringInfo {
-    ebx0: u32,
-    edx0: u32,
-    ebx1: u32,
-    ecx1: u32,
-    edx1: u32,
+    ebx: u32,
+    edx: u32,
 }
 
 /// Intel Resource Director Technology (Intel RDT) Monitoring Enumeration Sub-leaf (EAX = 0FH, ECX = 0 and ECX = 1)
 impl RdtMonitoringInfo {
     /// Maximum range (zero-based) of RMID within this physical processor of all types.
     pub fn rmid_range(&self) -> u32 {
-        self.ebx0
+        self.ebx
     }
 
     check_bit_fn!(
         doc = "Supports L3 Cache Intel RDT Monitoring.",
         has_l3_monitoring,
-        edx0,
+        edx,
         1
     );
 
+    /// L3 Cache Monitoring.
+    pub fn l3_monitoring(&self) -> Option<L3MonitoringInfo> {
+        if self.has_l3_monitoring() {
+            let res = cpuid!(EAX_RDT_MONITORING, 1);
+            return Some(L3MonitoringInfo {
+                ebx: res.ebx,
+                ecx: res.ecx,
+                edx: res.edx,
+            });
+        } else {
+            return None;
+        }
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct L3MonitoringInfo {
+    ebx: u32,
+    ecx: u32,
+    edx: u32,
+}
+
+impl L3MonitoringInfo {
     /// Conversion factor from reported IA32_QM_CTR value to occupancy metric (bytes).
     pub fn conversion_factor(&self) -> u32 {
-        self.ebx1
+        self.ebx
     }
 
     /// Maximum range (zero-based) of RMID of L3.
-    pub fn maximum_range_l3_rmid(&self) -> u32 {
-        self.ecx1
+    pub fn maximum_rmid_range(&self) -> u32 {
+        self.ecx
     }
 
     check_bit_fn!(
-        doc = "Supports L3 occupancy monitoring.",
-        has_l3_occupancy_monitoring,
-        edx1,
+        doc = "Supports occupancy monitoring.",
+        has_occupancy_monitoring,
+        edx,
         0
     );
 
     check_bit_fn!(
-        doc = "Supports L3 total bandwidth monitoring.",
-        has_l3_total_bandwidth_monitoring,
-        edx1,
+        doc = "Supports total bandwidth monitoring.",
+        has_total_bandwidth_monitoring,
+        edx,
         1
     );
 
     check_bit_fn!(
-        doc = "Supports L3 local bandwidth monitoring.",
-        has_l3_local_bandwidth_monitoring,
-        edx1,
+        doc = "Supports local bandwidth monitoring.",
+        has_local_bandwidth_monitoring,
+        edx,
         2
     );
 }
@@ -3000,7 +3082,7 @@ impl RdtAllocationInfo {
 
 /// L3 Cache Allocation Technology Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 1).
 #[derive(Debug, Default, Serialize, Deserialize)]
-struct L3CatInfo {
+pub struct L3CatInfo {
     eax: u32,
     ebx: u32,
     ecx: u32,
@@ -3033,7 +3115,7 @@ impl L3CatInfo {
 
 /// L2 Cache Allocation Technology Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 2).
 #[derive(Debug, Default, Serialize, Deserialize)]
-struct L2CatInfo {
+pub struct L2CatInfo {
     eax: u32,
     ebx: u32,
     edx: u32,
@@ -3058,7 +3140,7 @@ impl L2CatInfo {
 
 /// Memory Bandwidth Allocation Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 3).
 #[derive(Debug, Default, Serialize, Deserialize)]
-struct MemBwAllocationInfo {
+pub struct MemBwAllocationInfo {
     eax: u32,
     ecx: u32,
     edx: u32,
