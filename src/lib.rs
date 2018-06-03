@@ -171,8 +171,8 @@ const EAX_DIRECT_CACHE_ACCESS_INFO: u32 = 0x9;
 const EAX_PERFORMANCE_MONITOR_INFO: u32 = 0xA;
 const EAX_EXTENDED_TOPOLOGY_INFO: u32 = 0xB;
 const EAX_EXTENDED_STATE_INFO: u32 = 0xD;
-const EAX_QOS_INFO: u32 = 0xF;
-const EAX_QOS_ENFORCEMENT_INFO: u32 = 0x10;
+const EAX_RDT_MONITORING: u32 = 0xF;
+const EAX_RDT_ALLOCATION: u32 = 0x10;
 const EAX_TRACE_INFO: u32 = 0x14;
 const EAX_TIME_STAMP_COUNTER_INFO: u32 = 0x15;
 const EAX_FREQUENCY_INFO: u32 = 0x16;
@@ -303,7 +303,7 @@ impl CpuId {
             Some(ExtendedFeatures {
                 eax: res.eax,
                 ebx: ExtendedFeaturesEbx { bits: res.ebx },
-                ecx: res.ecx,
+                ecx: ExtendedFeaturesEcx { bits: res.ecx },
                 edx: res.edx,
             })
         } else {
@@ -363,12 +363,12 @@ impl CpuId {
     }
 
     /// Quality of service informations.
-    pub fn get_qos_info(&self) -> Option<QoSInfo> {
-        let res = cpuid!(EAX_QOS_INFO, 0);
-        let res1 = cpuid!(EAX_QOS_INFO, 1);
+    pub fn get_qos_info(&self) -> Option<RdtMonitoringInfo> {
+        let res = cpuid!(EAX_RDT_MONITORING, 0);
+        let res1 = cpuid!(EAX_RDT_MONITORING, 1);
 
-        if self.leaf_is_supported(EAX_QOS_INFO) {
-            Some(QoSInfo {
+        if self.leaf_is_supported(EAX_RDT_MONITORING) {
+            Some(RdtMonitoringInfo {
                 ebx0: res.ebx,
                 edx0: res.edx,
                 ebx1: res1.ebx,
@@ -381,18 +381,11 @@ impl CpuId {
     }
 
     /// Quality of service enforcement information.
-    pub fn get_qos_enforcement_info(&self) -> Option<QoSEnforcementInfo> {
-        let res = cpuid!(EAX_QOS_ENFORCEMENT_INFO, 0);
-        let res1 = cpuid!(EAX_QOS_ENFORCEMENT_INFO, 1);
+    pub fn get_qos_enforcement_info(&self) -> Option<RdtAllocationInfo> {
+        let res = cpuid!(EAX_RDT_ALLOCATION, 0);
 
-        if self.leaf_is_supported(EAX_QOS_ENFORCEMENT_INFO) {
-            Some(QoSEnforcementInfo {
-                ebx0: res.ebx,
-                eax1: res1.eax,
-                ebx1: res1.ebx,
-                ecx1: res1.ecx,
-                edx1: res1.edx,
-            })
+        if self.leaf_is_supported(EAX_RDT_ALLOCATION) {
+            Some(RdtAllocationInfo { ebx: res.ebx })
         } else {
             None
         }
@@ -2206,7 +2199,7 @@ impl ThermalPowerInfo {
 pub struct ExtendedFeatures {
     eax: u32,
     ebx: ExtendedFeaturesEbx,
-    ecx: u32,
+    ecx: ExtendedFeaturesEcx,
     edx: u32,
 }
 
@@ -2265,10 +2258,10 @@ impl ExtendedFeatures {
     check_flag!(doc = "RTM", has_rtm, ebx, ExtendedFeaturesEbx::RTM);
 
     check_flag!(
-        doc = "Supports Quality of Service Monitoring (QM) capability if 1.",
-        has_qm,
+        doc = "Supports Intel Resource Director Technology (RDT) Monitoring capability.",
+        has_rdtm,
         ebx,
-        ExtendedFeaturesEbx::QM
+        ExtendedFeaturesEbx::RDTM
     );
 
     check_flag!(
@@ -2286,10 +2279,10 @@ impl ExtendedFeatures {
     );
 
     check_flag!(
-        doc = "Supports Platform Quality of Service Enforcement (PQE) capability if 1.",
-        has_pqe,
+        doc = "Supports Intel Resource Director Technology (RDT) Allocation capability.",
+        has_rdta,
         ebx,
-        ExtendedFeaturesEbx::PQE
+        ExtendedFeaturesEbx::RDTA
     );
 
     check_flag!(
@@ -2342,6 +2335,69 @@ impl ExtendedFeatures {
         ebx,
         ExtendedFeaturesEbx::SHA
     );
+
+    check_flag!(
+        doc = "Supports Intel® Software Guard Extensions (Intel® SGX Extensions).",
+        has_sgx,
+        ebx,
+        ExtendedFeaturesEbx::SGX
+    );
+
+    check_flag!(
+        doc = "Supports AVX512F.",
+        has_avx512f,
+        ebx,
+        ExtendedFeaturesEbx::AVX512F
+    );
+
+    check_flag!(
+        doc = "Supports AVX512DQ.",
+        has_avx512dq,
+        ebx,
+        ExtendedFeaturesEbx::AVX512DQ
+    );
+
+    check_flag!(
+        doc = "Has PREFETCHWT1.",
+        has_prefetchwt1,
+        ecx,
+        ExtendedFeaturesEcx::PREFETCHWT1
+    );
+
+    check_flag!(
+        doc = "Supports user-mode instruction prevention if 1.",
+        has_umip,
+        ecx,
+        ExtendedFeaturesEcx::UMIP
+    );
+
+    check_flag!(
+        doc = "Supports protection keys for user-mode pages.",
+        has_pku,
+        ecx,
+        ExtendedFeaturesEcx::PKU
+    );
+
+    check_flag!(
+        doc = "OS has set CR4.PKE to enable protection keys (and the RDPKRU/WRPKRU instructions.",
+        has_ospke,
+        ecx,
+        ExtendedFeaturesEcx::OSPKE
+    );
+
+    check_flag!(
+        doc = "Supports Read Processor ID.",
+        has_rdpid,
+        ecx,
+        ExtendedFeaturesEcx::RDPID
+    );
+
+    check_flag!(
+        doc = "Supports SGX Launch ConfigurationPP.",
+        has_sgx_lc,
+        ecx,
+        ExtendedFeaturesEcx::SGX_LC
+    );
 }
 
 bitflags! {
@@ -2351,6 +2407,8 @@ bitflags! {
         const FSGSBASE = 1 << 0;
         /// IA32_TSC_ADJUST MSR is supported if 1. (Bit 01)
         const ADJUST_MSR = 1 << 1;
+        /// Bit 02: SGX. Supports Intel® Software Guard Extensions (Intel® SGX Extensions) if 1.
+        const SGX = 1 << 2;
         /// BMI1 (Bit 03)
         const BMI1 = 1 << 3;
         /// HLE (Bit 04)
@@ -2369,14 +2427,18 @@ bitflags! {
         const INVPCID = 1 << 10;
         /// RTM (Bit 11)
         const RTM = 1 << 11;
-        /// Supports Quality of Service Monitoring (QM) capability if 1. (Bit 12)
-        const QM = 1 << 12;
+        /// Supports Intel Resource Director Technology (RDT) Monitoring. (Bit 12)
+        const RDTM = 1 << 12;
         /// Deprecates FPU CS and FPU DS values if 1. (Bit 13)
         const DEPRECATE_FPU_CS_DS = 1 << 13;
         /// Deprecates FPU CS and FPU DS values if 1. (Bit 14)
         const MPX = 1 << 14;
-        /// Supports Platform Quality of Service Enforcement (PQE) capability if 1.
-        const PQE = 1 << 15;
+        /// Supports Intel Resource Director Technology (RDT) Allocation capability if 1.
+        const RDTA = 1 << 15;
+        /// Bit 16: AVX512F.
+        const AVX512F = 1 << 16;
+        /// Bit 17: AVX512DQ.
+        const AVX512DQ = 1 << 17;
         /// Supports RDSEED.
         const RDSEED = 1 << 18;
         /// Supports ADX.
@@ -2389,6 +2451,35 @@ bitflags! {
         const PROCESSOR_TRACE = 1 << 25;
         /// Bit 29: Intel SHA Extensions
         const SHA = 1 << 29;
+    }
+}
+
+bitflags! {
+    #[derive(Default, Serialize, Deserialize)]
+    struct ExtendedFeaturesEcx: u32 {
+        /// Bit 0: Prefetch WT1
+        const PREFETCHWT1 = 1 << 0;
+
+        // Bit 01: Reserved
+
+        /// Bit 02: UMIP. Supports user-mode instruction prevention if 1.
+        const UMIP = 1 << 2;
+
+        /// Bit 03: PKU. Supports protection keys for user-mode pages if 1.
+        const PKU = 1 << 3;
+
+        /// Bit 04: OSPKE. If 1, OS has set CR4.PKE to enable protection keys (and the RDPKRU/WRPKRU instruc-tions).
+        const OSPKE = 1 << 4;
+
+        // Bits 21 - 05: Reserved.
+
+        /// Bit 22: RDPID. Supports Read Processor ID if 1.
+        const RDPID = 1 << 22;
+
+        // Bits 29 - 23: Reserved.
+
+        /// Bit 30: SGX_LC. Supports SGX Launch Configuration if 1.
+        const SGX_LC = 1 << 30;
     }
 }
 
@@ -2792,7 +2883,7 @@ impl ExtendedState {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct QoSInfo {
+pub struct RdtMonitoringInfo {
     ebx0: u32,
     edx0: u32,
     ebx1: u32,
@@ -2800,16 +2891,19 @@ pub struct QoSInfo {
     edx1: u32,
 }
 
-impl QoSInfo {
+/// Intel Resource Director Technology (Intel RDT) Monitoring Enumeration Sub-leaf (EAX = 0FH, ECX = 0 and ECX = 1)
+impl RdtMonitoringInfo {
     /// Maximum range (zero-based) of RMID within this physical processor of all types.
-    pub fn maximum_rmid_range(&self) -> u32 {
+    pub fn rmid_range(&self) -> u32 {
         self.ebx0
     }
 
-    /// Supports L3 Cache QoS if true.
-    pub fn has_l3_qos(&self) -> bool {
-        self.edx0 & (1 << 1) > 0
-    }
+    check_bit_fn!(
+        doc = "Supports L3 Cache Intel RDT Monitoring.",
+        has_l3_monitoring,
+        edx0,
+        1
+    );
 
     /// Conversion factor from reported IA32_QM_CTR value to occupancy metric (bytes).
     pub fn conversion_factor(&self) -> u32 {
@@ -2821,102 +2915,169 @@ impl QoSInfo {
         self.ecx1
     }
 
-    /// Supports L3 occupancy monitoring if true.
-    pub fn has_l3_occupancy_monitoring(&self) -> bool {
-        self.edx1 & 0x1 > 0
-    }
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct QoSEnforcementInfo {
-    ebx0: u32,
-    eax1: u32,
-    ebx1: u32,
-    ecx1: u32,
-    edx1: u32,
-}
-
-impl QoSEnforcementInfo {
     check_bit_fn!(
-        doc = "Supports L3 Cache QoS enforcement if true.",
-        has_l3_qos_enforcement,
-        ebx0,
+        doc = "Supports L3 occupancy monitoring.",
+        has_l3_occupancy_monitoring,
+        edx1,
         0
     );
 
-    /// Iterator over QoS enforcements.
-    pub fn iter(&self) -> QoSEnforcementIter {
-        QoSEnforcementIter {
-            current: 0,
-            ebx0: self.ebx0,
-        }
-    }
+    check_bit_fn!(
+        doc = "Supports L3 total bandwidth monitoring.",
+        has_l3_total_bandwidth_monitoring,
+        edx1,
+        1
+    );
+
+    check_bit_fn!(
+        doc = "Supports L3 local bandwidth monitoring.",
+        has_l3_local_bandwidth_monitoring,
+        edx1,
+        2
+    );
 }
 
-/// Iterator over the QoSEnforcement sub-leafs.
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct QoSEnforcementIter {
-    current: u8,
-    ebx0: u32,
+pub struct RdtAllocationInfo {
+    ebx: u32,
 }
 
-impl Iterator for QoSEnforcementIter {
-    type Item = QoSEnforcement;
+impl RdtAllocationInfo {
+    check_bit_fn!(doc = "Supports L3 Cache Allocation.", has_l3_cat, ebx, 1);
 
-    fn next(&mut self) -> Option<QoSEnforcement> {
-        if self.current > 31 {
-            return None;
-        }
+    check_bit_fn!(doc = "Supports L2 Cache Allocation.", has_l2_cat, ebx, 2);
 
-        self.current += 1;
-        if is_bit_set!(self.ebx0, self.current) {
-            let res = cpuid!(EAX_QOS_ENFORCEMENT_INFO, self.current);
-            return Some(QoSEnforcement {
+    check_bit_fn!(
+        doc = "Supports Memory Bandwidth Allocation.",
+        has_memory_bandwidth_allocation,
+        ebx,
+        1
+    );
+
+    /// L3 Cache Allocation Information.
+    pub fn l3_cat(&self) -> Option<L3CatInfo> {
+        if self.has_l3_cat() {
+            let res = cpuid!(EAX_RDT_ALLOCATION, 1);
+            return Some(L3CatInfo {
                 eax: res.eax,
                 ebx: res.ebx,
                 ecx: res.ecx,
                 edx: res.edx,
             });
+        } else {
+            return None;
         }
+    }
 
-        self.next()
+    /// L2 Cache Allocation Information.
+    pub fn l2_cat(&self) -> Option<L2CatInfo> {
+        if self.has_l2_cat() {
+            let res = cpuid!(EAX_RDT_ALLOCATION, 2);
+            return Some(L2CatInfo {
+                eax: res.eax,
+                ebx: res.ebx,
+                edx: res.edx,
+            });
+        } else {
+            return None;
+        }
+    }
+
+    /// Memory Bandwidth Allocation Information.
+    pub fn memory_bandwidth_allocation(&self) -> Option<MemBwAllocationInfo> {
+        if self.has_l2_cat() {
+            let res = cpuid!(EAX_RDT_ALLOCATION, 3);
+            return Some(MemBwAllocationInfo {
+                eax: res.eax,
+                ecx: res.ecx,
+                edx: res.edx,
+            });
+        } else {
+            return None;
+        }
     }
 }
 
+/// L3 Cache Allocation Technology Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 1).
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct QoSEnforcement {
+struct L3CatInfo {
     eax: u32,
     ebx: u32,
     ecx: u32,
     edx: u32,
 }
 
-impl QoSEnforcement {
-    /// Length of the capacity bit mask.
+impl L3CatInfo {
+    /// Length of the capacity bit mask using minus-one notation.
     pub fn capacity_mask_length(&self) -> u8 {
         get_bits(self.eax, 0, 4) as u8
     }
 
     /// Bit-granular map of isolation/contention of allocation units.
-    pub fn allocation_unit_isolation(&self) -> u32 {
+    pub fn isolation_bitmap(&self) -> u32 {
         self.ebx
     }
 
     /// Highest COS number supported for this Leaf.
-    pub fn highest_cos_number(&self) -> u16 {
+    pub fn highest_cos(&self) -> u16 {
         get_bits(self.edx, 0, 15) as u16
     }
 
     check_bit_fn!(
-        doc = "Updates of COS should be infrequent if true.",
-        has_infrequent_cos_updates,
-        ecx,
-        1
-    );
-
-    check_bit_fn!(
         doc = "Is Code and Data Prioritization Technology supported?",
         has_code_data_prioritization,
+        ecx,
+        2
+    );
+}
+
+/// L2 Cache Allocation Technology Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 2).
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct L2CatInfo {
+    eax: u32,
+    ebx: u32,
+    edx: u32,
+}
+
+impl L2CatInfo {
+    /// Length of the capacity bit mask using minus-one notation.
+    pub fn capacity_mask_length(&self) -> u8 {
+        get_bits(self.eax, 0, 4) as u8
+    }
+
+    /// Bit-granular map of isolation/contention of allocation units.
+    pub fn isolation_bitmap(&self) -> u32 {
+        self.ebx
+    }
+
+    /// Highest COS number supported for this Leaf.
+    pub fn highest_cos(&self) -> u16 {
+        get_bits(self.edx, 0, 15) as u16
+    }
+}
+
+/// Memory Bandwidth Allocation Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 3).
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct MemBwAllocationInfo {
+    eax: u32,
+    ecx: u32,
+    edx: u32,
+}
+
+impl MemBwAllocationInfo {
+    /// Reports the maximum MBA throttling value supported for the corresponding ResID using minus-one notation.
+    pub fn max_hba_throttling(&self) -> u16 {
+        get_bits(self.eax, 0, 11) as u16
+    }
+
+    /// Highest COS number supported for this Leaf.
+    pub fn highest_cos(&self) -> u16 {
+        get_bits(self.edx, 0, 15) as u16
+    }
+
+    check_bit_fn!(
+        doc = "Reports whether the response of the delay values is linear.",
+        has_linear_response_delay,
         ecx,
         2
     );
