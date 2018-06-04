@@ -508,11 +508,37 @@ fn test_serializability() {
         _x32: ExtendedFunctionInfo,
         _x33: MemBwAllocationInfo,
         _x34: L3MonitoringInfo,
+        _x35: SgxSectionInfo,
+        _x36: EpcSection,
+        _x37: SgxInfo,
+        _x38: SgxSectionIter,
     }
 
     let st: SerializeDeserializeTest = Default::default();
     let test = serde_json::to_string(&st).unwrap();
     let _st: SerializeDeserializeTest = serde_json::from_str(&test).unwrap();
+}
+
+#[cfg(test)]
+#[test]
+fn sgx_test() {
+    let sgx = SgxInfo {
+        eax: 1,
+        ebx: 0,
+        ecx: 0,
+        edx: 9247,
+        eax1: 54,
+        ebx1: 0,
+        ecx1: 31,
+        edx1: 0,
+    };
+
+    assert!(sgx.max_enclave_size_64bit() == 0x24);
+    assert!(sgx.max_enclave_size_non_64bit() == 0x1f);
+    assert!(sgx.has_sgx1());
+    assert!(!sgx.has_sgx2());
+    assert!(sgx.miscselect() == 0x0);
+    assert!(sgx.secs_attributes() == (0x0000000000000036, 0x000000000000001f));
 }
 
 #[cfg(test)]

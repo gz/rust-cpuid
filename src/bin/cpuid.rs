@@ -53,12 +53,16 @@ fn main() {
         println!("Extended State");
         println!("{:?}", info);
     });
-    cpuid.get_qos_info().map(|info| {
-        println!("Quality of Service");
+    cpuid.get_rdt_monitoring_info().map(|info| {
+        println!("RDT Monitoring");
         println!("{:?}", info);
     });
-    cpuid.get_qos_enforcement_info().map(|info| {
-        println!("Quality of Service Enforcement");
+    cpuid.get_rdt_allocation_info().map(|info| {
+        println!("RDT Allocation");
+        println!("{:?}", info);
+    });
+    cpuid.get_sgx_info().map(|info| {
+        println!("Software Guard Extensions");
         println!("{:?}", info);
     });
     cpuid.get_processor_trace_info().map(|info| {

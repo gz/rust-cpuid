@@ -173,6 +173,7 @@ const EAX_EXTENDED_TOPOLOGY_INFO: u32 = 0xB;
 const EAX_EXTENDED_STATE_INFO: u32 = 0xD;
 const EAX_RDT_MONITORING: u32 = 0xF;
 const EAX_RDT_ALLOCATION: u32 = 0x10;
+const EAX_SGX: u32 = 0x12;
 const EAX_TRACE_INFO: u32 = 0x14;
 const EAX_TIME_STAMP_COUNTER_INFO: u32 = 0x15;
 const EAX_FREQUENCY_INFO: u32 = 0x16;
@@ -363,7 +364,7 @@ impl CpuId {
     }
 
     /// Quality of service informations.
-    pub fn get_qos_info(&self) -> Option<RdtMonitoringInfo> {
+    pub fn get_rdt_monitoring_info(&self) -> Option<RdtMonitoringInfo> {
         let res = cpuid!(EAX_RDT_MONITORING, 0);
 
         if self.leaf_is_supported(EAX_RDT_MONITORING) {
@@ -377,7 +378,7 @@ impl CpuId {
     }
 
     /// Quality of service enforcement information.
-    pub fn get_qos_enforcement_info(&self) -> Option<RdtAllocationInfo> {
+    pub fn get_rdt_allocation_info(&self) -> Option<RdtAllocationInfo> {
         let res = cpuid!(EAX_RDT_ALLOCATION, 0);
 
         if self.leaf_is_supported(EAX_RDT_ALLOCATION) {
@@ -385,6 +386,28 @@ impl CpuId {
         } else {
             None
         }
+    }
+
+    pub fn get_sgx_info(&self) -> Option<SgxInfo> {
+        // Leaf 12H sub-leaf 0 (ECX = 0) is supported if CPUID.(EAX=07H, ECX=0H):EBX[SGX] = 1.
+        self.get_extended_feature_info().and_then(|info| {
+            if self.leaf_is_supported(EAX_SGX) && info.has_sgx() {
+                let res = cpuid!(EAX_SGX, 0);
+                let res1 = cpuid!(EAX_SGX, 1);
+                Some(SgxInfo {
+                    eax: res.eax,
+                    ebx: res.ebx,
+                    ecx: res.ecx,
+                    edx: res.edx,
+                    eax1: res1.eax,
+                    ebx1: res1.ebx,
+                    ecx1: res1.ecx,
+                    edx1: res1.edx,
+                })
+            } else {
+                None
+            }
+        })
     }
 
     /// Intel Processor Trace Enumeration Information.
@@ -632,6 +655,7 @@ impl CacheInfo {
             0x0C => "1st-level data cache: 16 KBytes, 4-way set associative, 32 byte line size",
             0x0D => "1st-level data cache: 16 KBytes, 4-way set associative, 64 byte line size",
             0x0E => "1st-level data cache: 24 KBytes, 6-way set associative, 64 byte line size",
+            0x1D => "2nd-level cache: 128 KBytes, 2-way set associative, 64 byte line size",
             0x21 => "2nd-level cache: 256 KBytes, 8-way set associative, 64 byte line size",
             0x22 => "3rd-level cache: 512 KBytes, 4-way set associative, 64 byte line size, 2 lines per sector",
             0x23 => "3rd-level cache: 1 MBytes, 8-way set associative, 64 byte line size, 2 lines per sector",
@@ -669,7 +693,8 @@ impl CacheInfo {
             0x5D => "Data TLB: 4 KByte and 4 MByte pages,256 entries",
             0x60 => "1st-level data cache: 16 KByte, 8-way set associative, 64 byte line size",
             0x61 => "Instruction TLB: 4 KByte pages, fully associative, 48 entries",
-            0x63 => "Data TLB: 1 GByte pages, 4-way set associative, 4 entries",
+            0x63 => "Data TLB: 2 MByte or 4 MByte pages, 4-way set associative, 32 entries and a separate array with 1 GByte pages, 4-way set associative, 4 entries",
+            0x64 => "Data TLB: 4 KByte pages, 4-way set associative, 512 entries",
             0x66 => "1st-level data cache: 8 KByte, 4-way set associative, 64 byte line size",
             0x67 => "1st-level data cache: 16 KByte, 4-way set associative, 64 byte line size",
             0x68 => "1st-level data cache: 32 KByte, 4-way set associative, 64 byte line size",
@@ -695,6 +720,7 @@ impl CacheInfo {
             0x85 => "2nd-level cache: 2 MByte, 8-way set associative, 32 byte line size",
             0x86 => "2nd-level cache: 512 KByte, 4-way set associative, 64 byte line size",
             0x87 => "2nd-level cache: 1 MByte, 8-way set associative, 64 byte line size",
+            0xA0 => "DTLB: 4k pages, fully associative, 32 entries",
             0xB0 => "Instruction TLB: 4 KByte pages, 4-way set associative, 128 entries",
             0xB1 => "Instruction TLB: 2M pages, 4-way, 8 entries or 4M pages, 4-way, 4 entries",
             0xB2 => "Instruction TLB: 4KByte pages, 4-way set associative, 64 entries",
@@ -706,6 +732,8 @@ impl CacheInfo {
             0xC0 => "Data TLB: 4 KByte and 4 MByte pages, 4-way associative, 8 entries",
             0xC1 => "Shared 2nd-Level TLB: 4 KByte/2MByte pages, 8-way associative, 1024 entries",
             0xC2 => "DTLB: 2 MByte/$MByte pages, 4-way associative, 16 entries",
+            0xC3 => "Shared 2nd-Level TLB: 4 KByte /2 MByte pages, 6-way associative, 1536 entries. Also 1GBbyte pages, 4-way, 16 entries.",
+            0xC4 => "DTLB: 2M/4M Byte pages, 4-way associative, 32 entries",
             0xCA => "Shared 2nd-Level TLB: 4 KByte pages, 4-way associative, 512 entries",
             0xD0 => "3rd-level cache: 512 KByte, 4-way set associative, 64 byte line size",
             0xD1 => "3rd-level cache: 1 MByte, 4-way set associative, 64 byte line size",
@@ -1599,11 +1627,10 @@ impl FeatureInfo {
     );
 
     check_flag!(
-        doc = "Machine Check Architecture. The Machine Check Architecture, which \
-               provides a compatible mechanism for error reporting in P6 family, Pentium \
-               4, Intel Xeon processors, and future processors, is supported. The \
-               MCG_CAP MSR contains feature bits describing how many banks of error \
-               reporting MSRs are supported.",
+        doc = "Machine Check Architecture. A value of 1 indicates the Machine Check \
+               Architecture of reporting machine errors is supported. The MCG_CAP MSR \
+               contains feature bits describing how many banks of error reporting MSRs \
+               are supported.",
         has_mca,
         edx_ecx,
         FeatureInfoFlags::MCA
@@ -3163,6 +3190,112 @@ impl MemBwAllocationInfo {
         ecx,
         2
     );
+}
+
+/// Intel SGX Capability Enumeration Leaf, sub-leaf 0 (EAX = 12H, ECX = 0 and ECX = 1)
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct SgxInfo {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    edx: u32,
+    eax1: u32,
+    ebx1: u32,
+    ecx1: u32,
+    edx1: u32,
+}
+
+impl SgxInfo {
+    check_bit_fn!(doc = "Has SGX1 support.", has_sgx1, eax, 0);
+    check_bit_fn!(doc = "Has SGX2 support.", has_sgx2, eax, 1);
+
+    /// Bit vector of supported extended SGX features.
+    pub fn miscselect(&self) -> u32 {
+        self.ebx
+    }
+
+    ///  The maximum supported enclave size in non-64-bit mode is 2^retval.
+    pub fn max_enclave_size_non_64bit(&self) -> u8 {
+        get_bits(self.edx, 0, 7) as u8
+    }
+
+    ///  The maximum supported enclave size in 64-bit mode is 2^retval.
+    pub fn max_enclave_size_64bit(&self) -> u8 {
+        get_bits(self.edx, 8, 15) as u8
+    }
+
+    /// Reports the valid bits of SECS.ATTRIBUTES[127:0] that software can set with ECREATE.
+    pub fn secs_attributes(&self) -> (u64, u64) {
+        let lower = self.eax1 as u64 | (self.ebx1 as u64) << 32;
+        let upper = self.ecx1 as u64 | (self.edx1 as u64) << 32;
+        (lower, upper)
+    }
+    /// Iterator over processor trace info sub-leafs.
+    pub fn iter(&self) -> SgxSectionIter {
+        SgxSectionIter { current: 2 }
+    }
+}
+
+/// Iterator over the Processor Trace sub-leafs.
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct SgxSectionIter {
+    current: u32,
+}
+
+impl Iterator for SgxSectionIter {
+    type Item = SgxSectionInfo;
+
+    fn next(&mut self) -> Option<SgxSectionInfo> {
+        self.current += 1;
+        let res = cpuid!(EAX_SGX, self.current);
+        match get_bits(res.eax, 0, 3) {
+            0b0001 => Some(SgxSectionInfo::Epc(EpcSection {
+                eax: res.eax,
+                ebx: res.ebx,
+                ecx: res.ecx,
+                edx: res.edx,
+            })),
+            _ => None,
+        }
+    }
+}
+
+/// Intel SGX EPC Enumeration Leaf, sub-leaves (EAX = 12H, ECX = 2 or higher)
+#[derive(Debug, Serialize, Deserialize)]
+pub enum SgxSectionInfo {
+    // This would be nice: https://github.com/rust-lang/rfcs/pull/1450
+    Epc(EpcSection),
+}
+
+impl Default for SgxSectionInfo {
+    fn default() -> SgxSectionInfo {
+        SgxSectionInfo::Epc(Default::default())
+    }
+}
+
+/// EBX:EAX and EDX:ECX provide information on the Enclave Page Cache (EPC) section
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct EpcSection {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    edx: u32,
+}
+
+impl EpcSection {
+    /// The physical address of the base of the EPC section
+    pub fn physical_base(&self) -> u64 {
+        let lower = (get_bits(self.eax, 12, 31) << 12) as u64;
+        let upper = (get_bits(self.ebx, 0, 19) as u64) << 32;
+        lower | upper
+    }
+
+    /// Size of the corresponding EPC section within the Processor Reserved Memory.
+    pub fn size(&self) -> u64 {
+        let lower = (get_bits(self.ecx, 12, 31) << 12) as u64;
+        let upper = (get_bits(self.edx, 0, 19) as u64) << 32;
+        lower | upper
+    }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
