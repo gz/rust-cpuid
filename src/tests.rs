@@ -207,6 +207,39 @@ fn thermal_power_features() {
     );
 
     assert!(tpfeatures.dts_irq_threshold() == 0x2);
+    let tpfeatures = ThermalPowerInfo {
+        eax: ThermalPowerFeaturesEax::DTS
+            | ThermalPowerFeaturesEax::TURBO_BOOST
+            | ThermalPowerFeaturesEax::ARAT
+            | ThermalPowerFeaturesEax::PLN
+            | ThermalPowerFeaturesEax::ECMD
+            | ThermalPowerFeaturesEax::PTM
+            | ThermalPowerFeaturesEax::HWP
+            | ThermalPowerFeaturesEax::HWP_NOTIFICATION
+            | ThermalPowerFeaturesEax::HWP_ACTIVITY_WINDOW
+            | ThermalPowerFeaturesEax::HWP_ENERGY_PERFORMANCE_PREFERENCE
+            | ThermalPowerFeaturesEax::HDC,
+        ebx: 2,
+        ecx: ThermalPowerFeaturesEcx::HW_COORD_FEEDBACK | ThermalPowerFeaturesEcx::ENERGY_BIAS_PREF,
+        edx: 0,
+    };
+
+    assert!(tpfeatures.has_dts());
+    assert!(!tpfeatures.has_turbo_boost3());
+    assert!(tpfeatures.has_turbo_boost());
+    assert!(tpfeatures.has_arat());
+    assert!(tpfeatures.has_pln());
+    assert!(tpfeatures.has_ecmd());
+    assert!(tpfeatures.has_ptm());
+    assert!(tpfeatures.has_hwp());
+    assert!(tpfeatures.has_hwp_notification());
+    assert!(tpfeatures.has_hwp_activity_window());
+    assert!(tpfeatures.has_hwp_energy_performance_preference());
+    assert!(!tpfeatures.has_hwp_package_level_request());
+    assert!(tpfeatures.has_hdc());
+    assert!(tpfeatures.has_hw_coord_feedback());
+    assert!(tpfeatures.has_energy_bias_pref());
+    assert!(tpfeatures.dts_irq_threshold() == 0x2);
 }
 
 #[test]
@@ -358,11 +391,14 @@ fn extended_state_info() {
         ecx: 832,
         edx: 0,
         eax1: 1,
+        ebx1: 0,
+        ecx1: 0,
+        edx1: 0,
     };
 
     assert!(es.xcr0_supported() == 7);
-    assert!(es.maximum_size_enabled_features() == 832);
-    assert!(es.maximum_size_supported_features() == 832);
+    assert!(es.xsave_area_size_enabled_features() == 832);
+    assert!(es.xsave_area_size_supported_features() == 832);
     assert!(es.has_xsaveopt());
 
     for (idx, e) in es.iter().enumerate() {
@@ -375,6 +411,41 @@ fn extended_state_info() {
             _ => unreachable!(),
         }
     }
+}
+
+#[test]
+fn extended_state_info2() {
+    let es = ExtendedStateInfo {
+        eax: 31,
+        ebx: 1088,
+        ecx: 1088,
+        edx: 0,
+        eax1: 15,
+        ebx1: 960,
+        ecx1: 256,
+        edx1: 0,
+    };
+
+    assert!(es.has_legacy_x87());
+    assert!(es.has_sse_128());
+    assert!(es.has_avx_256());
+    assert!(es.has_mpx());
+    assert!(!es.has_avx_512());
+    //assert!(!es.has_ia32_xss());
+    assert!(!es.has_pkru());
+
+    assert!(es.xsave_area_size_enabled_features() == 0x440);
+    assert!(es.xsave_area_size_supported_features() == 0x440);
+
+    assert!(es.xcr0_supported() == 0x1f);
+
+    assert!(es.has_xsaveopt());
+    assert!(es.has_xsavec());
+    assert!(es.has_xgetbv());
+    assert!(es.has_xsaves_xrstors());
+    assert!(es.xsave_size() == 0x3c0);
+
+    assert!(es.ia32_xss_supported_bits() == 0x100);
 }
 
 #[test]
@@ -512,6 +583,9 @@ fn test_serializability() {
         _x36: EpcSection,
         _x37: SgxInfo,
         _x38: SgxSectionIter,
+        _x39: DatInfo,
+        _x40: DatIter,
+        _x41: DatType,
     }
 
     let st: SerializeDeserializeTest = Default::default();

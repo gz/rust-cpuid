@@ -77,6 +77,12 @@ fn main() {
         println!("Processor Frequency");
         println!("{:?}", info);
     });
+    cpuid.deterministic_address_translation_info().map(|dats| {
+        println!("Deterministic Address Translation");
+        for dat in dats {
+            println!("{:?}", dat);
+        }
+    });
     cpuid.get_soc_vendor_info().map(|info| {
         println!("SoC Vendor Info");
         println!("{:?}", info);

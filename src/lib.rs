@@ -178,6 +178,7 @@ const EAX_TRACE_INFO: u32 = 0x14;
 const EAX_TIME_STAMP_COUNTER_INFO: u32 = 0x15;
 const EAX_FREQUENCY_INFO: u32 = 0x16;
 const EAX_SOC_VENDOR_INFO: u32 = 0x17;
+const EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO: u32 = 0x18;
 const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x80000000;
 
 impl CpuId {
@@ -357,6 +358,9 @@ impl CpuId {
                 ecx: res.ecx,
                 edx: res.edx,
                 eax1: res1.eax,
+                ebx1: res1.ebx,
+                ecx1: res1.ecx,
+                edx1: res1.edx,
             })
         } else {
             None
@@ -446,6 +450,18 @@ impl CpuId {
                 eax: res.eax,
                 ebx: res.ebx,
                 ecx: res.ecx,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn deterministic_address_translation_info(&self) -> Option<DatIter> {
+        if self.leaf_is_supported(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO) {
+            let res = cpuid!(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO, 0);
+            Some(DatIter {
+                current: 0,
+                count: res.eax,
             })
         } else {
             None
@@ -752,6 +768,7 @@ impl CacheInfo {
             0xEC => "3rd-level cache: 24MByte, 24-way set associative, 64 byte line size",
             0xF0 => "64-Byte prefetching",
             0xF1 => "128-Byte prefetching",
+            0xFE => "CPUID leaf 2 does not report TLB descriptor information; use CPUID leaf 18H to query TLB and other address translation parameters.",
             0xFF => "CPUID leaf 2 does not report cache descriptor information, use CPUID leaf 4 to query cache parameters",
             _ => "Unknown cache type!"
         }
@@ -774,7 +791,7 @@ impl fmt::Display for CacheInfo {
 }
 
 /// This table is taken from Intel manual (Section CPUID instruction).
-pub const CACHE_INFO_TABLE: [CacheInfo; 107] = [
+pub const CACHE_INFO_TABLE: [CacheInfo; 108] = [
     CacheInfo {
         num: 0x00,
         typ: CacheInfoType::GENERAL,
@@ -1198,6 +1215,10 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 107] = [
     CacheInfo {
         num: 0xF1,
         typ: CacheInfoType::PREFETCH,
+    },
+    CacheInfo {
+        num: 0xFE,
+        typ: CacheInfoType::GENERAL,
     },
     CacheInfo {
         num: 0xFF,
@@ -1684,7 +1705,7 @@ impl FeatureInfo {
     check_flag!(
         doc = "Debug Store. The processor supports the ability to write debug \
                information into a memory resident buffer. This feature is used by the \
-               branch trace store (BTS) and precise event-based sampling (PEBS) \
+               branch trace store (BTS) and processor event-based sampling (PEBS) \
                facilities (see Chapter 23, Introduction to Virtual-Machine Extensions, \
                in the Intel® 64 and IA-32 Architectures Software Developers Manual, \
                Volume 3C).",
@@ -2118,6 +2139,11 @@ pub struct ThermalPowerInfo {
 }
 
 impl ThermalPowerInfo {
+    /// Number of Interrupt Thresholds in Digital Thermal Sensor
+    pub fn dts_irq_threshold(&self) -> u8 {
+        get_bits(self.ebx, 0, 3) as u8
+    }
+
     check_flag!(
         doc = "Digital temperature sensor is supported if set.",
         has_dts,
@@ -2162,6 +2188,93 @@ impl ThermalPowerInfo {
     );
 
     check_flag!(
+        doc = "HWP. HWP base registers (IA32_PM_ENABLE[bit 0], IA32_HWP_CAPABILITIES, \
+               IA32_HWP_REQUEST, IA32_HWP_STATUS) are supported if set.",
+        has_hwp,
+        eax,
+        ThermalPowerFeaturesEax::HWP
+    );
+
+    check_flag!(
+        doc = "HWP Notification. IA32_HWP_INTERRUPT MSR is supported if set.",
+        has_hwp_notification,
+        eax,
+        ThermalPowerFeaturesEax::HWP_NOTIFICATION
+    );
+
+    check_flag!(
+        doc = "HWP Activity Window. IA32_HWP_REQUEST[bits 41:32] is supported if set.",
+        has_hwp_activity_window,
+        eax,
+        ThermalPowerFeaturesEax::HWP_ACTIVITY_WINDOW
+    );
+
+    check_flag!(
+        doc =
+            "HWP Energy Performance Preference. IA32_HWP_REQUEST[bits 31:24] is supported if set.",
+        has_hwp_energy_performance_preference,
+        eax,
+        ThermalPowerFeaturesEax::HWP_ENERGY_PERFORMANCE_PREFERENCE
+    );
+
+    check_flag!(
+        doc = "HWP Package Level Request. IA32_HWP_REQUEST_PKG MSR is supported if set.",
+        has_hwp_package_level_request,
+        eax,
+        ThermalPowerFeaturesEax::HWP_PACKAGE_LEVEL_REQUEST
+    );
+
+    check_flag!(
+        doc = "HDC. HDC base registers IA32_PKG_HDC_CTL, IA32_PM_CTL1, IA32_THREAD_STALL \
+               MSRs are supported if set.",
+        has_hdc,
+        eax,
+        ThermalPowerFeaturesEax::HDC
+    );
+
+    check_flag!(
+        doc = "Intel® Turbo Boost Max Technology 3.0 available.",
+        has_turbo_boost3,
+        eax,
+        ThermalPowerFeaturesEax::TURBO_BOOST_3
+    );
+
+    check_flag!(
+        doc = "HWP Capabilities. Highest Performance change is supported if set.",
+        has_hwp_capabilities,
+        eax,
+        ThermalPowerFeaturesEax::HWP_CAPABILITIES
+    );
+
+    check_flag!(
+        doc = "HWP PECI override is supported if set.",
+        has_hwp_peci_override,
+        eax,
+        ThermalPowerFeaturesEax::HWP_PECI_OVERRIDE
+    );
+
+    check_flag!(
+        doc = "Flexible HWP is supported if set.",
+        has_flexible_hwp,
+        eax,
+        ThermalPowerFeaturesEax::FLEXIBLE_HWP
+    );
+
+    check_flag!(
+        doc = "Fast access mode for the IA32_HWP_REQUEST MSR is supported if set.",
+        has_hwp_fast_access_mode,
+        eax,
+        ThermalPowerFeaturesEax::HWP_REQUEST_MSR_FAST_ACCESS
+    );
+
+    check_flag!(
+        doc = "Ignoring Idle Logical Processor HWP request is supported if set.",
+        has_ignore_idle_processor_hwp_request,
+        eax,
+        ThermalPowerFeaturesEax::IGNORE_IDLE_PROCESSOR_HWP_REQUEST
+    );
+
+    check_flag!(
         doc = "Hardware Coordination Feedback Capability (Presence of IA32_MPERF and \
                IA32_APERF). The capability to provide a measure of delivered processor \
                performance (since last reset of the counters), as a percentage of \
@@ -2191,12 +2304,43 @@ bitflags! {
         const TURBO_BOOST = 1 << 1;
         /// ARAT. APIC-Timer-always-running feature is supported if set. (Bit 02)
         const ARAT = 1 << 2;
+        /// Bit 3: Reserved.
+        const RESERVED_3 = 1 << 3;
         /// PLN. Power limit notification controls are supported if set. (Bit 04)
         const PLN = 1 << 4;
         /// ECMD. Clock modulation duty cycle extension is supported if set. (Bit 05)
         const ECMD = 1 << 5;
         /// PTM. Package thermal management is supported if set. (Bit 06)
         const PTM = 1 << 6;
+        /// Bit 07: HWP. HWP base registers (IA32_PM_ENABLE[bit 0], IA32_HWP_CAPABILITIES, IA32_HWP_REQUEST, IA32_HWP_STATUS) are supported if set.
+        const HWP = 1 << 7;
+        /// Bit 08: HWP_Notification. IA32_HWP_INTERRUPT MSR is supported if set.
+        const HWP_NOTIFICATION = 1 << 8;
+        /// Bit 09: HWP_Activity_Window. IA32_HWP_REQUEST[bits 41:32] is supported if set.
+        const HWP_ACTIVITY_WINDOW = 1 << 9;
+        /// Bit 10: HWP_Energy_Performance_Preference. IA32_HWP_REQUEST[bits 31:24] is supported if set.
+        const HWP_ENERGY_PERFORMANCE_PREFERENCE = 1 << 10;
+        /// Bit 11: HWP_Package_Level_Request. IA32_HWP_REQUEST_PKG MSR is supported if set.
+        const HWP_PACKAGE_LEVEL_REQUEST = 1 << 11;
+        /// Bit 12: Reserved.
+        const RESERVED_12 = 1 << 12;
+        /// Bit 13: HDC. HDC base registers IA32_PKG_HDC_CTL, IA32_PM_CTL1, IA32_THREAD_STALL MSRs are supported if set.
+        const HDC = 1 << 13;
+        /// Bit 14: Intel® Turbo Boost Max Technology 3.0 available.
+        const TURBO_BOOST_3 = 1 << 14;
+        /// Bit 15: HWP Capabilities. Highest Performance change is supported if set.
+        const HWP_CAPABILITIES = 1 << 15;
+        /// Bit 16: HWP PECI override is supported if set.
+        const HWP_PECI_OVERRIDE = 1 << 16;
+        /// Bit 17: Flexible HWP is supported if set.
+        const FLEXIBLE_HWP = 1 << 17;
+        /// Bit 18: Fast access mode for the IA32_HWP_REQUEST MSR is supported if set.
+        const HWP_REQUEST_MSR_FAST_ACCESS = 1 << 18;
+        /// Bit 19: Reserved.
+        const RESERVED_19 = 1 << 19;
+        /// Bit 20: Ignoring Idle Logical Processor HWP request is supported if set.
+        const IGNORE_IDLE_PROCESSOR_HWP_REQUEST = 1 << 20;
+        // Bits 31 - 21: Reserved
     }
 }
 
@@ -2208,13 +2352,6 @@ bitflags! {
 
         /// The processor supports performance-energy bias preference if CPUID.06H:ECX.SETBH[bit 3] is set and it also implies the presence of a new architectural MSR called IA32_ENERGY_PERF_BIAS (1B0H)
         const ENERGY_BIAS_PREF = 1 << 3;
-    }
-}
-
-impl ThermalPowerInfo {
-    /// Number of Interrupt Thresholds in Digital Thermal Sensor
-    pub fn dts_irq_threshold(&self) -> u8 {
-        get_bits(self.ebx, 0, 3) as u8
     }
 }
 
@@ -2452,7 +2589,7 @@ impl ExtendedFeatures {
     );
 
     check_flag!(
-        doc = "Supports Read Processor ID.",
+        doc = "RDPID and IA32_TSC_AUX are available.",
         has_rdpid,
         ecx,
         ExtendedFeaturesEcx::RDPID
@@ -2562,7 +2699,7 @@ bitflags! {
         // Bits 21 - 17: The value of MAWAU used by the BNDLDX and BNDSTX instructions in 64-bit mode.
 
 
-        /// Bit 22: RDPID. Supports Read Processor ID if 1.
+        /// Bit 22: RDPID. RDPID and IA32_TSC_AUX are available if 1.
         const RDPID = 1 << 22;
 
         // Bits 29 - 23: Reserved.
@@ -2622,6 +2759,13 @@ impl PerformanceMonitoringInfo {
     pub fn fixed_function_counters_bit_width(&self) -> u8 {
         get_bits(self.edx, 5, 12) as u8
     }
+
+    check_bit_fn!(
+        doc = "AnyThread deprecation",
+        has_any_thread_deprecation,
+        edx,
+        15
+    );
 
     check_flag!(
         doc = "Core cycle event not available if 1.",
@@ -2798,6 +2942,9 @@ enum ExtendedStateIdent {
 
     /// PKRU state (Bit 09).
     PKRU = 1 << 9,
+
+    /// Used for IA32_XSS (Bit 13).
+    IA32_XSS_2 = 1 << 13,
 }
 
 impl Default for ExtendedStateIdent {
@@ -2813,6 +2960,9 @@ pub struct ExtendedStateInfo {
     ecx: u32,
     edx: u32,
     eax1: u32,
+    ebx1: u32,
+    ecx1: u32,
+    edx1: u32,
 }
 
 macro_rules! check_xcr_flag {
@@ -2837,25 +2987,27 @@ impl ExtendedStateInfo {
 
     check_xcr_flag!(doc = "AVX 256-bit.", has_avx_256, AVX256);
 
+    // TODO 2bits
     check_xcr_flag!(doc = "MPX.", has_mpx, MPX);
 
+    // TODO 2bits
     check_xcr_flag!(doc = "AVX 512-bit.", has_avx_512, AVX512);
 
-    check_xcr_flag!(doc = "IA32_XSS.", has_ia32_xss, IA32_XSS);
-
     check_xcr_flag!(doc = "PKRU.", has_pkru, PKRU);
+
+    // TODO IA32_XSS, 2bits
 
     /// Maximum size (bytes, from the beginning of the XSAVE/XRSTOR save area) required by
     /// enabled features in XCR0. May be different than ECX if some features at the end of the XSAVE save area
     /// are not enabled.
-    pub fn maximum_size_enabled_features(&self) -> u32 {
+    pub fn xsave_area_size_enabled_features(&self) -> u32 {
         self.ebx
     }
 
     /// Maximum size (bytes, from the beginning of the XSAVE/XRSTOR save area) of the
     /// XSAVE/XRSTOR save area required by all supported features in the processor,
     /// i.e all the valid bit fields in XCR0.
-    pub fn maximum_size_supported_features(&self) -> u32 {
+    pub fn xsave_area_size_supported_features(&self) -> u32 {
         self.ecx
     }
 
@@ -2866,17 +3018,34 @@ impl ExtendedStateInfo {
 
     /// Supports XSAVEC and the compacted form of XRSTOR if set.
     pub fn has_xsavec(&self) -> bool {
-        self.eax1 & 0x0b10 > 0
+        self.eax1 & 0b10 > 0
     }
 
     /// Supports XGETBV with ECX = 1 if set.
     pub fn has_xgetbv(&self) -> bool {
-        self.eax1 & 0x0b100 > 0
+        self.eax1 & 0b100 > 0
     }
 
     /// Supports XSAVES/XRSTORS and IA32_XSS if set.
     pub fn has_xsaves_xrstors(&self) -> bool {
-        self.eax1 & 0x0b1000 > 0
+        self.eax1 & 0b1000 > 0
+    }
+
+    /// The size in bytes of the XSAVE area containing all states enabled by XCRO | IA32_XSS.
+    pub fn xsave_size(&self) -> u32 {
+        self.ebx1
+    }
+
+    /// Reports the supported bits of the IA32_XSS MSR. IA32_XSS[n] can be set to 1 only if ECX[n] is 1.
+    pub fn ia32_xss_supported_bits(&self) -> u64 {
+        // TODO make this a bitflag?
+        // Bits 07 - 00: Used for XCR0.
+        // Bit 08: PT state.
+        // Bit 09: Used for XCR0.
+        // Bits 12 - 10: Reserved.
+        // Bit 13: HWP state.
+        // Bits 31 - 14: Reserved.
+        self.ecx1 as u64 | ((self.edx1 as u64) << 32)
     }
 
     /// Iterator over extended state enumeration levels >= 2.
@@ -3209,6 +3378,20 @@ impl SgxInfo {
     check_bit_fn!(doc = "Has SGX1 support.", has_sgx1, eax, 0);
     check_bit_fn!(doc = "Has SGX2 support.", has_sgx2, eax, 1);
 
+    check_bit_fn!(
+        doc = "Supports ENCLV instruction leaves EINCVIRTCHILD, EDECVIRTCHILD, and ESETCONTEXT.",
+        has_enclv_leaves_einvirtchild_edecvirtchild_esetcontext,
+        eax,
+        5
+    );
+
+    check_bit_fn!(
+        doc = "Supports ENCLS instruction leaves ETRACKC, ERDINFO, ELDBC, and ELDUC.",
+        has_encls_leaves_etrackc_erdinfo_eldbc_elduc,
+        eax,
+        6
+    );
+
     /// Bit vector of supported extended SGX features.
     pub fn miscselect(&self) -> u32 {
         self.ebx
@@ -3230,13 +3413,13 @@ impl SgxInfo {
         let upper = self.ecx1 as u64 | (self.edx1 as u64) << 32;
         (lower, upper)
     }
-    /// Iterator over processor trace info sub-leafs.
+    /// Iterator over SGX sub-leafs.
     pub fn iter(&self) -> SgxSectionIter {
         SgxSectionIter { current: 2 }
     }
 }
 
-/// Iterator over the Processor Trace sub-leafs.
+/// Iterator over the SGX sub-leafs (ECX >= 2).
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct SgxSectionIter {
     current: u32,
@@ -3334,6 +3517,22 @@ impl ProcessorTraceInfo {
         has_mtc_timing_packet_coefi_suppression,
         ebx,
         3
+    );
+
+    check_bit_fn!(
+        doc = "Indicates support of PTWRITE. Writes can set IA32_RTIT_CTL[12] (PTWEn \
+               and IA32_RTIT_CTL[5] (FUPonPTW), and PTWRITE can generate packets",
+        has_ptwrite,
+        ebx,
+        4
+    );
+
+    check_bit_fn!(
+        doc = "Support of Power Event Trace. Writes can set IA32_RTIT_CTL[4] (PwrEvtEn) \
+               enabling Power Event Trace packet generation.",
+        has_power_event_trace,
+        ebx,
+        5
     );
 
     // ECX features
@@ -3476,6 +3675,150 @@ impl ProcessorFrequencyInfo {
     /// Bus (Reference) Frequency (in MHz).
     pub fn bus_frequency(&self) -> u16 {
         get_bits(self.ecx, 0, 15) as u16
+    }
+}
+
+/// Deterministic Address Translation Structure Iterator
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct DatIter {
+    current: u32,
+    count: u32,
+}
+
+impl Iterator for DatIter {
+    type Item = DatInfo;
+
+    /// Iterate over each sub-leaf with an  address translation structure.
+    fn next(&mut self) -> Option<DatInfo> {
+        loop {
+            // Sub-leaf index n is invalid if n exceeds the value that sub-leaf 0 returns in EAX
+            if self.current > self.count {
+                return None;
+            }
+
+            let res = cpuid!(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO, self.current);
+            self.current += 1;
+
+            // A sub-leaf index is also invalid if EDX[4:0] returns 0.
+            if get_bits(res.edx, 0, 4) == 0 {
+                // Valid sub-leaves do not need to be contiguous or in any particular order.
+                // A valid sub-leaf may be in a higher input ECX value than an invalid sub-leaf
+                // or than a valid sub-leaf of a higher or lower-level struc-ture
+                continue;
+            }
+
+            return Some(DatInfo {
+                eax: res.eax,
+                ebx: res.ebx,
+                ecx: res.ecx,
+                edx: res.edx,
+            });
+        }
+    }
+}
+
+/// Deterministic Address Translation Structure
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct DatInfo {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    edx: u32,
+}
+
+impl DatInfo {
+    check_bit_fn!(
+        doc = "4K page size entries supported by this structure",
+        has_4k_entries,
+        ebx,
+        0
+    );
+
+    check_bit_fn!(
+        doc = "2MB page size entries supported by this structure",
+        has_2mb_entries,
+        ebx,
+        1
+    );
+
+    check_bit_fn!(
+        doc = "4MB page size entries supported by this structure",
+        has_4mb_entries,
+        ebx,
+        2
+    );
+
+    check_bit_fn!(
+        doc = "1GB page size entries supported by this structure",
+        has_1gb_entries,
+        ebx,
+        3
+    );
+
+    check_bit_fn!(
+        doc = "Fully associative structure",
+        is_fully_associative,
+        edx,
+        8
+    );
+
+    /// Partitioning (0: Soft partitioning between the logical processors sharing this structure).
+    pub fn partitioning(&self) -> u8 {
+        get_bits(self.ebx, 8, 10) as u8
+    }
+
+    /// Ways of associativity.
+    pub fn ways(&self) -> u16 {
+        get_bits(self.ebx, 16, 31) as u16
+    }
+
+    /// Number of Sets.
+    pub fn sets(&self) -> u32 {
+        self.ecx
+    }
+
+    /// Translation cache type field.
+    pub fn cache_type(&self) -> DatType {
+        match get_bits(self.edx, 0, 4) as u8 {
+            0b00001 => DatType::DataTLB,
+            0b00010 => DatType::InstructionTLB,
+            0b00011 => DatType::UnifiedTLB,
+            0b00000 => DatType::Null, // should never be returned as this indicates invalid struct!
+            _ => DatType::Unknown,
+        }
+    }
+
+    /// Translation cache level (starts at 1)
+    pub fn cache_level(&self) -> u8 {
+        get_bits(self.edx, 5, 7) as u8
+    }
+
+    /// Maximum number of addressable IDs for logical processors sharing this translation cache
+    pub fn max_addressable_ids(&self) -> u16 {
+        // Add one to the return value to get the result:
+        (get_bits(self.edx, 14, 25) + 1) as u16
+    }
+}
+
+/// Deterministic Address Translation cache type (EDX bits 04 -- 00)
+#[derive(Debug, Serialize, Deserialize)]
+pub enum DatType {
+    /// Null (indicates this sub-leaf is not valid).
+    Null = 0b00000,
+    DataTLB = 0b00001,
+    InstructionTLB = 0b00010,
+    /// Some unified TLBs will allow a single TLB entry to satisfy data read/write
+    /// and instruction fetches. Others will require separate entries (e.g., one
+    /// loaded on data read/write and another loaded on an instruction fetch) .
+    /// Please see the Intel® 64 and IA-32 Architectures Optimization Reference Manual
+    /// for details of a particular product.
+    UnifiedTLB = 0b00011,
+    Unknown,
+}
+
+impl Default for DatType {
+    fn default() -> DatType {
+        DatType::Null
     }
 }
 
