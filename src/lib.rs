@@ -1,5 +1,4 @@
 #![no_std]
-#![cfg_attr(feature = "nightly", feature(asm))]
 #![crate_name = "raw_cpuid"]
 #![crate_type = "lib"]
 
@@ -16,22 +15,60 @@ extern crate serde_derive;
 #[macro_use]
 extern crate bitflags;
 
+/// Provides `cpuid` on stable by linking against a C implementation.
 #[cfg(not(feature = "nightly"))]
-extern "C" {
-    /// This is a low-level function to query cpuid directly.
-    /// If in doubt use `CpuId` instead.
-    pub fn cpuid(a: *mut u32, b: *mut u32, c: *mut u32, d: *mut u32);
+mod stable_cpuid {
+    use super::CpuIdResult;
+
+    extern "C" {
+        fn cpuid(a: *mut u32, b: *mut u32, c: *mut u32, d: *mut u32);
+    }
+
+    pub fn cpuid_count(mut eax: u32, mut ecx: u32) -> CpuIdResult {
+        let mut ebx = 0u32;
+        let mut edx = 0u32;
+
+        unsafe {
+            cpuid(&mut eax, &mut ebx, &mut ecx, &mut edx);
+        }
+
+        CpuIdResult {
+            eax,
+            ebx,
+            ecx,
+            edx,
+        }
+    }
 }
 
+/// Uses Rust's `cpuid` function from the `arch` module.
 #[cfg(feature = "nightly")]
-/// This is a low-level function to query cpuid directly.
-/// If in doubt use `CpuId` instead.
-pub unsafe fn cpuid(a: &mut u32, b: &mut u32, c: &mut u32, d: &mut u32) {
-    asm!("cpuid"
-      : "+{eax}"(*a), "={ebx}"(*b), "+{ecx}"(*c), "={edx}"(*d)
-      : : : "volatile"
-    );
+mod arch_cpuid {
+    use super::CpuIdResult;
+
+    #[cfg(target_arch = "x86")]
+    use ::core::arch::x86 as arch;
+    #[cfg(target_arch = "x86_64")]
+    use ::core::arch::x86_64 as arch;
+
+    pub fn cpuid_count(a: u32, c: u32) -> CpuIdResult {
+        let result = unsafe {
+            self::arch::__cpuid_count(a, c)
+        };
+
+        CpuIdResult {
+            eax: result.eax,
+            ebx: result.ebx,
+            ecx: result.ecx,
+            edx: result.edx,
+        }
+    }
 }
+
+#[cfg(not(feature = "nightly"))]
+use stable_cpuid as raw_cpuid;
+#[cfg(feature = "nightly")]
+use arch_cpuid as raw_cpuid;
 
 use core::cmp::min;
 use core::fmt;
@@ -45,57 +82,19 @@ mod std {
     pub use core::option;
 }
 
-/// Macro to choose between `cpuid1` and `cpuid2`.
-/// Note: This is a low-level macro to query cpuid directly.
-/// If in doubt use `CpuId` instead.
+/// Macro which queries cpuid directly.
+///
+/// First parameter is cpuid leaf (EAX register value),
+/// second optional parameter is the subleaf (ECX register value).
 #[macro_export]
 macro_rules! cpuid {
     ($eax:expr) => {
-        $crate::cpuid1($eax as u32)
+        $crate::raw_cpuid::cpuid_count($eax as u32, 0)
     };
 
     ($eax:expr, $ecx:expr) => {
-        $crate::cpuid2($eax as u32, $ecx as u32)
+        $crate::raw_cpuid::cpuid_count($eax as u32, $ecx as u32)
     };
-}
-
-/// Execute CPUID instruction with eax and ecx register set.
-/// Note: This is a low-level function to query cpuid directly.
-/// If in doubt use `CpuId` instead.
-pub fn cpuid2(mut eax: u32, mut ecx: u32) -> CpuIdResult {
-    let mut ebx: u32 = 0;
-    let mut edx: u32 = 0;
-
-    unsafe {
-        cpuid(&mut eax, &mut ebx, &mut ecx, &mut edx);
-    }
-
-    CpuIdResult {
-        eax: eax,
-        ebx: ebx,
-        ecx: ecx,
-        edx: edx,
-    }
-}
-
-/// Execute CPUID instruction with eax register set.
-/// Note: This is a low-level function to query cpuid directly.
-/// If in doubt use `CpuId` instead.
-pub fn cpuid1(mut eax: u32) -> CpuIdResult {
-    let mut ebx: u32 = 0;
-    let mut ecx: u32 = 0;
-    let mut edx: u32 = 0;
-
-    unsafe {
-        cpuid(&mut eax, &mut ebx, &mut ecx, &mut edx);
-    }
-
-    CpuIdResult {
-        eax: eax,
-        ebx: ebx,
-        ecx: ecx,
-        edx: edx,
-    }
 }
 
 fn as_bytes(v: &u32) -> &[u8] {
