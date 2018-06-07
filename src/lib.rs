@@ -16,8 +16,8 @@ extern crate serde_derive;
 extern crate bitflags;
 
 /// Provides `cpuid` on stable by linking against a C implementation.
-#[cfg(not(feature = "nightly"))]
-mod stable_cpuid {
+#[cfg(not(feature = "use_arch"))]
+mod native_cpuid {
     use super::CpuIdResult;
 
     extern "C" {
@@ -32,29 +32,22 @@ mod stable_cpuid {
             cpuid(&mut eax, &mut ebx, &mut ecx, &mut edx);
         }
 
-        CpuIdResult {
-            eax,
-            ebx,
-            ecx,
-            edx,
-        }
+        CpuIdResult { eax, ebx, ecx, edx }
     }
 }
 
 /// Uses Rust's `cpuid` function from the `arch` module.
-#[cfg(feature = "nightly")]
-mod arch_cpuid {
+#[cfg(feature = "use_arch")]
+mod native_cpuid {
     use super::CpuIdResult;
 
     #[cfg(target_arch = "x86")]
-    use ::core::arch::x86 as arch;
+    use core::arch::x86 as arch;
     #[cfg(target_arch = "x86_64")]
-    use ::core::arch::x86_64 as arch;
+    use core::arch::x86_64 as arch;
 
     pub fn cpuid_count(a: u32, c: u32) -> CpuIdResult {
-        let result = unsafe {
-            self::arch::__cpuid_count(a, c)
-        };
+        let result = unsafe { self::arch::__cpuid_count(a, c) };
 
         CpuIdResult {
             eax: result.eax,
@@ -64,11 +57,6 @@ mod arch_cpuid {
         }
     }
 }
-
-#[cfg(not(feature = "nightly"))]
-use stable_cpuid as raw_cpuid;
-#[cfg(feature = "nightly")]
-use arch_cpuid as raw_cpuid;
 
 use core::cmp::min;
 use core::fmt;
@@ -86,14 +74,13 @@ mod std {
 ///
 /// First parameter is cpuid leaf (EAX register value),
 /// second optional parameter is the subleaf (ECX register value).
-#[macro_export]
 macro_rules! cpuid {
     ($eax:expr) => {
-        $crate::raw_cpuid::cpuid_count($eax as u32, 0)
+        $crate::native_cpuid::cpuid_count($eax as u32, 0)
     };
 
     ($eax:expr, $ecx:expr) => {
-        $crate::raw_cpuid::cpuid_count($eax as u32, $ecx as u32)
+        $crate::native_cpuid::cpuid_count($eax as u32, $ecx as u32)
     };
 }
 
