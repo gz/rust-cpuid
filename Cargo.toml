@@ -23,8 +23,13 @@ serde = { version = "1.0", default-features = false }
 serde_derive = "1.0"
 
 [dev-dependencies]
-serde_json = "1.0"
+libc = { version = "*", default-features = false }
 
 [build-dependencies]
 rustc_version = "0.2"
 cc = "1"
+
+[[test]]
+name = "no_std_build"
+harness = false
+path = "tests/no_std_build.rs"

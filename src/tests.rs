@@ -1,6 +1,6 @@
 use *;
 
-extern crate serde_json;
+//extern crate serde_json;
 
 #[test]
 fn genuine_intel() {
@@ -542,59 +542,6 @@ fn extended_functions() {
 
 #[cfg(test)]
 #[test]
-fn test_serializability() {
-    #[derive(Debug, Default, Serialize, Deserialize)]
-    struct SerializeDeserializeTest {
-        _x1: CpuId,
-        _x2: CpuIdResult,
-        _x3: VendorInfo,
-        _x4: CacheInfoIter,
-        _x5: CacheInfo,
-        _x6: ProcessorSerial,
-        _x7: FeatureInfo,
-        _x8: CacheParametersIter,
-        _x9: CacheParameter,
-        _x10: MonitorMwaitInfo,
-        _x11: ThermalPowerInfo,
-        _x12: ExtendedFeatures,
-        _x13: DirectCacheAccessInfo,
-        _x14: PerformanceMonitoringInfo,
-        _x15: ExtendedTopologyIter,
-        _x16: ExtendedTopologyLevel,
-        _x17: ExtendedStateInfo,
-        _x18: ExtendedStateIter,
-        _x19: ExtendedState,
-        _x20: RdtAllocationInfo,
-        _x21: RdtMonitoringInfo,
-        _x22: L3CatInfo,
-        _x23: L2CatInfo,
-        _x24: ProcessorTraceInfo,
-        _x25: ProcessorTraceIter,
-        _x26: ProcessorTrace,
-        _x27: TscInfo,
-        _x28: ProcessorFrequencyInfo,
-        _x29: SoCVendorInfo,
-        _x30: SoCVendorAttributesIter,
-        _x31: SoCVendorBrand,
-        _x32: ExtendedFunctionInfo,
-        _x33: MemBwAllocationInfo,
-        _x34: L3MonitoringInfo,
-        _x35: SgxSectionInfo,
-        _x36: EpcSection,
-        _x37: SgxInfo,
-        _x38: SgxSectionIter,
-        _x39: DatInfo,
-        _x40: DatIter,
-        _x41: DatType,
-    }
-
-    let st: SerializeDeserializeTest = Default::default();
-    let test = serde_json::to_string(&st).unwrap();
-    let _st: SerializeDeserializeTest = serde_json::from_str(&test).unwrap();
-}
-
-#[cfg(test)]
-#[test]
 fn sgx_test() {
     let sgx = SgxInfo {
         eax: 1,
@@ -645,3 +592,61 @@ fn readme_test() {
     // }
     //
 }
+
+/*
+We can't currently compile serde_json since it breaks no_std_build.rs
+
+extern crate serde_json;
+
+#[cfg(test)]
+#[test]
+fn test_serializability() {
+    #[derive(Debug, Default, Serialize, Deserialize)]
+    struct SerializeDeserializeTest {
+        _x1: CpuId,
+        _x2: CpuIdResult,
+        _x3: VendorInfo,
+        _x4: CacheInfoIter,
+        _x5: CacheInfo,
+        _x6: ProcessorSerial,
+        _x7: FeatureInfo,
+        _x8: CacheParametersIter,
+        _x9: CacheParameter,
+        _x10: MonitorMwaitInfo,
+        _x11: ThermalPowerInfo,
+        _x12: ExtendedFeatures,
+        _x13: DirectCacheAccessInfo,
+        _x14: PerformanceMonitoringInfo,
+        _x15: ExtendedTopologyIter,
+        _x16: ExtendedTopologyLevel,
+        _x17: ExtendedStateInfo,
+        _x18: ExtendedStateIter,
+        _x19: ExtendedState,
+        _x20: RdtAllocationInfo,
+        _x21: RdtMonitoringInfo,
+        _x22: L3CatInfo,
+        _x23: L2CatInfo,
+        _x24: ProcessorTraceInfo,
+        _x25: ProcessorTraceIter,
+        _x26: ProcessorTrace,
+        _x27: TscInfo,
+        _x28: ProcessorFrequencyInfo,
+        _x29: SoCVendorInfo,
+        _x30: SoCVendorAttributesIter,
+        _x31: SoCVendorBrand,
+        _x32: ExtendedFunctionInfo,
+        _x33: MemBwAllocationInfo,
+        _x34: L3MonitoringInfo,
+        _x35: SgxSectionInfo,
+        _x36: EpcSection,
+        _x37: SgxInfo,
+        _x38: SgxSectionIter,
+        _x39: DatInfo,
+        _x40: DatIter,
+        _x41: DatType,
+    }
+
+    let st: SerializeDeserializeTest = Default::default();
+    let test = serde_json::to_string(&st).unwrap();
+    let _st: SerializeDeserializeTest = serde_json::from_str(&test).unwrap();
+}*/
