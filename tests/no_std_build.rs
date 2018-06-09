@@ -22,17 +22,17 @@ fn main() {
 }
 
 #[cfg(feature = "nightly")]
-#[cfg_attr(feature = "nightly", lang = "eh_personality")]
+#[lang = "eh_personality"]
 #[no_mangle]
 pub extern "C" fn rust_eh_personality() {}
 
 #[cfg(feature = "nightly")]
-#[cfg_attr(feature = "nightly", lang = "eh_unwind_resume")]
+#[lang = "eh_unwind_resume"]
 #[no_mangle]
 pub extern "C" fn rust_eh_unwind_resume() {}
 
 #[cfg(feature = "nightly")]
-#[cfg_attr(feature = "nightly", panic_implementation)]
+#[panic_implementation]
 fn panic_impl(_info: &PanicInfo) -> ! {
     loop {}
 }
