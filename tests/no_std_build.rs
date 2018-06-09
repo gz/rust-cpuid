@@ -1,27 +1,36 @@
-#![feature(start, lang_items, panic_implementation, core_intrinsics)]
-#![no_std]
+#![cfg_attr(feature = "nightly", feature(lang_items, core_intrinsics, panic_implementation))]
+#![cfg_attr(feature = "nightly", no_std)]
+#![cfg_attr(feature = "nightly", no_main)]
 
-use core::intrinsics;
-use core::panic::PanicInfo;
-
-// Pull in the system libc library for what crt0.o likely requires
+// Pull in the system libc library for what crt0.o likely requires.
 extern crate libc;
 extern crate raw_cpuid;
 
-// Entry point for this program
-#[start]
-fn start(_argc: isize, _argv: *const *const u8) -> isize {
+#[cfg(feature = "nightly")]
+use core::panic::PanicInfo;
+
+#[cfg(feature = "nightly")]
+#[no_mangle]
+pub extern "C" fn main(_argc: i32, _argv: *const *const u8) -> i32 {
     let _c = raw_cpuid::CpuId::new();
     0
 }
 
-// These functions and traits are used by the compiler, but not
-// for a bare-bones hello world. These are normally
-// provided by libstd.
-#[lang = "eh_personality"]
-extern "C" fn eh_personality() {}
+#[cfg(not(feature = "nightly"))]
+fn main() {
+    let _c = raw_cpuid::CpuId::new();
+}
 
-#[panic_implementation]
-fn panic(_info: &PanicInfo) -> ! {
-    unsafe { intrinsics::abort() }
+#[cfg_attr(feature = "nightly", lang = "eh_personality")]
+#[no_mangle]
+pub extern "C" fn rust_eh_personality() {}
+
+#[cfg_attr(feature = "nightly", lang = "eh_unwind_resume")]
+#[no_mangle]
+pub extern "C" fn rust_eh_unwind_resume() {}
+
+#[cfg(feature = "nightly")]
+#[cfg_attr(feature = "nightly", panic_implementation)]
+fn panic_impl(_info: &PanicInfo) -> ! {
+    loop {}
 }

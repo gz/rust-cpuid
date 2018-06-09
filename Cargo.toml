@@ -17,6 +17,11 @@ license = "MIT"
 name = "cpuid"
 path = "src/bin/cpuid.rs"
 
+[features]
+use_arch = []
+nightly = []
+
+
 [dependencies]
 bitflags = "1.0"
 serde = { version = "1.0", default-features = false }
