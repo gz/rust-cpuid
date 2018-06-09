@@ -21,10 +21,12 @@ fn main() {
     let _c = raw_cpuid::CpuId::new();
 }
 
+#[cfg(feature = "nightly")]
 #[cfg_attr(feature = "nightly", lang = "eh_personality")]
 #[no_mangle]
 pub extern "C" fn rust_eh_personality() {}
 
+#[cfg(feature = "nightly")]
 #[cfg_attr(feature = "nightly", lang = "eh_unwind_resume")]
 #[no_mangle]
 pub extern "C" fn rust_eh_unwind_resume() {}
