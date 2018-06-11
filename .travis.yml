@@ -55,7 +55,7 @@ matrix:
     # Windows
     - env: TARGET=x86_64-pc-windows-gnu
       rust: nightly
-    - env: TARGET=i686-pc-windows-gnu
+    - env: TARGET=i686-pc-windows-gnu DISABLE_TESTS=1
       rust: nightly
 
 before_install:
