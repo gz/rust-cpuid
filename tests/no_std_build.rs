@@ -33,6 +33,7 @@ pub extern "C" fn rust_eh_unwind_resume() {}
 
 #[cfg(feature = "nightly")]
 #[panic_implementation]
-fn panic_impl(_info: &PanicInfo) -> ! {
+#[no_mangle]
+pub fn panic_impl(_info: &PanicInfo) -> ! {
     loop {}
 }
