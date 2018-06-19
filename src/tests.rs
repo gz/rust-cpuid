@@ -1,7 +1,5 @@
 use *;
 
-//extern crate serde_json;
-
 #[test]
 fn genuine_intel() {
     let vf = VendorInfo {
@@ -386,7 +384,7 @@ fn extended_topology_info() {
 #[test]
 fn extended_state_info() {
     let es = ExtendedStateInfo {
-        eax: 7,
+        eax: ExtendedStateInfoEax { bits: 7 },
         ebx: 832,
         ecx: 832,
         edx: 0,
@@ -396,11 +394,12 @@ fn extended_state_info() {
         edx1: 0,
     };
 
-    assert!(es.xcr0_supported() == 7);
+    //assert!(es.xcr0_supported() == 7);
     assert!(es.xsave_area_size_enabled_features() == 832);
     assert!(es.xsave_area_size_supported_features() == 832);
     assert!(es.has_xsaveopt());
 
+    /*
     for (idx, e) in es.iter().enumerate() {
         match idx {
             0 => {
@@ -411,12 +410,13 @@ fn extended_state_info() {
             _ => unreachable!(),
         }
     }
+    */
 }
 
 #[test]
 fn extended_state_info2() {
     let es = ExtendedStateInfo {
-        eax: 31,
+        eax: ExtendedStateInfoEax { bits: 31 },
         ebx: 1088,
         ecx: 1088,
         edx: 0,
@@ -426,18 +426,17 @@ fn extended_state_info2() {
         edx1: 0,
     };
 
-    assert!(es.has_legacy_x87());
-    assert!(es.has_sse_128());
-    assert!(es.has_avx_256());
-    assert!(es.has_mpx());
-    assert!(!es.has_avx_512());
-    //assert!(!es.has_ia32_xss());
-    assert!(!es.has_pkru());
+    assert!(es.xcr0_supports_legacy_x87());
+    assert!(es.xcr0_supports_sse_128());
+    assert!(es.xcr0_supports_avx_256());
+    assert!(es.xcr0_supports_mpx_bndregs());
+    assert!(es.xcr0_supports_mpx_bndcsr());
+    assert!(!es.xcr0_supports_avx512_opmask());
+    assert!(!es.xcr0_supports_pkru());
+    assert!(!es.ia32_xss_supports_pt());
 
     assert!(es.xsave_area_size_enabled_features() == 0x440);
     assert!(es.xsave_area_size_supported_features() == 0x440);
-
-    assert!(es.xcr0_supported() == 0x1f);
 
     assert!(es.has_xsaveopt());
     assert!(es.has_xsavec());
@@ -445,7 +444,47 @@ fn extended_state_info2() {
     assert!(es.has_xsaves_xrstors());
     assert!(es.xsave_size() == 0x3c0);
 
-    assert!(es.ia32_xss_supported_bits() == 0x100);
+    let esiter: [ExtendedState; 3] = [
+        ExtendedState {
+            subleaf: 2,
+            eax: 256,
+            ebx: 576,
+            ecx: 0,
+        },
+        ExtendedState {
+            subleaf: 3,
+            eax: 64,
+            ebx: 960,
+            ecx: 0,
+        },
+        ExtendedState {
+            subleaf: 4,
+            eax: 64,
+            ebx: 1024,
+            ecx: 0,
+        },
+    ];
+
+    let e = &esiter[0];
+    assert!(e.subleaf == 2);
+    assert!(e.size() == 256);
+    assert!(e.offset() == 576);
+    assert!(e.is_in_xcr0());
+    assert!(!e.is_in_ia32_xss());
+
+    let e = &esiter[1];
+    assert!(e.subleaf == 3);
+    assert!(e.size() == 64);
+    assert!(e.offset() == 960);
+    assert!(e.is_in_xcr0());
+    assert!(!e.is_in_ia32_xss());
+
+    let e = &esiter[2];
+    assert!(e.subleaf == 4);
+    assert!(e.size() == 64);
+    assert!(e.offset() == 1024);
+    assert!(e.is_in_xcr0());
+    assert!(!e.is_in_ia32_xss());
 }
 
 #[test]
@@ -594,8 +633,6 @@ fn readme_test() {
 }
 
 /*
-We can't currently compile serde_json since it breaks no_std_build.rs
-
 extern crate serde_json;
 
 #[cfg(test)]

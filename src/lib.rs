@@ -339,7 +339,7 @@ impl CpuId {
             let res = cpuid!(EAX_EXTENDED_STATE_INFO, 0);
             let res1 = cpuid!(EAX_EXTENDED_STATE_INFO, 1);
             Some(ExtendedStateInfo {
-                eax: res.eax,
+                eax: ExtendedStateInfoEax { bits: res.eax },
                 ebx: res.ebx,
                 ecx: res.ecx,
                 edx: res.edx,
@@ -2905,43 +2905,47 @@ impl Iterator for ExtendedTopologyIter {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[allow(non_camel_case_types)]
-enum ExtendedStateIdent {
-    /// legacy x87 (Bit 00).
-    Legacy87 = 1 << 0,
+bitflags! {
+    #[derive(Default, Serialize, Deserialize)]
+    struct ExtendedStateInfoEax: u32 {
+        /// legacy x87 (Bit 00).
+        const LEGACY_X87 = 1 << 0;
 
-    /// 128-bit SSE (Bit 01).
-    SSE128 = 1 << 1,
+        /// 128-bit SSE (Bit 01).
+        const SSE128 = 1 << 1;
 
-    /// 256-bit AVX (Bit 02).
-    AVX256 = 1 << 2,
+        /// 256-bit AVX (Bit 02).
+        const AVX256 = 1 << 2;
 
-    /// MPX (Bits 04 - 03).
-    MPX = 0b11 << 3,
+        /// MPX BNDREGS (Bit 03).
+        const MPX_BNDREGS = 1 << 3;
 
-    /// AVX512 (Bit 07 - 05).
-    AVX512 = 0b111 << 5,
+        /// MPX BNDCSR (Bit 04).
+        const MPX_BNDCSR = 1 << 4;
 
-    /// IA32_XSS (Bit 08).
-    IA32_XSS = 1 << 8,
+        /// AVX512 OPMASK (Bit 05).
+        const AVX512_OPMASK = 1 << 5;
 
-    /// PKRU state (Bit 09).
-    PKRU = 1 << 9,
+        /// AVX ZMM Hi256 (Bit 06).
+        const AVX512_ZMM_HI256 = 1 << 6;
 
-    /// Used for IA32_XSS (Bit 13).
-    IA32_XSS_2 = 1 << 13,
-}
+        /// AVX 512 ZMM Hi16 (Bit 07).
+        const AVX512_ZMM_HI16 = 1 << 7;
 
-impl Default for ExtendedStateIdent {
-    fn default() -> ExtendedStateIdent {
-        ExtendedStateIdent::Legacy87
+        /// IA32_XSS PT (Trace Packet) State (Bit 08).
+        const IA32_XSS_PT = 1 << 8;
+
+        /// PKRU state (Bit 09).
+        const PKRU = 1 << 9;
+
+        /// IA32_XSS HDC State (Bit 13).
+        const IA32_XSS_HDC = 1 << 13;
     }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ExtendedStateInfo {
-    eax: u32,
+    eax: ExtendedStateInfoEax,
     ebx: u32,
     ecx: u32,
     edx: u32,
@@ -2951,37 +2955,83 @@ pub struct ExtendedStateInfo {
     edx1: u32,
 }
 
-macro_rules! check_xcr_flag {
-    ($doc:meta, $fun:ident, $flag:ident) => (
-        #[$doc]
-        pub fn $fun(&self) -> bool {
-            self.xcr0_supported() & (ExtendedStateIdent::$flag as u64) > 0
-        }
-    )
-}
-
 impl ExtendedStateInfo {
-    /// Reports the valid bit fields of XCR0. If a bit is 0,
-    /// the corresponding bit field in XCR0 is reserved.
-    pub fn xcr0_supported(&self) -> u64 {
-        (self.edx as u64) << 32 | self.eax as u64
-    }
+    check_flag!(
+        doc = "Support for legacy x87 in XCR0.",
+        xcr0_supports_legacy_x87,
+        eax,
+        ExtendedStateInfoEax::LEGACY_X87
+    );
 
-    check_xcr_flag!(doc = "Legacy x87.", has_legacy_x87, Legacy87);
+    check_flag!(
+        doc = "Support for SSE 128-bit in XCR0.",
+        xcr0_supports_sse_128,
+        eax,
+        ExtendedStateInfoEax::SSE128
+    );
 
-    check_xcr_flag!(doc = "SSE 128-bit.", has_sse_128, SSE128);
+    check_flag!(
+        doc = "Support for AVX 256-bit in XCR0.",
+        xcr0_supports_avx_256,
+        eax,
+        ExtendedStateInfoEax::AVX256
+    );
 
-    check_xcr_flag!(doc = "AVX 256-bit.", has_avx_256, AVX256);
+    check_flag!(
+        doc = "Support for MPX BNDREGS in XCR0.",
+        xcr0_supports_mpx_bndregs,
+        eax,
+        ExtendedStateInfoEax::MPX_BNDREGS
+    );
 
-    // TODO 2bits
-    check_xcr_flag!(doc = "MPX.", has_mpx, MPX);
+    check_flag!(
+        doc = "Support for MPX BNDCSR in XCR0.",
+        xcr0_supports_mpx_bndcsr,
+        eax,
+        ExtendedStateInfoEax::MPX_BNDCSR
+    );
 
-    // TODO 2bits
-    check_xcr_flag!(doc = "AVX 512-bit.", has_avx_512, AVX512);
+    check_flag!(
+        doc = "Support for AVX512 OPMASK in XCR0.",
+        xcr0_supports_avx512_opmask,
+        eax,
+        ExtendedStateInfoEax::AVX512_OPMASK
+    );
 
-    check_xcr_flag!(doc = "PKRU.", has_pkru, PKRU);
+    check_flag!(
+        doc = "Support for AVX512 ZMM Hi256 XCR0.",
+        xcr0_supports_avx512_zmm_hi256,
+        eax,
+        ExtendedStateInfoEax::AVX512_ZMM_HI256
+    );
 
-    // TODO IA32_XSS, 2bits
+    check_flag!(
+        doc = "Support for AVX512 ZMM Hi16 in XCR0.",
+        xcr0_supports_avx512_zmm_hii6,
+        eax,
+        ExtendedStateInfoEax::AVX512_ZMM_HI16
+    );
+
+    check_flag!(
+        doc = "Support for PT in IA32_XSS.",
+        ia32_xss_supports_pt,
+        eax,
+        ExtendedStateInfoEax::IA32_XSS_PT
+    );
+
+    check_flag!(
+        doc = "Support for PKRU in XCR0.",
+        xcr0_supports_pkru,
+        eax,
+        ExtendedStateInfoEax::PKRU
+    );
+
+    check_flag!(
+        doc = "Support for HDC in IA32_XSS.",
+        ia32_xss_supports_hdc,
+        eax,
+        ExtendedStateInfoEax::IA32_XSS_HDC
+    );
 
     /// Maximum size (bytes, from the beginning of the XSAVE/XRSTOR save area) required by
     /// enabled features in XCR0. May be different than ECX if some features at the end of the XSAVE save area
@@ -3022,23 +3072,11 @@ impl ExtendedStateInfo {
         self.ebx1
     }
 
-    /// Reports the supported bits of the IA32_XSS MSR. IA32_XSS[n] can be set to 1 only if ECX[n] is 1.
-    pub fn ia32_xss_supported_bits(&self) -> u64 {
-        // TODO make this a bitflag?
-        // Bits 07 - 00: Used for XCR0.
-        // Bit 08: PT state.
-        // Bit 09: Used for XCR0.
-        // Bits 12 - 10: Reserved.
-        // Bit 13: HWP state.
-        // Bits 31 - 14: Reserved.
-        self.ecx1 as u64 | ((self.edx1 as u64) << 32)
-    }
-
     /// Iterator over extended state enumeration levels >= 2.
     pub fn iter(&self) -> ExtendedStateIter {
         ExtendedStateIter {
             level: 1,
-            xcr0_supported: self.xcr0_supported(),
+            supported: self.eax.bits(),
         }
     }
 }
@@ -3046,7 +3084,7 @@ impl ExtendedStateInfo {
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ExtendedStateIter {
     level: u32,
-    xcr0_supported: u64,
+    supported: u32,
 }
 
 /// When CPUID executes with EAX set to 0DH and ECX = n (n > 1,
@@ -3064,13 +3102,13 @@ impl Iterator for ExtendedStateIter {
     type Item = ExtendedState;
 
     fn next(&mut self) -> Option<ExtendedState> {
-        if self.level > 62 {
+        self.level += 1;
+        if self.level > 31 {
             return None;
         }
-        self.level += 1;
 
         let bit = 1 << self.level;
-        if self.xcr0_supported & bit > 0 {
+        if self.supported & bit > 0 {
             let res = cpuid!(EAX_EXTENDED_STATE_INFO, self.level);
             return Some(ExtendedState {
                 subleaf: self.level,
