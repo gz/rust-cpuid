@@ -384,45 +384,197 @@ fn extended_topology_info() {
 #[test]
 fn extended_state_info() {
     let es = ExtendedStateInfo {
-        eax: ExtendedStateInfoEax { bits: 7 },
+        eax: ExtendedStateInfoXCR0Flags { bits: 7 },
         ebx: 832,
         ecx: 832,
         edx: 0,
         eax1: 1,
         ebx1: 0,
-        ecx1: 0,
+        ecx1: ExtendedStateInfoXSSFlags { bits: 0 },
         edx1: 0,
     };
 
-    //assert!(es.xcr0_supported() == 7);
     assert!(es.xsave_area_size_enabled_features() == 832);
     assert!(es.xsave_area_size_supported_features() == 832);
     assert!(es.has_xsaveopt());
+}
 
-    /*
-    for (idx, e) in es.iter().enumerate() {
-        match idx {
-            0 => {
-                assert!(e.subleaf == 2);
-                assert!(e.size() == 256);
-                assert!(e.offset() == 576);
-            }
-            _ => unreachable!(),
-        }
-    }
-    */
+#[test]
+fn extended_state_info3() {
+    /*let cpuid = CpuId::new();
+    cpuid.get_extended_state_info().map(|info| {
+        println!("{:?}", info);
+        use std::vec::Vec;
+        let es: Vec<ExtendedState> = info.iter().collect();
+        println!("{:?}", es);
+    });*/
+
+    let esi = ExtendedStateInfo {
+        eax: ExtendedStateInfoXCR0Flags::LEGACY_X87
+            | ExtendedStateInfoXCR0Flags::SSE128
+            | ExtendedStateInfoXCR0Flags::AVX256
+            | ExtendedStateInfoXCR0Flags::MPX_BNDREGS
+            | ExtendedStateInfoXCR0Flags::MPX_BNDCSR
+            | ExtendedStateInfoXCR0Flags::AVX512_OPMASK
+            | ExtendedStateInfoXCR0Flags::AVX512_ZMM_HI256
+            | ExtendedStateInfoXCR0Flags::AVX512_ZMM_HI16
+            | ExtendedStateInfoXCR0Flags::PKRU,
+        ebx: 2688,
+        ecx: 2696,
+        edx: 0,
+        eax1: 15,
+        ebx1: 2560,
+        ecx1: ExtendedStateInfoXSSFlags::PT,
+        edx1: 0,
+    };
+
+    assert!(esi.xcr0_supports_legacy_x87());
+    assert!(esi.xcr0_supports_sse_128());
+    assert!(esi.xcr0_supports_avx_256());
+    assert!(esi.xcr0_supports_mpx_bndregs());
+    assert!(esi.xcr0_supports_mpx_bndcsr());
+    assert!(esi.xcr0_supports_avx512_opmask());
+    assert!(esi.xcr0_supports_avx512_zmm_hi256());
+    assert!(esi.xcr0_supports_avx512_zmm_hi16());
+    assert!(esi.xcr0_supports_pkru());
+    assert!(esi.ia32_xss_supports_pt());
+    assert!(!esi.ia32_xss_supports_hdc());
+
+    assert!(esi.xsave_area_size_enabled_features() == 2688);
+    assert!(esi.xsave_area_size_supported_features() == 2696);
+
+    assert!(esi.has_xsaveopt());
+    assert!(esi.has_xsavec());
+    assert!(esi.has_xgetbv());
+    assert!(esi.has_xsaves_xrstors());
+    assert!(esi.xsave_size() == 2560);
+
+    let es = [
+        ExtendedState {
+            subleaf: 2,
+            eax: 256,
+            ebx: 576,
+            ecx: 0,
+        },
+        ExtendedState {
+            subleaf: 3,
+            eax: 64,
+            ebx: 960,
+            ecx: 0,
+        },
+        ExtendedState {
+            subleaf: 4,
+            eax: 64,
+            ebx: 1024,
+            ecx: 0,
+        },
+        ExtendedState {
+            subleaf: 5,
+            eax: 64,
+            ebx: 1088,
+            ecx: 0,
+        },
+        ExtendedState {
+            subleaf: 6,
+            eax: 512,
+            ebx: 1152,
+            ecx: 0,
+        },
+        ExtendedState {
+            subleaf: 7,
+            eax: 1024,
+            ebx: 1664,
+            ecx: 0,
+        },
+        ExtendedState {
+            subleaf: 8,
+            eax: 128,
+            ebx: 0,
+            ecx: 1,
+        },
+        ExtendedState {
+            subleaf: 9,
+            eax: 8,
+            ebx: 2688,
+            ecx: 0,
+        },
+    ];
+
+    let e = &es[0];
+    assert!(e.subleaf == 2);
+    assert!(e.size() == 256);
+    assert!(e.offset() == 576);
+    assert!(e.is_in_xcr0());
+    assert!(!e.is_in_ia32_xss());
+    assert!(!e.is_compacted_format());
+
+    let e = &es[1];
+    assert!(e.subleaf == 3);
+    assert!(e.size() == 64);
+    assert!(e.offset() == 960);
+    assert!(e.is_in_xcr0());
+    assert!(!e.is_in_ia32_xss());
+    assert!(!e.is_compacted_format());
+
+    let e = &es[2];
+    assert!(e.subleaf == 4);
+    assert!(e.size() == 64);
+    assert!(e.offset() == 1024);
+    assert!(e.is_in_xcr0());
+    assert!(!e.is_in_ia32_xss());
+    assert!(!e.is_compacted_format());
+
+    let e = &es[3];
+    assert!(e.subleaf == 5);
+    assert!(e.size() == 64);
+    assert!(e.offset() == 1088);
+    assert!(e.is_in_xcr0());
+    assert!(!e.is_in_ia32_xss());
+    assert!(!e.is_compacted_format());
+
+    let e = &es[4];
+    assert!(e.subleaf == 6);
+    assert!(e.size() == 512);
+    assert!(e.offset() == 1152);
+    assert!(e.is_in_xcr0());
+    assert!(!e.is_in_ia32_xss());
+    assert!(!e.is_compacted_format());
+
+    let e = &es[5];
+    assert!(e.subleaf == 7);
+    assert!(e.size() == 1024);
+    assert!(e.offset() == 1664);
+    assert!(e.is_in_xcr0());
+    assert!(!e.is_in_ia32_xss());
+    assert!(!e.is_compacted_format());
+
+    let e = &es[6];
+    assert!(e.subleaf == 8);
+    assert!(e.size() == 128);
+    assert!(e.offset() == 0);
+    assert!(!e.is_in_xcr0());
+    assert!(e.is_in_ia32_xss());
+    assert!(!e.is_compacted_format());
+
+    let e = &es[7];
+    assert!(e.subleaf == 9);
+    assert!(e.size() == 8);
+    assert!(e.offset() == 2688);
+    assert!(e.is_in_xcr0());
+    assert!(!e.is_in_ia32_xss());
+    assert!(!e.is_compacted_format());
 }
 
 #[test]
 fn extended_state_info2() {
     let es = ExtendedStateInfo {
-        eax: ExtendedStateInfoEax { bits: 31 },
+        eax: ExtendedStateInfoXCR0Flags { bits: 31 },
         ebx: 1088,
         ecx: 1088,
         edx: 0,
         eax1: 15,
         ebx1: 960,
-        ecx1: 256,
+        ecx1: ExtendedStateInfoXSSFlags { bits: 256 },
         edx1: 0,
     };
 
@@ -433,7 +585,7 @@ fn extended_state_info2() {
     assert!(es.xcr0_supports_mpx_bndcsr());
     assert!(!es.xcr0_supports_avx512_opmask());
     assert!(!es.xcr0_supports_pkru());
-    assert!(!es.ia32_xss_supports_pt());
+    assert!(es.ia32_xss_supports_pt());
 
     assert!(es.xsave_area_size_enabled_features() == 0x440);
     assert!(es.xsave_area_size_supported_features() == 0x440);

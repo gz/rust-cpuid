@@ -339,13 +339,13 @@ impl CpuId {
             let res = cpuid!(EAX_EXTENDED_STATE_INFO, 0);
             let res1 = cpuid!(EAX_EXTENDED_STATE_INFO, 1);
             Some(ExtendedStateInfo {
-                eax: ExtendedStateInfoEax { bits: res.eax },
+                eax: ExtendedStateInfoXCR0Flags { bits: res.eax },
                 ebx: res.ebx,
                 ecx: res.ecx,
                 edx: res.edx,
                 eax1: res1.eax,
                 ebx1: res1.ebx,
-                ecx1: res1.ecx,
+                ecx1: ExtendedStateInfoXSSFlags { bits: res1.ecx },
                 edx1: res1.edx,
             })
         } else {
@@ -2907,7 +2907,7 @@ impl Iterator for ExtendedTopologyIter {
 
 bitflags! {
     #[derive(Default, Serialize, Deserialize)]
-    struct ExtendedStateInfoEax: u32 {
+    struct ExtendedStateInfoXCR0Flags: u32 {
         /// legacy x87 (Bit 00).
         const LEGACY_X87 = 1 << 0;
 
@@ -2932,9 +2932,6 @@ bitflags! {
         /// AVX 512 ZMM Hi16 (Bit 07).
         const AVX512_ZMM_HI16 = 1 << 7;
 
-        /// IA32_XSS PT (Trace Packet) State (Bit 08).
-        const IA32_XSS_PT = 1 << 8;
-
         /// PKRU state (Bit 09).
         const PKRU = 1 << 9;
 
@@ -2943,15 +2940,26 @@ bitflags! {
     }
 }
 
+bitflags! {
+    #[derive(Default, Serialize, Deserialize)]
+    struct ExtendedStateInfoXSSFlags: u32 {
+        /// IA32_XSS PT (Trace Packet) State (Bit 08).
+        const PT = 1 << 8;
+
+        /// IA32_XSS HDC State (Bit 13).
+        const HDC = 1 << 13;
+    }
+}
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ExtendedStateInfo {
-    eax: ExtendedStateInfoEax,
+    eax: ExtendedStateInfoXCR0Flags,
     ebx: u32,
     ecx: u32,
     edx: u32,
     eax1: u32,
     ebx1: u32,
-    ecx1: u32,
+    ecx1: ExtendedStateInfoXSSFlags,
     edx1: u32,
 }
 
@@ -2960,77 +2968,77 @@ impl ExtendedStateInfo {
         doc = "Support for legacy x87 in XCR0.",
         xcr0_supports_legacy_x87,
         eax,
-        ExtendedStateInfoEax::LEGACY_X87
+        ExtendedStateInfoXCR0Flags::LEGACY_X87
     );
 
     check_flag!(
         doc = "Support for SSE 128-bit in XCR0.",
         xcr0_supports_sse_128,
         eax,
-        ExtendedStateInfoEax::SSE128
+        ExtendedStateInfoXCR0Flags::SSE128
     );
 
     check_flag!(
         doc = "Support for AVX 256-bit in XCR0.",
         xcr0_supports_avx_256,
         eax,
-        ExtendedStateInfoEax::AVX256
+        ExtendedStateInfoXCR0Flags::AVX256
     );
 
     check_flag!(
         doc = "Support for MPX BNDREGS in XCR0.",
         xcr0_supports_mpx_bndregs,
         eax,
-        ExtendedStateInfoEax::MPX_BNDREGS
+        ExtendedStateInfoXCR0Flags::MPX_BNDREGS
     );
 
     check_flag!(
         doc = "Support for MPX BNDCSR in XCR0.",
         xcr0_supports_mpx_bndcsr,
         eax,
-        ExtendedStateInfoEax::MPX_BNDCSR
+        ExtendedStateInfoXCR0Flags::MPX_BNDCSR
     );
 
     check_flag!(
         doc = "Support for AVX512 OPMASK in XCR0.",
         xcr0_supports_avx512_opmask,
         eax,
-        ExtendedStateInfoEax::AVX512_OPMASK
+        ExtendedStateInfoXCR0Flags::AVX512_OPMASK
     );
 
     check_flag!(
         doc = "Support for AVX512 ZMM Hi256 XCR0.",
         xcr0_supports_avx512_zmm_hi256,
         eax,
-        ExtendedStateInfoEax::AVX512_ZMM_HI256
+        ExtendedStateInfoXCR0Flags::AVX512_ZMM_HI256
     );
 
     check_flag!(
         doc = "Support for AVX512 ZMM Hi16 in XCR0.",
-        xcr0_supports_avx512_zmm_hii6,
+        xcr0_supports_avx512_zmm_hi16,
         eax,
-        ExtendedStateInfoEax::AVX512_ZMM_HI16
-    );
-
-    check_flag!(
-        doc = "Support for PT in IA32_XSS.",
-        ia32_xss_supports_pt,
-        eax,
-        ExtendedStateInfoEax::IA32_XSS_PT
+        ExtendedStateInfoXCR0Flags::AVX512_ZMM_HI16
     );
 
     check_flag!(
         doc = "Support for PKRU in XCR0.",
         xcr0_supports_pkru,
         eax,
-        ExtendedStateInfoEax::PKRU
+        ExtendedStateInfoXCR0Flags::PKRU
+    );
+
+    check_flag!(
+        doc = "Support for PT in IA32_XSS.",
+        ia32_xss_supports_pt,
+        ecx1,
+        ExtendedStateInfoXSSFlags::PT
     );
 
     check_flag!(
         doc = "Support for HDC in IA32_XSS.",
         ia32_xss_supports_hdc,
-        eax,
-        ExtendedStateInfoEax::IA32_XSS_HDC
+        ecx1,
+        ExtendedStateInfoXSSFlags::HDC
     );
 
     /// Maximum size (bytes, from the beginning of the XSAVE/XRSTOR save area) required by
@@ -3076,7 +3084,8 @@ impl ExtendedStateInfo {
     pub fn iter(&self) -> ExtendedStateIter {
         ExtendedStateIter {
             level: 1,
-            supported: self.eax.bits(),
+            supported_xcr0: self.eax.bits(),
+            supported_xss: self.ecx1.bits(),
         }
     }
 }
@@ -3084,7 +3093,8 @@ impl ExtendedStateInfo {
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ExtendedStateIter {
     level: u32,
-    supported: u32,
+    supported_xcr0: u32,
+    supported_xss: u32,
 }
 
 /// When CPUID executes with EAX set to 0DH and ECX = n (n > 1,
@@ -3108,7 +3118,7 @@ impl Iterator for ExtendedStateIter {
         }
 
         let bit = 1 << self.level;
-        if self.supported & bit > 0 {
+        if (self.supported_xcr0 & bit > 0) || (self.supported_xss & bit > 0) {
             let res = cpuid!(EAX_EXTENDED_STATE_INFO, self.level);
             return Some(ExtendedState {
                 subleaf: self.level,
