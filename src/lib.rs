@@ -8,7 +8,7 @@ extern crate std;
 
 #[cfg(test)]
 mod tests;
-
+#[cfg(feature = "serialize")]
 #[macro_use]
 extern crate serde_derive;
 
@@ -127,13 +127,15 @@ macro_rules! check_bit_fn {
 }
 
 /// Main type used to query for information about the CPU we're running on.
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CpuId {
     max_eax_value: u32,
 }
 
 /// Low-level data-structure to store result of cpuid instruction.
-#[derive(Copy, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CpuIdResult {
     /// Return value EAX register
     pub eax: u32,
@@ -546,7 +548,8 @@ impl CpuId {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct VendorInfo {
     ebx: u32,
     edx: u32,
@@ -566,7 +569,8 @@ impl VendorInfo {
 }
 
 /// Used to iterate over cache information contained in cpuid instruction.
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheInfoIter {
     current: u32,
     eax: u32,
@@ -614,7 +618,8 @@ impl Iterator for CacheInfoIter {
     }
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum CacheInfoType {
     GENERAL,
     CACHE,
@@ -631,7 +636,8 @@ impl Default for CacheInfoType {
 }
 
 /// Describes any kind of cache (TLB, Data and Instruction caches plus prefetchers).
-#[derive(Copy, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheInfo {
     /// Number as retrieved from cpuid
     pub num: u8,
@@ -1218,7 +1224,8 @@ impl fmt::Display for VendorInfo {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorSerial {
     ecx: u32,
     edx: u32,
@@ -1238,7 +1245,8 @@ impl ProcessorSerial {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct FeatureInfo {
     eax: u32,
     ebx: u32,
@@ -1784,7 +1792,8 @@ impl FeatureInfo {
 }
 
 bitflags! {
-    #[derive(Default, Serialize, Deserialize)]
+    #[derive(Default)]
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct FeatureInfoFlags: u64 {
 
         // ECX flags
@@ -1910,7 +1919,8 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParametersIter {
     current: u32,
 }
@@ -1941,7 +1951,8 @@ impl Iterator for CacheParametersIter {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParameter {
     eax: u32,
     ebx: u32,
@@ -1949,7 +1960,8 @@ pub struct CacheParameter {
     edx: u32,
 }
 
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum CacheType {
     /// Null - No more caches
     NULL = 0,
@@ -2046,7 +2058,8 @@ impl CacheParameter {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct MonitorMwaitInfo {
     eax: u32,
     ebx: u32,
@@ -2116,7 +2129,8 @@ impl MonitorMwaitInfo {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ThermalPowerInfo {
     eax: ThermalPowerFeaturesEax,
     ebx: u32,
@@ -2282,7 +2296,8 @@ impl ThermalPowerInfo {
 }
 
 bitflags! {
-    #[derive(Default, Serialize, Deserialize)]
+    #[derive(Default)]
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ThermalPowerFeaturesEax: u32 {
         /// Digital temperature sensor is supported if set. (Bit 00)
         const DTS = 1 << 0;
@@ -2331,7 +2346,8 @@ bitflags! {
 }
 
 bitflags! {
-    #[derive(Default, Serialize, Deserialize)]
+    #[derive(Default)]
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ThermalPowerFeaturesEcx: u32 {
         /// Hardware Coordination Feedback Capability (Presence of IA32_MPERF and IA32_APERF). The capability to provide a measure of delivered processor performance (since last reset of the counters), as a percentage of expected processor performance at frequency specified in CPUID Brand String Bits 02 - 01
         const HW_COORD_FEEDBACK = 1 << 0;
@@ -2341,7 +2357,8 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedFeatures {
     eax: u32,
     ebx: ExtendedFeaturesEbx,
@@ -2595,7 +2612,8 @@ impl ExtendedFeatures {
 }
 
 bitflags! {
-    #[derive(Default, Serialize, Deserialize)]
+    #[derive(Default)]
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFeaturesEbx: u32 {
         /// FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1. (Bit 00)
         const FSGSBASE = 1 << 0;
@@ -2664,7 +2682,8 @@ bitflags! {
 }
 
 bitflags! {
-    #[derive(Default, Serialize, Deserialize)]
+    #[derive(Default)]
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFeaturesEcx: u32 {
         /// Bit 0: Prefetch WT1. (Intel® Xeon Phi™ only).
         const PREFETCHWT1 = 1 << 0;
@@ -2695,7 +2714,8 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DirectCacheAccessInfo {
     eax: u32,
 }
@@ -2707,7 +2727,8 @@ impl DirectCacheAccessInfo {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct PerformanceMonitoringInfo {
     eax: u32,
     ebx: PerformanceMonitoringFeaturesEbx,
@@ -2804,7 +2825,8 @@ impl PerformanceMonitoringInfo {
 }
 
 bitflags! {
-    #[derive(Default, Serialize, Deserialize)]
+    #[derive(Default)]
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct PerformanceMonitoringFeaturesEbx: u32 {
         /// Core cycle event not available if 1. (Bit 0)
         const CORE_CYC_EV_UNAVAILABLE = 1 << 0;
@@ -2823,12 +2845,14 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedTopologyIter {
     level: u32,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedTopologyLevel {
     eax: u32,
     ebx: u32,
@@ -2870,7 +2894,8 @@ impl ExtendedTopologyLevel {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum TopologyType {
     INVALID = 0,
     /// Hyper-thread (Simultaneous multithreading)
@@ -2906,7 +2931,8 @@ impl Iterator for ExtendedTopologyIter {
 }
 
 bitflags! {
-    #[derive(Default, Serialize, Deserialize)]
+    #[derive(Default)]
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedStateInfoXCR0Flags: u32 {
         /// legacy x87 (Bit 00).
         const LEGACY_X87 = 1 << 0;
@@ -2941,7 +2967,8 @@ bitflags! {
 }
 
 bitflags! {
-    #[derive(Default, Serialize, Deserialize)]
+    #[derive(Default)]
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedStateInfoXSSFlags: u32 {
         /// IA32_XSS PT (Trace Packet) State (Bit 08).
         const PT = 1 << 8;
@@ -2951,7 +2978,8 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedStateInfo {
     eax: ExtendedStateInfoXCR0Flags,
     ebx: u32,
@@ -3090,7 +3118,8 @@ impl ExtendedStateInfo {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedStateIter {
     level: u32,
     supported_xcr0: u32,
@@ -3132,7 +3161,8 @@ impl Iterator for ExtendedStateIter {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedState {
     pub subleaf: u32,
     eax: u32,
@@ -3174,7 +3204,8 @@ impl ExtendedState {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct RdtMonitoringInfo {
     ebx: u32,
     edx: u32,
@@ -3209,7 +3240,8 @@ impl RdtMonitoringInfo {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L3MonitoringInfo {
     ebx: u32,
     ecx: u32,
@@ -3249,7 +3281,8 @@ impl L3MonitoringInfo {
     );
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct RdtAllocationInfo {
     ebx: u32,
 }
@@ -3311,7 +3344,8 @@ impl RdtAllocationInfo {
 }
 
 /// L3 Cache Allocation Technology Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 1).
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L3CatInfo {
     eax: u32,
     ebx: u32,
@@ -3344,7 +3378,8 @@ impl L3CatInfo {
 }
 
 /// L2 Cache Allocation Technology Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 2).
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L2CatInfo {
     eax: u32,
     ebx: u32,
@@ -3369,7 +3404,8 @@ impl L2CatInfo {
 }
 
 /// Memory Bandwidth Allocation Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 3).
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct MemBwAllocationInfo {
     eax: u32,
     ecx: u32,
@@ -3396,7 +3432,8 @@ impl MemBwAllocationInfo {
 }
 
 /// Intel SGX Capability Enumeration Leaf, sub-leaf 0 (EAX = 12H, ECX = 0 and ECX = 1)
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SgxInfo {
     eax: u32,
     ebx: u32,
@@ -3454,7 +3491,8 @@ impl SgxInfo {
 }
 
 /// Iterator over the SGX sub-leafs (ECX >= 2).
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SgxSectionIter {
     current: u32,
 }
@@ -3478,7 +3516,8 @@ impl Iterator for SgxSectionIter {
 }
 
 /// Intel SGX EPC Enumeration Leaf, sub-leaves (EAX = 12H, ECX = 2 or higher)
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum SgxSectionInfo {
     // This would be nice: https://github.com/rust-lang/rfcs/pull/1450
     Epc(EpcSection),
@@ -3491,7 +3530,8 @@ impl Default for SgxSectionInfo {
 }
 
 /// EBX:EAX and EDX:ECX provide information on the Enclave Page Cache (EPC) section
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct EpcSection {
     eax: u32,
     ebx: u32,
@@ -3515,7 +3555,8 @@ impl EpcSection {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorTraceInfo {
     eax: u32,
     ebx: u32,
@@ -3616,7 +3657,8 @@ impl ProcessorTraceInfo {
 }
 
 /// Iterator over the Processor Trace sub-leafs.
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorTraceIter {
     current: u32,
     count: u32,
@@ -3640,7 +3682,8 @@ impl Iterator for ProcessorTraceIter {
 }
 
 /// Processor Trace information sub-leaf.
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorTrace {
     eax: u32,
     ebx: u32,
@@ -3669,7 +3712,8 @@ impl ProcessorTrace {
 }
 
 /// Contains time stamp counter information.
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct TscInfo {
     eax: u32,
     ebx: u32,
@@ -3688,7 +3732,8 @@ impl TscInfo {
 }
 
 /// Processor Frequency Information
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorFrequencyInfo {
     eax: u32,
     ebx: u32,
@@ -3713,7 +3758,8 @@ impl ProcessorFrequencyInfo {
 }
 
 /// Deterministic Address Translation Structure Iterator
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DatIter {
     current: u32,
     count: u32,
@@ -3752,7 +3798,8 @@ impl Iterator for DatIter {
 }
 
 /// Deterministic Address Translation Structure
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DatInfo {
     eax: u32,
     ebx: u32,
@@ -3835,7 +3882,8 @@ impl DatInfo {
 }
 
 /// Deterministic Address Translation cache type (EDX bits 04 -- 00)
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum DatType {
     /// Null (indicates this sub-leaf is not valid).
     Null = 0b00000,
@@ -3856,7 +3904,8 @@ impl Default for DatType {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorInfo {
     /// MaxSOCID_Index
     eax: u32,
@@ -3898,7 +3947,8 @@ impl SoCVendorInfo {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorAttributesIter {
     count: u32,
     current: u32,
@@ -3917,7 +3967,8 @@ impl Iterator for SoCVendorAttributesIter {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorBrand {
     #[allow(dead_code)]
     data: [CpuIdResult; 3],
@@ -3941,13 +3992,15 @@ impl fmt::Display for SoCVendorBrand {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedFunctionInfo {
     max_eax_value: u32,
     data: [CpuIdResult; 9],
 }
 
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum L2Associativity {
     Disabled = 0x0,
     DirectMapped = 0x1,
@@ -4120,7 +4173,8 @@ impl ExtendedFunctionInfo {
 }
 
 bitflags! {
-    #[derive(Default, Serialize, Deserialize)]
+    #[derive(Default)]
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFunctionInfoEcx: u32 {
         /// LAHF/SAHF available in 64-bit mode.
         const LAHF_SAHF = 1 << 0;
@@ -4132,7 +4186,8 @@ bitflags! {
 }
 
 bitflags! {
-    #[derive(Default, Serialize, Deserialize)]
+    #[derive(Default)]
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFunctionInfoEdx: u32 {
         /// SYSCALL/SYSRET available in 64-bit mode (Bit 11).
         const SYSCALL_SYSRET = 1 << 11;
