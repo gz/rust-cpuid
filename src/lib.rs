@@ -1,7 +1,6 @@
 #![no_std]
 #![crate_name = "raw_cpuid"]
 #![crate_type = "lib"]
-#![deny(warnings)]
 
 #[cfg(test)]
 #[macro_use]
