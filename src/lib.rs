@@ -406,11 +406,18 @@ impl CpuId {
     pub fn get_processor_trace_info(&self) -> Option<ProcessorTraceInfo> {
         let res = cpuid!(EAX_TRACE_INFO, 0);
         if self.leaf_is_supported(EAX_TRACE_INFO) {
+            let res1 = if res.eax >= 1 {
+                Some(cpuid!(EAX_TRACE_INFO, 1))
+            } else {
+                None
+            };
+
             Some(ProcessorTraceInfo {
                 eax: res.eax,
                 ebx: res.ebx,
                 ecx: res.ecx,
                 edx: res.edx,
+                leaf1: res1,
             })
         } else {
             None
@@ -3562,6 +3569,7 @@ pub struct ProcessorTraceInfo {
     ebx: u32,
     ecx: u32,
     edx: u32,
+    leaf1: Option<CpuIdResult>,
 }
 
 impl ProcessorTraceInfo {
@@ -3647,67 +3655,24 @@ impl ProcessorTraceInfo {
         31
     );
 
-    /// Iterator over processor trace info sub-leafs.
-    pub fn iter(&self) -> ProcessorTraceIter {
-        ProcessorTraceIter {
-            current: 0,
-            count: self.eax,
-        }
-    }
-}
-
-/// Iterator over the Processor Trace sub-leafs.
-#[derive(Debug, Default)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-pub struct ProcessorTraceIter {
-    current: u32,
-    count: u32,
-}
-
-impl Iterator for ProcessorTraceIter {
-    type Item = ProcessorTrace;
-
-    fn next(&mut self) -> Option<ProcessorTrace> {
-        if self.current <= self.count {
-            self.current += 1;
-            let res = cpuid!(EAX_TRACE_INFO, self.current);
-            return Some(ProcessorTrace {
-                eax: res.eax,
-                ebx: res.ebx,
-            });
-        }
-
-        None
-    }
-}
-
-/// Processor Trace information sub-leaf.
-#[derive(Debug, Default)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-pub struct ProcessorTrace {
-    eax: u32,
-    ebx: u32,
-}
-
-impl ProcessorTrace {
     /// Number of configurable Address Ranges for filtering (Bits 2:0).
     pub fn configurable_address_ranges(&self) -> u8 {
-        get_bits(self.eax, 0, 2) as u8
+        self.leaf1.map_or(0, |res| get_bits(res.eax, 0, 2) as u8)
     }
 
     /// Bitmap of supported MTC period encodings (Bit 31:16).
     pub fn supported_mtc_period_encodings(&self) -> u16 {
-        get_bits(self.eax, 16, 31) as u16
+        self.leaf1.map_or(0, |res| get_bits(res.eax, 16, 31) as u16)
     }
 
     /// Bitmap of supported Cycle Threshold value encodings (Bits 15-0).
     pub fn supported_cycle_threshold_value_encodings(&self) -> u16 {
-        get_bits(self.ebx, 0, 15) as u16
+        self.leaf1.map_or(0, |res| get_bits(res.ebx, 0, 15) as u16)
     }
 
     /// Bitmap of supported Configurable PSB frequency encodings (Bit 31:16)
     pub fn supported_psb_frequency_encodings(&self) -> u16 {
-        get_bits(self.ebx, 16, 31) as u16
+        self.leaf1.map_or(0, |res| get_bits(res.ebx, 16, 31) as u16)
     }
 }
 
