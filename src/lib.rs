@@ -431,6 +431,7 @@ impl CpuId {
             Some(TscInfo {
                 eax: res.eax,
                 ebx: res.ebx,
+                ecx: res.ecx,
             })
         } else {
             None
@@ -3682,17 +3683,27 @@ impl ProcessorTraceInfo {
 pub struct TscInfo {
     eax: u32,
     ebx: u32,
+    ecx: u32,
 }
 
 impl TscInfo {
-    /// An unsigned integer which is the denominator of the TSC/”core crystal clock” ratio (Bits 31:0).
-    pub fn get_tsc_ratio_denominator(&self) -> u32 {
+    /// An unsigned integer which is the denominator of the TSC/”core crystal clock” ratio.
+    pub fn denominator(&self) -> u32 {
         self.eax
     }
 
-    /// An unsigned integer which is the numerator of the TSC/”core crystal clock” ratio (Bits 31-0).
-    pub fn get_tsc_ratio_numerator(&self) -> u32 {
+    /// An unsigned integer which is the numerator of the TSC/”core crystal clock” ratio.
+    pub fn numerator(&self) -> u32 {
         self.ebx
+    }
+
+    /// An unsigned integer which is the nominal frequency of the core crystal clock in Hz.
+    pub fn nominal_frequency(&self) -> u32 {
+        self.ecx
+    }
+
+    pub fn tsc_frequency(&self) -> u64 {
+        self.nominal_frequency() as u64 * self.numerator() as u64 / self.denominator() as u64
     }
 }
 
