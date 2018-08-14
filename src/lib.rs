@@ -17,7 +17,7 @@ extern crate bitflags;
 
 /// Provides `cpuid` on stable by linking against a C implementation.
 #[cfg(not(feature = "use_arch"))]
-mod native_cpuid {
+pub mod native_cpuid {
     use super::CpuIdResult;
 
     extern "C" {
@@ -38,7 +38,7 @@ mod native_cpuid {
 
 /// Uses Rust's `cpuid` function from the `arch` module.
 #[cfg(feature = "use_arch")]
-mod native_cpuid {
+pub mod native_cpuid {
     use super::CpuIdResult;
 
     #[cfg(target_arch = "x86")]
@@ -74,6 +74,7 @@ mod std {
 ///
 /// First parameter is cpuid leaf (EAX register value),
 /// second optional parameter is the subleaf (ECX register value).
+#[macro_export]
 macro_rules! cpuid {
     ($eax:expr) => {
         $crate::native_cpuid::cpuid_count($eax as u32, 0)
@@ -3677,7 +3678,7 @@ impl ProcessorTraceInfo {
     }
 }
 
-/// Contains time stamp counter information.
+/// Time Stamp Counter and Nominal Core Crystal Clock Information Leaf.
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct TscInfo {
@@ -3702,6 +3703,7 @@ impl TscInfo {
         self.ecx
     }
 
+    /// “TSC frequency” = “core crystal clock frequency” * EBX/EAX.
     pub fn tsc_frequency(&self) -> u64 {
         self.nominal_frequency() as u64 * self.numerator() as u64 / self.denominator() as u64
     }
