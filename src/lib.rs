@@ -4097,56 +4097,64 @@ impl ExtendedFunctionInfo {
     pub fn has_lahf_sahf(&self) -> bool {
         self.leaf_is_supported(1) && ExtendedFunctionInfoEcx {
             bits: self.data[1].ecx,
-        }.contains(ExtendedFunctionInfoEcx::LAHF_SAHF)
+        }
+        .contains(ExtendedFunctionInfoEcx::LAHF_SAHF)
     }
 
     /// Is LZCNT available?
     pub fn has_lzcnt(&self) -> bool {
         self.leaf_is_supported(1) && ExtendedFunctionInfoEcx {
             bits: self.data[1].ecx,
-        }.contains(ExtendedFunctionInfoEcx::LZCNT)
+        }
+        .contains(ExtendedFunctionInfoEcx::LZCNT)
     }
 
     /// Is PREFETCHW available?
     pub fn has_prefetchw(&self) -> bool {
         self.leaf_is_supported(1) && ExtendedFunctionInfoEcx {
             bits: self.data[1].ecx,
-        }.contains(ExtendedFunctionInfoEcx::PREFETCHW)
+        }
+        .contains(ExtendedFunctionInfoEcx::PREFETCHW)
     }
 
     /// Are fast system calls available.
     pub fn has_syscall_sysret(&self) -> bool {
         self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
             bits: self.data[1].edx,
-        }.contains(ExtendedFunctionInfoEdx::SYSCALL_SYSRET)
+        }
+        .contains(ExtendedFunctionInfoEdx::SYSCALL_SYSRET)
     }
 
     /// Is there support for execute disable bit.
     pub fn has_execute_disable(&self) -> bool {
         self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
             bits: self.data[1].edx,
-        }.contains(ExtendedFunctionInfoEdx::EXECUTE_DISABLE)
+        }
+        .contains(ExtendedFunctionInfoEdx::EXECUTE_DISABLE)
     }
 
     /// Is there support for 1GiB pages.
     pub fn has_1gib_pages(&self) -> bool {
         self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
             bits: self.data[1].edx,
-        }.contains(ExtendedFunctionInfoEdx::GIB_PAGES)
+        }
+        .contains(ExtendedFunctionInfoEdx::GIB_PAGES)
     }
 
     /// Check support for rdtscp instruction.
     pub fn has_rdtscp(&self) -> bool {
         self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
             bits: self.data[1].edx,
-        }.contains(ExtendedFunctionInfoEdx::RDTSCP)
+        }
+        .contains(ExtendedFunctionInfoEdx::RDTSCP)
     }
 
     /// Check support for 64-bit mode.
     pub fn has_64bit_mode(&self) -> bool {
         self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
             bits: self.data[1].edx,
-        }.contains(ExtendedFunctionInfoEdx::I64BIT_MODE)
+        }
+        .contains(ExtendedFunctionInfoEdx::I64BIT_MODE)
     }
 }
 
