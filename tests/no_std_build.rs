@@ -1,6 +1,6 @@
 #![cfg_attr(
     feature = "nightly",
-    feature(lang_items, core_intrinsics, panic_implementation)
+    feature(lang_items, core_intrinsics, panic_handler)
 )]
 #![cfg_attr(feature = "nightly", no_std)]
 #![cfg_attr(feature = "nightly", no_main)]
@@ -35,7 +35,7 @@ pub extern "C" fn rust_eh_personality() {}
 pub extern "C" fn rust_eh_unwind_resume() {}
 
 #[cfg(feature = "nightly")]
-#[panic_implementation]
+#[panic_handler]
 #[no_mangle]
 pub fn panic_impl(_info: &PanicInfo) -> ! {
     loop {}
