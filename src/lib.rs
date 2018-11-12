@@ -168,6 +168,7 @@ const EAX_TIME_STAMP_COUNTER_INFO: u32 = 0x15;
 const EAX_FREQUENCY_INFO: u32 = 0x16;
 const EAX_SOC_VENDOR_INFO: u32 = 0x17;
 const EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO: u32 = 0x18;
+const EAX_HYPERVISOR_INFO: u32 = 0x40000000;
 const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x80000000;
 
 impl CpuId {
@@ -474,6 +475,15 @@ impl CpuId {
                 ecx: res.ecx,
                 edx: res.edx,
             })
+        } else {
+            None
+        }
+    }
+
+    pub fn get_hypervisor_info(&self) -> Option<HypervisorInfo> {
+        let res = cpuid!(EAX_HYPERVISOR_INFO);
+        if self.leaf_is_supported(EAX_HYPERVISOR_INFO) && res.eax > 0 {
+            Some(HypervisorInfo { res: res })
         } else {
             None
         }
@@ -3970,6 +3980,59 @@ impl fmt::Display for SoCVendorBrand {
     }
 }
 
+/// Information about Hypervisor (https://lwn.net/Articles/301888/)
+pub struct HypervisorInfo {
+    res: CpuIdResult,
+}
+
+/// Identifies the different Hypervisor products.
+pub enum Hypervisor {
+    Xen,
+    VMware,
+    HyperV,
+    KVM,
+    Unknown(u32, u32, u32),
+}
+
+impl HypervisorInfo {
+    pub fn identify(&self) -> Hypervisor {
+        match (self.res.ebx, self.res.ecx, self.res.edx) {
+            // "VMwareVMware"
+            (0x61774d56, 0x4d566572, 0x65726177) => Hypervisor::VMware,
+            // "XenVMMXenVMM"
+            (0x566e6558, 0x65584d4d, 0x4d4d566e) => Hypervisor::Xen,
+            // "Microsoft Hv"
+            (0x7263694d, 0x666f736f, 0x76482074) => Hypervisor::HyperV,
+            // "KVMKVMKVM\0\0\0"
+            (0x4b4d564b, 0x564b4d56, 0x0000004d) => Hypervisor::KVM,
+            (ebx, ecx, edx) => Hypervisor::Unknown(ebx, ecx, edx),
+        }
+    }
+
+    /// TSC frequency in kHz.
+    pub fn tsc_frequency(&self) -> Option<u32> {
+        // vm aware tsc frequency retrieval:
+        // # EAX: (Virtual) TSC frequency in kHz.
+        if self.res.eax >= 0x40000010 {
+            let virt_tinfo = cpuid!(0x40000010, 0);
+            Some(virt_tinfo.eax)
+        } else {
+            None
+        }
+    }
+
+    /// (Virtual) Bus (local apic timer) frequency in kHz.
+    pub fn apic_frequency(&self) -> Option<u32> {
+        // # EBX: (Virtual) Bus (local apic timer) frequency in kHz.
+        if self.res.eax >= 0x40000010 {
+            let virt_tinfo = cpuid!(0x40000010, 0);
+            Some(virt_tinfo.ebx)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedFunctionInfo {
@@ -4095,66 +4158,74 @@ impl ExtendedFunctionInfo {
 
     /// Is LAHF/SAHF available in 64-bit mode?
     pub fn has_lahf_sahf(&self) -> bool {
-        self.leaf_is_supported(1) && ExtendedFunctionInfoEcx {
-            bits: self.data[1].ecx,
-        }
-        .contains(ExtendedFunctionInfoEcx::LAHF_SAHF)
+        self.leaf_is_supported(1)
+            && ExtendedFunctionInfoEcx {
+                bits: self.data[1].ecx,
+            }
+            .contains(ExtendedFunctionInfoEcx::LAHF_SAHF)
     }
 
     /// Is LZCNT available?
     pub fn has_lzcnt(&self) -> bool {
-        self.leaf_is_supported(1) && ExtendedFunctionInfoEcx {
-            bits: self.data[1].ecx,
-        }
-        .contains(ExtendedFunctionInfoEcx::LZCNT)
+        self.leaf_is_supported(1)
+            && ExtendedFunctionInfoEcx {
+                bits: self.data[1].ecx,
+            }
+            .contains(ExtendedFunctionInfoEcx::LZCNT)
     }
 
     /// Is PREFETCHW available?
     pub fn has_prefetchw(&self) -> bool {
-        self.leaf_is_supported(1) && ExtendedFunctionInfoEcx {
-            bits: self.data[1].ecx,
-        }
-        .contains(ExtendedFunctionInfoEcx::PREFETCHW)
+        self.leaf_is_supported(1)
+            && ExtendedFunctionInfoEcx {
+                bits: self.data[1].ecx,
+            }
+            .contains(ExtendedFunctionInfoEcx::PREFETCHW)
     }
 
     /// Are fast system calls available.
     pub fn has_syscall_sysret(&self) -> bool {
-        self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
-            bits: self.data[1].edx,
-        }
-        .contains(ExtendedFunctionInfoEdx::SYSCALL_SYSRET)
+        self.leaf_is_supported(1)
+            && ExtendedFunctionInfoEdx {
+                bits: self.data[1].edx,
+            }
+            .contains(ExtendedFunctionInfoEdx::SYSCALL_SYSRET)
     }
 
     /// Is there support for execute disable bit.
     pub fn has_execute_disable(&self) -> bool {
-        self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
-            bits: self.data[1].edx,
-        }
-        .contains(ExtendedFunctionInfoEdx::EXECUTE_DISABLE)
+        self.leaf_is_supported(1)
+            && ExtendedFunctionInfoEdx {
+                bits: self.data[1].edx,
+            }
+            .contains(ExtendedFunctionInfoEdx::EXECUTE_DISABLE)
     }
 
     /// Is there support for 1GiB pages.
     pub fn has_1gib_pages(&self) -> bool {
-        self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
-            bits: self.data[1].edx,
-        }
-        .contains(ExtendedFunctionInfoEdx::GIB_PAGES)
+        self.leaf_is_supported(1)
+            && ExtendedFunctionInfoEdx {
+                bits: self.data[1].edx,
+            }
+            .contains(ExtendedFunctionInfoEdx::GIB_PAGES)
     }
 
     /// Check support for rdtscp instruction.
     pub fn has_rdtscp(&self) -> bool {
-        self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
-            bits: self.data[1].edx,
-        }
-        .contains(ExtendedFunctionInfoEdx::RDTSCP)
+        self.leaf_is_supported(1)
+            && ExtendedFunctionInfoEdx {
+                bits: self.data[1].edx,
+            }
+            .contains(ExtendedFunctionInfoEdx::RDTSCP)
     }
 
     /// Check support for 64-bit mode.
     pub fn has_64bit_mode(&self) -> bool {
-        self.leaf_is_supported(1) && ExtendedFunctionInfoEdx {
-            bits: self.data[1].edx,
-        }
-        .contains(ExtendedFunctionInfoEdx::I64BIT_MODE)
+        self.leaf_is_supported(1)
+            && ExtendedFunctionInfoEdx {
+                bits: self.data[1].edx,
+            }
+            .contains(ExtendedFunctionInfoEdx::I64BIT_MODE)
     }
 }
 
