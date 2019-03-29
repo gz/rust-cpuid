@@ -170,6 +170,7 @@ const EAX_SOC_VENDOR_INFO: u32 = 0x17;
 const EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO: u32 = 0x18;
 const EAX_HYPERVISOR_INFO: u32 = 0x40000000;
 const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x80000000;
+const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000001F;
 
 impl CpuId {
     /// Return new CPUID struct.
@@ -564,6 +565,21 @@ impl CpuId {
         }
 
         Some(ef)
+    }
+
+    pub fn get_memory_encryption_info(&self) -> Option<MemoryEncryptionInfo> {
+        let res = cpuid!(EAX_EXTENDED_FUNCTION_INFO);
+        if res.eax < EAX_MEMORY_ENCRYPTION_INFO {
+            return None;
+        }
+
+        let res = cpuid!(EAX_MEMORY_ENCRYPTION_INFO);
+        Some(MemoryEncryptionInfo {
+            eax: MemoryEncryptionInfoEax { bits: res.eax },
+            ebx: res.ebx,
+            ecx: res.ecx,
+            edx: res.edx,
+        })
     }
 }
 
@@ -4256,5 +4272,75 @@ bitflags! {
         const RDTSCP = 1 << 27;
         /// Intel ® 64 Architecture available if 1 (Bit 29).
         const I64BIT_MODE = 1 << 29;
+    }
+}
+
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct MemoryEncryptionInfo {
+    eax: MemoryEncryptionInfoEax,
+    ebx: u32,
+    ecx: u32,
+    edx: u32,
+}
+
+impl MemoryEncryptionInfo {
+    check_flag!(
+        doc = "Secure Memory Encryption is supported if set.",
+        has_sme,
+        eax,
+        MemoryEncryptionInfoEax::SME
+    );
+
+    check_flag!(
+        doc = "Secure Encrypted Virtualization is supported if set.",
+        has_sev,
+        eax,
+        MemoryEncryptionInfoEax::SEV
+    );
+
+    check_flag!(
+        doc = "The Page Flush MSR is available if set.",
+        has_page_flush_msr,
+        eax,
+        MemoryEncryptionInfoEax::PAGE_FLUSH_MSR
+    );
+
+    check_flag!(
+        doc = "SEV Encrypted State is supported if set.",
+        has_sev_es,
+        eax,
+        MemoryEncryptionInfoEax::SEV_ES
+    );
+
+    pub fn physical_address_reduction(&self) -> u8 {
+        get_bits(self.ebx, 6, 11) as u8
+    }
+
+    pub fn c_bit_position(&self) -> u8 {
+        get_bits(self.ebx, 0, 5) as u8
+    }
+
+    pub fn max_encrypted_guests(&self) -> u32 {
+        self.ecx
+    }
+
+    pub fn min_sev_no_es_asid(&self) -> u32 {
+        self.edx
+    }
+}
+
+bitflags! {
+    #[derive(Default)]
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    struct MemoryEncryptionInfoEax: u32 {
+        /// Bit 00: SME supported
+        const SME = 1 << 0;
+        /// Bit 01: SEV supported
+        const SEV = 1 << 1;
+        /// Bit 02: Page Flush MSR available
+        const PAGE_FLUSH_MSR = 1 << 2;
+        /// Bit 03: SEV-ES supported
+        const SEV_ES = 1 << 3;
     }
 }
