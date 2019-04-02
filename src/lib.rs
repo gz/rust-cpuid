@@ -1798,7 +1798,7 @@ impl FeatureInfo {
         doc = "Max APIC IDs reserved field is Valid. A value of 0 for HTT indicates \
                there is only a single logical processor in the package and software \
                should assume only a single APIC ID is reserved.  A value of 1 for HTT \
-               indicates the value in CPUID.1.EBX[23:16] (the Maximum number of \
+               indicates the value in CPUID.1.EBX\\[23:16\\] (the Maximum number of \
                addressable IDs for logical processors in this package) is valid for the \
                package.",
         has_htt,
@@ -2188,7 +2188,7 @@ impl ThermalPowerInfo {
 
     check_flag!(
         doc = "Intel Turbo Boost Technology Available (see description of \
-               IA32_MISC_ENABLE[38]).",
+               IA32_MISC_ENABLE\\[38\\]).",
         has_turbo_boost,
         eax,
         ThermalPowerFeaturesEax::TURBO_BOOST
@@ -2756,7 +2756,7 @@ pub struct DirectCacheAccessInfo {
 }
 
 impl DirectCacheAccessInfo {
-    /// Value of bits [31:0] of IA32_PLATFORM_DCA_CAP MSR (address 1F8H)
+    /// Value of bits \[31:0\] of IA32_PLATFORM_DCA_CAP MSR (address 1F8H)
     pub fn get_dca_cap_value(&self) -> u32 {
         self.eax
     }
@@ -3169,7 +3169,7 @@ pub struct ExtendedStateIter {
 /// and offset information for each processor extended state save area:///
 ///
 /// For i = 2 to 62 // sub-leaf 1 is reserved
-///   IF (CPUID.(EAX=0DH, ECX=0):VECTOR[i] = 1 ) // VECTOR is the 64-bit value of EDX:EAX
+///   IF (CPUID.(EAX=0DH, ECX=0):VECTOR\[i\] = 1 ) // VECTOR is the 64-bit value of EDX:EAX
 ///     Execute CPUID.(EAX=0DH, ECX = i) to examine size and offset for sub-leaf i;
 /// FI;
 impl Iterator for ExtendedStateIter {
@@ -3513,7 +3513,7 @@ impl SgxInfo {
         get_bits(self.edx, 8, 15) as u8
     }
 
-    /// Reports the valid bits of SECS.ATTRIBUTES[127:0] that software can set with ECREATE.
+    /// Reports the valid bits of SECS.ATTRIBUTES\[127:0\] that software can set with ECREATE.
     pub fn secs_attributes(&self) -> (u64, u64) {
         let lower = self.eax1 as u64 | (self.ebx1 as u64) << 32;
         let upper = self.ecx1 as u64 | (self.edx1 as u64) << 32;
@@ -3631,15 +3631,15 @@ impl ProcessorTraceInfo {
     );
 
     check_bit_fn!(
-        doc = "Indicates support of PTWRITE. Writes can set IA32_RTIT_CTL[12] (PTWEn \
-               and IA32_RTIT_CTL[5] (FUPonPTW), and PTWRITE can generate packets",
+        doc = "Indicates support of PTWRITE. Writes can set IA32_RTIT_CTL\\[12\\] (PTWEn \
+               and IA32_RTIT_CTL\\[5\\] (FUPonPTW), and PTWRITE can generate packets",
         has_ptwrite,
         ebx,
         4
     );
 
     check_bit_fn!(
-        doc = "Support of Power Event Trace. Writes can set IA32_RTIT_CTL[4] (PwrEvtEn) \
+        doc = "Support of Power Event Trace. Writes can set IA32_RTIT_CTL\\[4\\] (PwrEvtEn) \
                enabling Power Event Trace packet generation.",
         has_power_event_trace,
         ebx,
