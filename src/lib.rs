@@ -2884,12 +2884,16 @@ bitflags! {
     }
 }
 
+/// Iterates over the system topology in order to retrieve more
+/// system information at each level of the topology.
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedTopologyIter {
     level: u32,
 }
 
+/// Gives detailed information about the current level in the topology
+/// (how many cores, what type etc.).
 #[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedTopologyLevel {
@@ -2945,6 +2949,7 @@ impl ExtendedTopologyLevel {
     }
 }
 
+/// What type of core we have at this level in the topology (real CPU or hyper-threaded).
 #[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum TopologyType {
