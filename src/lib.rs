@@ -653,20 +653,21 @@ impl Iterator for CacheInfoIter {
     }
 }
 
+/// What type of cache are we dealing with?
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum CacheInfoType {
-    GENERAL,
-    CACHE,
+    General,
+    Cache,
     TLB,
     STLB,
     DTLB,
-    PREFETCH,
+    Prefetch,
 }
 
 impl Default for CacheInfoType {
     fn default() -> CacheInfoType {
-        CacheInfoType::GENERAL
+        CacheInfoType::General
     }
 }
 
@@ -805,12 +806,12 @@ impl CacheInfo {
 impl fmt::Display for CacheInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let typ = match self.typ {
-            CacheInfoType::GENERAL => "N/A",
-            CacheInfoType::CACHE => "Cache",
+            CacheInfoType::General => "N/A",
+            CacheInfoType::Cache => "Cache",
             CacheInfoType::TLB => "TLB",
             CacheInfoType::STLB => "STLB",
             CacheInfoType::DTLB => "DTLB",
-            CacheInfoType::PREFETCH => "Prefetcher",
+            CacheInfoType::Prefetch => "Prefetcher",
         };
 
         write!(f, "{:x}:\t {}: {}", self.num, typ, self.desc())
@@ -821,7 +822,7 @@ impl fmt::Display for CacheInfo {
 pub const CACHE_INFO_TABLE: [CacheInfo; 108] = [
     CacheInfo {
         num: 0x00,
-        typ: CacheInfoType::GENERAL,
+        typ: CacheInfoType::General,
     },
     CacheInfo {
         num: 0x01,
@@ -845,19 +846,19 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 108] = [
     },
     CacheInfo {
         num: 0x06,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x08,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x09,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x0A,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x0B,
@@ -865,107 +866,107 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 108] = [
     },
     CacheInfo {
         num: 0x0C,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x0D,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x0E,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x21,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x22,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x23,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x24,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x25,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x29,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x2C,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x30,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x40,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x41,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x42,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x43,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x44,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x45,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x46,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x47,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x48,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x49,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x4A,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x4B,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x4C,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x4D,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x4E,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x4F,
@@ -1017,7 +1018,7 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 108] = [
     },
     CacheInfo {
         num: 0x60,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x61,
@@ -1029,43 +1030,43 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 108] = [
     },
     CacheInfo {
         num: 0x66,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x67,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x68,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x6A,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x6B,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x6C,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x6D,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x70,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x71,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x72,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x76,
@@ -1073,59 +1074,59 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 108] = [
     },
     CacheInfo {
         num: 0x78,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x79,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x7A,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x7B,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x7C,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x7D,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x7F,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x80,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x82,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x83,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x84,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x85,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x86,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0x87,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xB0,
@@ -1177,79 +1178,79 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 108] = [
     },
     CacheInfo {
         num: 0xD0,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xD1,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xD2,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xD6,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xD7,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xD8,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xDC,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xDD,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xDE,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xE2,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xE3,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xE4,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xEA,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xEB,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xEC,
-        typ: CacheInfoType::CACHE,
+        typ: CacheInfoType::Cache,
     },
     CacheInfo {
         num: 0xF0,
-        typ: CacheInfoType::PREFETCH,
+        typ: CacheInfoType::Prefetch,
     },
     CacheInfo {
         num: 0xF1,
-        typ: CacheInfoType::PREFETCH,
+        typ: CacheInfoType::Prefetch,
     },
     CacheInfo {
         num: 0xFE,
-        typ: CacheInfoType::GENERAL,
+        typ: CacheInfoType::General,
     },
     CacheInfo {
         num: 0xFF,
-        typ: CacheInfoType::GENERAL,
+        typ: CacheInfoType::General,
     },
 ];
 
@@ -1976,8 +1977,8 @@ impl Iterator for CacheParametersIter {
         };
 
         match cp.cache_type() {
-            CacheType::NULL => None,
-            CacheType::RESERVED => None,
+            CacheType::Null => None,
+            CacheType::Reserved => None,
             _ => {
                 self.current += 1;
                 Some(cp)
@@ -1999,17 +2000,20 @@ pub struct CacheParameter {
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum CacheType {
     /// Null - No more caches
-    NULL = 0,
-    DATA,
-    INSTRUCTION,
-    UNIFIED,
+    Null = 0,
+    /// Data cache
+    Data,
+    /// Instruction cache
+    Instruction,
+    /// Data and Instruction cache
+    Unified,
     /// 4-31 = Reserved
-    RESERVED,
+    Reserved,
 }
 
 impl Default for CacheType {
     fn default() -> CacheType {
-        CacheType::NULL
+        CacheType::Null
     }
 }
 
@@ -2018,11 +2022,11 @@ impl CacheParameter {
     pub fn cache_type(&self) -> CacheType {
         let typ = get_bits(self.eax, 0, 4) as u8;
         match typ {
-            0 => CacheType::NULL,
-            1 => CacheType::DATA,
-            2 => CacheType::INSTRUCTION,
-            3 => CacheType::UNIFIED,
-            _ => CacheType::RESERVED,
+            0 => CacheType::Null,
+            1 => CacheType::Data,
+            2 => CacheType::Instruction,
+            3 => CacheType::Unified,
+            _ => CacheType::Reserved,
         }
     }
 
@@ -2886,13 +2890,25 @@ pub struct ExtendedTopologyIter {
     level: u32,
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedTopologyLevel {
     eax: u32,
     ebx: u32,
     ecx: u32,
     edx: u32,
+}
+
+impl fmt::Debug for ExtendedTopologyLevel {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("ExtendedTopologyLevel")
+            .field("processors", &self.processors())
+            .field("number", &self.level_number())
+            .field("type", &self.level_type())
+            .field("x2apic_id", &self.x2apic_id())
+            .field("next_apic_id", &self.shift_right_for_next_apic_id())
+            .finish()
+    }
 }
 
 impl ExtendedTopologyLevel {
@@ -2910,9 +2926,9 @@ impl ExtendedTopologyLevel {
     // Level type.
     pub fn level_type(&self) -> TopologyType {
         match get_bits(self.ecx, 8, 15) {
-            0 => TopologyType::INVALID,
+            0 => TopologyType::Invalid,
             1 => TopologyType::SMT,
-            2 => TopologyType::CORE,
+            2 => TopologyType::Core,
             _ => unreachable!(),
         }
     }
@@ -2932,15 +2948,15 @@ impl ExtendedTopologyLevel {
 #[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum TopologyType {
-    INVALID = 0,
+    Invalid = 0,
     /// Hyper-thread (Simultaneous multithreading)
     SMT = 1,
-    CORE = 2,
+    Core = 2,
 }
 
 impl Default for TopologyType {
     fn default() -> TopologyType {
-        TopologyType::INVALID
+        TopologyType::Invalid
     }
 }
 
@@ -2959,7 +2975,7 @@ impl Iterator for ExtendedTopologyIter {
         };
 
         match et.level_type() {
-            TopologyType::INVALID => None,
+            TopologyType::Invalid => None,
             _ => Some(et),
         }
     }

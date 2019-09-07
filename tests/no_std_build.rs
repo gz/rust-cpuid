@@ -1,7 +1,4 @@
-#![cfg_attr(
-    feature = "nightly",
-    feature(lang_items, core_intrinsics, panic_handler)
-)]
+#![cfg_attr(feature = "nightly", feature(lang_items, core_intrinsics))]
 #![cfg_attr(feature = "nightly", no_std)]
 #![cfg_attr(feature = "nightly", no_main)]
 

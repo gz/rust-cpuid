@@ -87,7 +87,7 @@ fn cache_parameters() {
     for (idx, cache) in caches.into_iter().enumerate() {
         match idx {
             0 => {
-                assert!(cache.cache_type() == CacheType::DATA);
+                assert!(cache.cache_type() == CacheType::Data);
                 assert!(cache.level() == 1);
                 assert!(cache.is_self_initializing());
                 assert!(!cache.is_fully_associative());
@@ -102,7 +102,7 @@ fn cache_parameters() {
                 assert!(cache.sets() == 64);
             }
             1 => {
-                assert!(cache.cache_type() == CacheType::INSTRUCTION);
+                assert!(cache.cache_type() == CacheType::Instruction);
                 assert!(cache.level() == 1);
                 assert!(cache.is_self_initializing());
                 assert!(!cache.is_fully_associative());
@@ -117,7 +117,7 @@ fn cache_parameters() {
                 assert!(cache.sets() == 64);
             }
             2 => {
-                assert!(cache.cache_type() == CacheType::UNIFIED);
+                assert!(cache.cache_type() == CacheType::Unified);
                 assert!(cache.level() == 2);
                 assert!(cache.is_self_initializing());
                 assert!(!cache.is_fully_associative());
@@ -132,7 +132,7 @@ fn cache_parameters() {
                 assert!(cache.sets() == 512);
             }
             3 => {
-                assert!(cache.cache_type() == CacheType::UNIFIED);
+                assert!(cache.cache_type() == CacheType::Unified);
                 assert!(cache.level() == 3);
                 assert!(cache.is_self_initializing());
                 assert!(!cache.is_fully_associative());
@@ -183,26 +183,20 @@ fn thermal_power_features() {
     };
 
     assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::DTS));
-    assert!(
-        tpfeatures
-            .eax
-            .contains(ThermalPowerFeaturesEax::TURBO_BOOST)
-    );
+    assert!(tpfeatures
+        .eax
+        .contains(ThermalPowerFeaturesEax::TURBO_BOOST));
     assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::ARAT));
     assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::PLN));
     assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::ECMD));
     assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::PTM));
 
-    assert!(
-        tpfeatures
-            .ecx
-            .contains(ThermalPowerFeaturesEcx::HW_COORD_FEEDBACK)
-    );
-    assert!(
-        tpfeatures
-            .ecx
-            .contains(ThermalPowerFeaturesEcx::ENERGY_BIAS_PREF)
-    );
+    assert!(tpfeatures
+        .ecx
+        .contains(ThermalPowerFeaturesEcx::HW_COORD_FEEDBACK));
+    assert!(tpfeatures
+        .ecx
+        .contains(ThermalPowerFeaturesEcx::ENERGY_BIAS_PREF));
 
     assert!(tpfeatures.dts_irq_threshold() == 0x2);
     let tpfeatures = ThermalPowerInfo {
@@ -322,34 +316,27 @@ fn performance_monitoring_info() {
     assert!(pm.fixed_function_counters() == 3);
     assert!(pm.fixed_function_counters_bit_width() == 48);
 
-    assert!(
-        !pm.ebx
-            .contains(PerformanceMonitoringFeaturesEbx::CORE_CYC_EV_UNAVAILABLE)
-    );
-    assert!(
-        !pm.ebx
-            .contains(PerformanceMonitoringFeaturesEbx::INST_RET_EV_UNAVAILABLE)
-    );
-    assert!(
-        !pm.ebx
-            .contains(PerformanceMonitoringFeaturesEbx::REF_CYC_EV_UNAVAILABLE)
-    );
-    assert!(
-        !pm.ebx
-            .contains(PerformanceMonitoringFeaturesEbx::CACHE_REF_EV_UNAVAILABLE)
-    );
-    assert!(
-        !pm.ebx
-            .contains(PerformanceMonitoringFeaturesEbx::LL_CACHE_MISS_EV_UNAVAILABLE)
-    );
-    assert!(
-        !pm.ebx
-            .contains(PerformanceMonitoringFeaturesEbx::BRANCH_INST_RET_EV_UNAVAILABLE)
-    );
-    assert!(
-        !pm.ebx
-            .contains(PerformanceMonitoringFeaturesEbx::BRANCH_MISPRED_EV_UNAVAILABLE)
-    );
+    assert!(!pm
+        .ebx
+        .contains(PerformanceMonitoringFeaturesEbx::CORE_CYC_EV_UNAVAILABLE));
+    assert!(!pm
+        .ebx
+        .contains(PerformanceMonitoringFeaturesEbx::INST_RET_EV_UNAVAILABLE));
+    assert!(!pm
+        .ebx
+        .contains(PerformanceMonitoringFeaturesEbx::REF_CYC_EV_UNAVAILABLE));
+    assert!(!pm
+        .ebx
+        .contains(PerformanceMonitoringFeaturesEbx::CACHE_REF_EV_UNAVAILABLE));
+    assert!(!pm
+        .ebx
+        .contains(PerformanceMonitoringFeaturesEbx::LL_CACHE_MISS_EV_UNAVAILABLE));
+    assert!(!pm
+        .ebx
+        .contains(PerformanceMonitoringFeaturesEbx::BRANCH_INST_RET_EV_UNAVAILABLE));
+    assert!(!pm
+        .ebx
+        .contains(PerformanceMonitoringFeaturesEbx::BRANCH_MISPRED_EV_UNAVAILABLE));
 }
 
 #[cfg(test)]
@@ -376,7 +363,7 @@ fn extended_topology_info() {
 
     assert!(l2.processors() == 4);
     assert!(l2.level_number() == 1);
-    assert!(l2.level_type() == TopologyType::CORE);
+    assert!(l2.level_type() == TopologyType::Core);
     assert!(l2.x2apic_id() == 3);
     assert!(l2.shift_right_for_next_apic_id() == 4);
 }
