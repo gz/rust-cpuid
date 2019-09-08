@@ -1,9 +1,7 @@
 //! An example that determines the time stamp counter frequency (RDTSC, RDTSCP) .
 extern crate raw_cpuid;
-extern crate x86;
 
 use std::time;
-use x86::time::rdtscp;
 
 const MHZ_TO_HZ: u64 = 1000000;
 const KHZ_TO_HZ: u64 = 1000;
@@ -65,13 +63,13 @@ fn main() {
         // Determine TSC frequency by measuring it (loop for a second, record ticks)
         let one_second = time::Duration::from_secs(1);
         let now = time::Instant::now();
-        let start = unsafe { rdtscp() };
+        let start = unsafe { core::arch::x86_64::_rdtsc() };
         loop {
             if now.elapsed() >= one_second {
                 break;
             }
         }
-        let end = unsafe { rdtscp() };
+        let end = unsafe { core::arch::x86_64::_rdtsc() };
         println!(
             "Empirical measurement of TSC frequency was: {} Hz",
             (end - start)
