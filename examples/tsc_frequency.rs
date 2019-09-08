@@ -70,5 +70,8 @@ fn main() {
         }
     }
     let end = unsafe { rdtscp() };
-    println!("Empirical measurement of TSC was: {} Hz", (end - start));
+    println!(
+        "Empirical measurement of TSC frequency was: {} Hz",
+        (end - start)
+    );
 }
