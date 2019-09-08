@@ -11,7 +11,8 @@ use std::thread;
 /// Runs CPU ID on every core in the system (to gather all APIC IDs).
 ///
 /// # Note
-/// This won't work on macOS, apparently there is no guarantee after setting the affinity there.
+/// This won't work on macOS, apparently there is no guarantee after setting the affinity
+/// that a thread will really execute on the pinned core.
 fn gather_all_xapic_ids() -> Vec<u8> {
     let core_ids = core_affinity::get_core_ids().unwrap();
 
@@ -37,7 +38,8 @@ fn gather_all_xapic_ids() -> Vec<u8> {
 /// Runs CPU ID on every core in the system (to gather all x2APIC IDs).
 ///
 /// # Note
-/// This won't work on macOS, apparently there is no guarantee after setting the affinity there.
+/// This won't work on macOS, apparently there is no guarantee after setting the affinity
+/// that a thread will really execute on the pinned core.
 fn gather_all_x2apic_ids() -> Vec<u32> {
     let core_ids = core_affinity::get_core_ids().unwrap();
 
