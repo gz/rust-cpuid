@@ -37,6 +37,7 @@ fn main() {
     });
 
     if has_tsc {
+        // Try to figure out TSC frequency with CPUID
         println!(
             "TSC Frequency is: {} ({})",
             match tsc_frequency_hz {
@@ -49,29 +50,33 @@ fn main() {
                 "TSC frequency varies with speed-stepping"
             }
         );
-    }
 
-    cpuid.get_hypervisor_info().map(|hv| {
-        hv.tsc_frequency().map(|tsc_khz| {
-            let virtual_tsc_frequency_hz = tsc_khz as u64 * KHZ_TO_HZ;
-            println!(
-                "Hypervisor reports TSC Frequency at: {} Hz",
-                virtual_tsc_frequency_hz
-            );
-        })
-    });
+        // Check if we run in a VM and the hypervisor can give us the TSC frequency
+        cpuid.get_hypervisor_info().map(|hv| {
+            hv.tsc_frequency().map(|tsc_khz| {
+                let virtual_tsc_frequency_hz = tsc_khz as u64 * KHZ_TO_HZ;
+                println!(
+                    "Hypervisor reports TSC Frequency at: {} Hz",
+                    virtual_tsc_frequency_hz
+                );
+            })
+        });
 
-    let one_second = time::Duration::from_secs(1);
-    let now = time::Instant::now();
-    let start = unsafe { rdtscp() };
-    loop {
-        if now.elapsed() >= one_second {
-            break;
+        // Determine TSC frequency by measuring it (loop for a second, record ticks)
+        let one_second = time::Duration::from_secs(1);
+        let now = time::Instant::now();
+        let start = unsafe { rdtscp() };
+        loop {
+            if now.elapsed() >= one_second {
+                break;
+            }
         }
+        let end = unsafe { rdtscp() };
+        println!(
+            "Empirical measurement of TSC frequency was: {} Hz",
+            (end - start)
+        );
+    } else {
+        println!("System does not have a TSC.")
     }
-    let end = unsafe { rdtscp() };
-    println!(
-        "Empirical measurement of TSC frequency was: {} Hz",
-        (end - start)
-    );
 }
