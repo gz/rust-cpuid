@@ -27,7 +27,7 @@ fn gather_all_xapic_ids() -> Vec<u8> {
                 let cpuid = CpuId::new();
                 cpuid
                     .get_feature_info()
-                    .map_or_else(|| 0, |mut finfo| finfo.initial_local_apic_id())
+                    .map_or_else(|| 0, |finfo| finfo.initial_local_apic_id())
             })
             .join()
             .unwrap_or(0)
@@ -71,9 +71,9 @@ fn enumerate_with_extended_topology_info() {
     cpuid.get_extended_topology_info().map_or_else(
         || println!("No topology information available."),
         |topoiter| {
-            let mut topology: Vec<ExtendedTopologyLevel> = topoiter.collect();
+            let topology: Vec<ExtendedTopologyLevel> = topoiter.collect();
             for topolevel in topology.iter() {
-                let typ = match topolevel.level_type() {
+                match topolevel.level_type() {
                     TopologyType::SMT => {
                         smt_x2apic_shift = topolevel.shift_right_for_next_apic_id();
                     }
@@ -109,7 +109,7 @@ fn enumerate_with_legacy_leaf_1_4() {
     let cpuid = CpuId::new();
     let max_logical_processor_ids = cpuid
         .get_feature_info()
-        .map_or_else(|| 0, |mut finfo| finfo.max_logical_processor_ids());
+        .map_or_else(|| 0, |finfo| finfo.max_logical_processor_ids());
 
     let mut smt_max_cores_for_package: u8 = 0;
     cpuid.get_cache_parameters().map_or_else(
@@ -135,7 +135,7 @@ fn enumerate_with_legacy_leaf_1_4() {
     let core_only_select_mask =
         (!(u8::max_value() << (core_mask_width + smt_mask_width))) ^ smt_select_mask;
 
-    let pkg_select_mask = (u8::max_value() << (core_mask_width + smt_mask_width));
+    let pkg_select_mask = u8::max_value() << (core_mask_width + smt_mask_width);
 
     println!("Enumeration of all cores in the system (with APIC IDs):");
     let mut all_xapic_ids: Vec<u8> = gather_all_xapic_ids();

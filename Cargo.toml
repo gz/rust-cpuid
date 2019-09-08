@@ -34,8 +34,3 @@ core_affinity = "0.5.9"
 [build-dependencies]
 rustc_version = "0.2"
 cc = "1"
-
-[[test]]
-name = "no_std_build"
-harness = false
-path = "tests/no_std_build.rs"
