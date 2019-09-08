@@ -3726,12 +3726,22 @@ impl ProcessorTraceInfo {
 }
 
 /// Time Stamp Counter and Nominal Core Crystal Clock Information Leaf.
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct TscInfo {
     eax: u32,
     ebx: u32,
     ecx: u32,
+}
+
+impl fmt::Debug for TscInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("TscInfo")
+            .field("denominator/eax", &self.denominator())
+            .field("numerator/ebx", &self.numerator())
+            .field("nominal_frequency/ecx", &self.nominal_frequency())
+            .finish()
+    }
 }
 
 impl TscInfo {
@@ -3741,11 +3751,15 @@ impl TscInfo {
     }
 
     /// An unsigned integer which is the numerator of the TSC/”core crystal clock” ratio.
+    ///
+    /// If this is 0, the TSC/”core crystal clock” ratio is not enumerated.
     pub fn numerator(&self) -> u32 {
         self.ebx
     }
 
     /// An unsigned integer which is the nominal frequency of the core crystal clock in Hz.
+    ///
+    /// If this is 0, the nominal core crystal clock frequency is not enumerated.
     pub fn nominal_frequency(&self) -> u32 {
         self.ecx
     }

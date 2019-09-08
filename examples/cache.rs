@@ -1,3 +1,4 @@
+//! Example that displays information about the caches.
 extern crate raw_cpuid;
 use raw_cpuid::{CacheType, CpuId};
 
