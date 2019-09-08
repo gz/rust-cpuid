@@ -55,7 +55,7 @@ fn main() {
         hv.tsc_frequency().map(|tsc_khz| {
             let virtual_tsc_frequency_hz = tsc_khz as u64 * KHZ_TO_HZ;
             println!(
-                "Hypervisor reports TSC Frequency at: {:?}",
+                "Hypervisor reports TSC Frequency at: {} Hz",
                 virtual_tsc_frequency_hz
             );
         })
