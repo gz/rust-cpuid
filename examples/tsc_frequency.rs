@@ -1,4 +1,4 @@
-//! An example that displays RDTSC frequency.
+//! An example that determines the time stamp counter frequency (RDTSC, RDTSCP) .
 extern crate raw_cpuid;
 extern crate x86;
 
