@@ -62,15 +62,13 @@ fn main() {
     });
 
     let one_second = time::Duration::from_secs(1);
-    unsafe {
-        let now = time::Instant::now();
-        let start = rdtscp();
-        loop {
-            if now.elapsed() >= one_second {
-                break;
-            }
+    let now = time::Instant::now();
+    let start = unsafe { rdtscp() };
+    loop {
+        if now.elapsed() >= one_second {
+            break;
         }
-        let end = rdtscp();
-        println!("Empirical measurement of TSC was: {} Hz", (end - start));
     }
+    let end = unsafe { rdtscp() };
+    println!("Empirical measurement of TSC was: {} Hz", (end - start));
 }
