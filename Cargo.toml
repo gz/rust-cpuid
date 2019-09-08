@@ -29,6 +29,7 @@ serde_derive = {version = "1.0", optional = true }
 
 [target.'cfg(unix)'.dev-dependencies]
 libc = { version = "0.2", default-features = false }
+core_affinity = "0.5.9"
 
 [build-dependencies]
 rustc_version = "0.2"
