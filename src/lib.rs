@@ -483,7 +483,7 @@ impl CpuId {
 
     pub fn get_hypervisor_info(&self) -> Option<HypervisorInfo> {
         let res = cpuid!(EAX_HYPERVISOR_INFO);
-        if self.leaf_is_supported(EAX_HYPERVISOR_INFO) && res.eax > 0 {
+        if res.eax > 0 {
             Some(HypervisorInfo { res: res })
         } else {
             None
