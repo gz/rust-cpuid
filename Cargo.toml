@@ -3,6 +3,7 @@ name = "raw-cpuid"
 version = "7.0.3"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 build = "build.rs"
+edition = "2018"
 
 description = "A library to parse the x86 CPUID instruction, written in rust with no external dependencies. The implementation closely resembles the Intel CPUID manual description. The library does only depend on libcore."
 homepage = "https://github.com/gz/rust-cpuid"
@@ -30,6 +31,7 @@ serde_derive = {version = "1.0", optional = true }
 [target.'cfg(unix)'.dev-dependencies]
 libc = { version = "0.2", default-features = false }
 core_affinity = "0.5.9"
+rustversion = "0.1"
 
 [build-dependencies]
 rustc_version = "0.2"
