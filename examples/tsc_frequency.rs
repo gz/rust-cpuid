@@ -72,13 +72,13 @@ fn main() {
         let one_second = time::Duration::from_secs(1);
         let now = time::Instant::now();
         let start = unsafe { rdtsc() };
-        loop {
-            if now.elapsed() >= one_second {
-                break;
+        if start > 0 {
+            loop {
+                if now.elapsed() >= one_second {
+                    break;
+                }
             }
-        }
-        let end = unsafe { rdtsc() };
-        if end > 0 {
+            let end = unsafe { rdtsc() };
             println!(
                 "Empirical measurement of TSC frequency was: {} Hz",
                 (end - start)
