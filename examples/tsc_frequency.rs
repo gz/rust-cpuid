@@ -68,25 +68,23 @@ fn main() {
             })
         });
 
-        {
-            // Determine TSC frequency by measuring it (loop for a second, record ticks)
-            let one_second = time::Duration::from_secs(1);
-            let now = time::Instant::now();
-            let start = unsafe { rdtsc() };
-            loop {
-                if now.elapsed() >= one_second {
-                    break;
-                }
+        // Determine TSC frequency by measuring it (loop for a second, record ticks)
+        let one_second = time::Duration::from_secs(1);
+        let now = time::Instant::now();
+        let start = unsafe { rdtsc() };
+        loop {
+            if now.elapsed() >= one_second {
+                break;
             }
-            let end = unsafe { rdtsc() };
-            if end > 0 {
-                println!(
-                    "Empirical measurement of TSC frequency was: {} Hz",
-                    (end - start)
-                );
-            } else {
-                // Don't have rdtsc on stable!
-            }
+        }
+        let end = unsafe { rdtsc() };
+        if end > 0 {
+            println!(
+                "Empirical measurement of TSC frequency was: {} Hz",
+                (end - start)
+            );
+        } else {
+            // Don't have rdtsc on stable!
         }
     } else {
         println!("System does not have a TSC.")
