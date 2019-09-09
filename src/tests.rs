@@ -1,4 +1,4 @@
-use *;
+use crate::*;
 
 #[test]
 fn genuine_intel() {
