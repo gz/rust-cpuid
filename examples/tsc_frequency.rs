@@ -6,8 +6,13 @@ use std::time;
 const MHZ_TO_HZ: u64 = 1000000;
 const KHZ_TO_HZ: u64 = 1000;
 
+#[cfg(target_arch = "x86_64")]
 #[rustversion::nightly]
 use core::arch::x86_64::_rdtsc as rdtsc;
+
+#[cfg(target_arch = "x86")]
+#[rustversion::nightly]
+use core::arch::x86::_rdtsc as rdtsc;
 
 #[rustversion::stable]
 unsafe fn rdtsc() -> u64 {
