@@ -1279,6 +1279,10 @@ impl ProcessorSerial {
     pub fn serial_middle(&self) -> u32 {
         self.edx
     }
+
+    pub fn serial(&self) -> u64 {
+        (self.serial_lower() as u64) | (self.serial_middle() as u64) << 32
+    }
 }
 
 #[derive(Debug, Default)]
