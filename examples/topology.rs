@@ -105,6 +105,18 @@ fn enumerate_with_extended_topology_info() {
     }
 }
 
+fn cpuid_bits_needed(count: u8) -> u8 {
+    let mut mask: u8 = 0x80;
+    let mut cnt: u8 = 8;
+
+    while (cnt > 0) && ((mask & count) != mask) {
+        mask >>= 1;
+        cnt -= 1;
+    }
+
+    cnt
+}
+
 fn enumerate_with_legacy_leaf_1_4() {
     let cpuid = CpuId::new();
     let max_logical_processor_ids = cpuid
@@ -123,18 +135,13 @@ fn enumerate_with_legacy_leaf_1_4() {
         },
     );
 
-    fn log2(o: u8) -> u8 {
-        7 - o.leading_zeros() as u8
-    }
-
-    let smt_mask_width: u8 =
-        log2(max_logical_processor_ids.next_power_of_two() / (smt_max_cores_for_package));
+    let smt_mask_width: u8 = cpuid_bits_needed(
+        (max_logical_processor_ids.next_power_of_two() / smt_max_cores_for_package) - 1,
+    );
     let smt_select_mask: u8 = !(u8::max_value() << smt_mask_width);
-
-    let core_mask_width: u8 = log2(smt_max_cores_for_package);
+    let core_mask_width: u8 = cpuid_bits_needed(smt_max_cores_for_package - 1);
     let core_only_select_mask =
         (!(u8::max_value() << (core_mask_width + smt_mask_width))) ^ smt_select_mask;
-
     let pkg_select_mask = u8::max_value() << (core_mask_width + smt_mask_width);
 
     println!("Enumeration of all cores in the system (with APIC IDs):");
