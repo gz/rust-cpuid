@@ -20,6 +20,23 @@ fn main() {
         )
     );
 
+    println!(
+        "APIC ID is: {}",
+        cpuid.get_feature_info().as_ref().map_or_else(
+            || String::from("n/a"),
+            |finfo| format!("{}", finfo.initial_local_apic_id()),
+        )
+    );
+
+    // 10.12.8.1 Consistency of APIC IDs and CPUID: "Initial APIC ID (CPUID.01H:EBX[31:24]) is always equal to CPUID.0BH:EDX[7:0]."
+    println!(
+        "x2APIC ID is: {}",
+        cpuid.get_extended_topology_info().map_or_else(
+            || String::from("n/a"),
+            |mut topiter| format!("{}", topiter.next().as_ref().unwrap().x2apic_id()),
+        )
+    );
+
     cpuid.get_feature_info().as_ref().map_or_else(
         || println!("Family: {}\nExtended Family: {}\nModel: {}\nExtended Model: {}\nStepping: {}\nBrand Index: {}", "n/a", "n/a", "n/a", "n/a", "n/a", "n/a"),
         |finfo| {
