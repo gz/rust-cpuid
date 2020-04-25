@@ -104,12 +104,12 @@ fn get_bits(r: u32, from: u32, to: u32) -> u32 {
 }
 
 macro_rules! check_flag {
-    ($doc:meta, $fun:ident, $flags:ident, $flag:expr) => (
+    ($doc:meta, $fun:ident, $flags:ident, $flag:expr) => {
         #[$doc]
         pub fn $fun(&self) -> bool {
             self.$flags.contains($flag)
         }
-    )
+    };
 }
 
 macro_rules! is_bit_set {
@@ -119,12 +119,12 @@ macro_rules! is_bit_set {
 }
 
 macro_rules! check_bit_fn {
-    ($doc:meta, $fun:ident, $field:ident, $bit:expr) => (
+    ($doc:meta, $fun:ident, $field:ident, $bit:expr) => {
         #[$doc]
         pub fn $fun(&self) -> bool {
             is_bit_set!(self.$field, $bit)
         }
-    )
+    };
 }
 
 /// Main type used to query for information about the CPU we're running on.
