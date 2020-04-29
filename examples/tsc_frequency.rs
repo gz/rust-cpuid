@@ -31,7 +31,7 @@ fn main() {
 
     let tsc_frequency_hz = cpuid.get_tsc_info().map(|tinfo| {
         if tinfo.nominal_frequency() != 0 {
-            Some(tinfo.tsc_frequency())
+            tinfo.tsc_frequency()
         } else if tinfo.numerator() != 0 && tinfo.denominator() != 0 {
             // Skylake and Kabylake don't report the crystal clock, approximate with base frequency:
             cpuid

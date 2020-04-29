@@ -84,7 +84,7 @@ fn cache_parameters() {
         },
     ];
 
-    for (idx, cache) in caches.into_iter().enumerate() {
+    for (idx, cache) in caches.iter().enumerate() {
         match idx {
             0 => {
                 assert!(cache.cache_type() == CacheType::Data);
