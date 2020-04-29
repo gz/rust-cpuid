@@ -3769,8 +3769,14 @@ impl TscInfo {
     }
 
     /// “TSC frequency” = “core crystal clock frequency” * EBX/EAX.
-    pub fn tsc_frequency(&self) -> u64 {
-        self.nominal_frequency() as u64 * self.numerator() as u64 / self.denominator() as u64
+    pub fn tsc_frequency(&self) -> Option<u64> {
+        // In some case TscInfo is a valid leaf, but the values reported are still 0
+        // we should avoid a division by zero in case denominator ends up being 0.
+        if self.nominal_frequency() == 0 || self.numerator() == 0 || self.denominator() == 0 {
+            return None;
+        }
+
+        Some(self.nominal_frequency() as u64 * self.numerator() as u64 / self.denominator() as u64)
     }
 }
 
