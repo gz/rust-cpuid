@@ -1565,6 +1565,13 @@ impl FeatureInfo {
     );
 
     check_flag!(
+        doc = "A value of 1 indicates the indicates the presence of a hypervisor.",
+        has_hypervisor,
+        edx_ecx,
+        FeatureInfoFlags::HYPERVISOR
+    );
+
+    check_flag!(
         doc = "Floating Point Unit On-Chip. The processor contains an x87 FPU.",
         has_fpu,
         edx_ecx,
@@ -1894,6 +1901,8 @@ bitflags! {
         const F16C = 1 << 29;
         /// A value of 1 indicates that processor supports RDRAND instruction.
         const RDRAND = 1 << 30;
+        /// A value of 1 indicates the indicates the presence of a hypervisor.
+        const HYPERVISOR = 1 << 31;
 
 
         // EDX flags
