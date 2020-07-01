@@ -3570,8 +3570,8 @@ impl Iterator for SgxSectionIter {
     type Item = SgxSectionInfo;
 
     fn next(&mut self) -> Option<SgxSectionInfo> {
-        self.current += 1;
         let res = cpuid!(EAX_SGX, self.current);
+        self.current += 1;
         match get_bits(res.eax, 0, 3) {
             0b0001 => Some(SgxSectionInfo::Epc(EpcSection {
                 eax: res.eax,
