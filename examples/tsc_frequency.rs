@@ -14,7 +14,7 @@ use core::arch::x86_64::_rdtsc as rdtsc;
 #[rustversion::nightly]
 use core::arch::x86::_rdtsc as rdtsc;
 
-#[rustversion::stable]
+#[rustversion::not(nightly)]
 unsafe fn rdtsc() -> u64 {
     0
 }
