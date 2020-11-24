@@ -13,6 +13,7 @@ documentation = "https://docs.rs/raw-cpuid/"
 readme = "README.md"
 keywords = ["cpuid", "x86", "amd64", "os", "libcore"]
 license = "MIT"
+exclude = ["/ci"]
 
 [[bin]]
 name = "cpuid"
@@ -24,15 +25,15 @@ nightly = []
 serialize = ["serde", "serde_derive"]
 
 [dependencies]
-bitflags = "1.1"
+bitflags = "1.2"
 serde = { version = "1.0", default-features = false, optional = true }
 serde_derive = {version = "1.0", optional = true }
 
 [target.'cfg(unix)'.dev-dependencies]
 libc = { version = "0.2", default-features = false }
-core_affinity = "0.5.9"
-rustversion = "0.1"
+core_affinity = "0.5.10"
+rustversion = "1.0"
 
 [build-dependencies]
-rustc_version = "0.2"
+rustc_version = "0.3"
 cc = "1"
