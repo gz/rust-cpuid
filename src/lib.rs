@@ -85,11 +85,6 @@ macro_rules! cpuid {
     };
 }
 
-fn as_bytes(v: &u32) -> &[u8] {
-    let start = v as *const u32 as *const u8;
-    unsafe { slice::from_raw_parts(start, 4) }
-}
-
 fn get_bits(r: u32, from: u32, to: u32) -> u32 {
     assert!(from <= 31);
     assert!(to <= 31);
@@ -636,7 +631,14 @@ impl Iterator for CacheInfoIter {
             _ => unreachable!(),
         };
 
-        let byte = as_bytes(&reg)[byte_index as usize];
+        let byte = match byte_index {
+            0 => reg,
+            1 => reg >> 8,
+            2 => reg >> 16,
+            3 => reg >> 24,
+            _ => unreachable!(),
+        } as u8;
+
         if byte == 0 {
             self.current += 1;
             return self.next();
