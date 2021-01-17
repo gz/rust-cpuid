@@ -60,7 +60,7 @@ pub mod native_cpuid {
 
 use core::cmp::min;
 use core::fmt;
-use core::mem::transmute;
+use core::mem::size_of;
 use core::slice;
 use core::str;
 
@@ -137,6 +137,7 @@ pub struct CpuId {
 /// Low-level data-structure to store result of cpuid instruction.
 #[derive(Copy, Clone, Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[repr(C)]
 pub struct CpuIdResult {
     /// Return value EAX register
     pub eax: u32,
@@ -585,6 +586,7 @@ impl CpuId {
 
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[repr(C)]
 pub struct VendorInfo {
     ebx: u32,
     edx: u32,
@@ -594,11 +596,12 @@ pub struct VendorInfo {
 impl VendorInfo {
     /// Return vendor identification as human readable string.
     pub fn as_string<'a>(&'a self) -> &'a str {
+        let brand_string_start = self as *const VendorInfo as *const u8;
         unsafe {
-            let brand_string_start = self as *const VendorInfo as *const u8;
-            let slice = slice::from_raw_parts(brand_string_start, 3 * 4);
-            let byte_array: &'a [u8] = transmute(slice);
-            str::from_utf8_unchecked(byte_array)
+            // Safety: VendorInfo is laid out with repr(C).
+            let slice: &'a [u8] = slice::from_raw_parts(brand_string_start, size_of::<VendorInfo>());
+            // Safety: The field is specified to be ASCII.
+            str::from_utf8_unchecked(slice)
         }
     }
 }
@@ -4027,19 +4030,19 @@ impl Iterator for SoCVendorAttributesIter {
 
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[repr(C)]
 pub struct SoCVendorBrand {
-    #[allow(dead_code)]
     data: [CpuIdResult; 3],
 }
 
 impl SoCVendorBrand {
     pub fn as_string<'a>(&'a self) -> &'a str {
+        let brand_string_start = self as *const SoCVendorBrand as *const u8;
         unsafe {
-            let brand_string_start = self as *const SoCVendorBrand as *const u8;
-            let slice =
-                slice::from_raw_parts(brand_string_start, core::mem::size_of::<SoCVendorBrand>());
-            let byte_array: &'a [u8] = transmute(slice);
-            str::from_utf8_unchecked(byte_array)
+            // Safety: SoCVendorBrand is laid out with repr(C).
+            let slice: &'a [u8] = slice::from_raw_parts(brand_string_start, size_of::<SoCVendorBrand>());
+            // Safety: The field is specified to be ASCII.
+            str::from_utf8_unchecked(slice)
         }
     }
 }
@@ -4152,18 +4155,16 @@ impl ExtendedFunctionInfo {
     /// Retrieve processor brand string.
     pub fn processor_brand_string<'a>(&'a self) -> Option<&'a str> {
         if self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING) {
-            Some(unsafe {
-                let brand_string_start = &self.data[2] as *const CpuIdResult as *const u8;
-                let mut slice = slice::from_raw_parts(brand_string_start, 3 * 4 * 4);
+            let brand_string_start = &self.data[2] as *const CpuIdResult as *const u8;
+            // Safety: CpuIdResult is laid out with repr(C), and the array
+            // self.data contains 9 continguous elements.
+            let slice: &'a [u8] = unsafe { slice::from_raw_parts(brand_string_start, 3 * size_of::<CpuIdResult>()) };
 
-                match slice.iter().position(|&x| x == 0) {
-                    Some(index) => slice = slice::from_raw_parts(brand_string_start, index),
-                    None => (),
-                }
+            // Brand terminated at nul byte or end, whichever comes first.
+            let slice = slice.split(|&x| x == 0).next().unwrap();
 
-                let byte_array: &'a [u8] = transmute(slice);
-                str::from_utf8_unchecked(byte_array)
-            })
+            // Safety: Field is specified to be ASCII.
+            Some(unsafe { str::from_utf8_unchecked(slice) })
         } else {
             None
         }
