@@ -600,7 +600,9 @@ impl VendorInfo {
         unsafe {
             // Safety: VendorInfo is laid out with repr(C).
             let slice: &'a [u8] = slice::from_raw_parts(brand_string_start, size_of::<VendorInfo>());
-            // Safety: The field is specified to be ASCII.
+            // Safety: The field is specified to be ASCII, and the only safe
+            // way to construct VendorInfo is from real CPUID data or the
+            // Default implementation.
             str::from_utf8_unchecked(slice)
         }
     }
@@ -4041,7 +4043,9 @@ impl SoCVendorBrand {
         unsafe {
             // Safety: SoCVendorBrand is laid out with repr(C).
             let slice: &'a [u8] = slice::from_raw_parts(brand_string_start, size_of::<SoCVendorBrand>());
-            // Safety: The field is specified to be ASCII.
+            // Safety: The field is specified to be ASCII, and the only safe
+            // way to construct SoCVendorBrand is from real CPUID data or the
+            // Default implementation.
             str::from_utf8_unchecked(slice)
         }
     }
@@ -4163,7 +4167,9 @@ impl ExtendedFunctionInfo {
             // Brand terminated at nul byte or end, whichever comes first.
             let slice = slice.split(|&x| x == 0).next().unwrap();
 
-            // Safety: Field is specified to be ASCII.
+            // Safety: Field is specified to be ASCII, and the only safe way
+            // to construct ExtendedFunctionInfo is from real CPUID data
+            // or the Default implementation.
             Some(unsafe { str::from_utf8_unchecked(slice) })
         } else {
             None
