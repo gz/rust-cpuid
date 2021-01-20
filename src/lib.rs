@@ -15,29 +15,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate bitflags;
 
-/// Provides `cpuid` on stable by linking against a C implementation.
-#[cfg(not(feature = "use_arch"))]
-pub mod native_cpuid {
-    use super::CpuIdResult;
-
-    extern "C" {
-        fn cpuid(a: *mut u32, b: *mut u32, c: *mut u32, d: *mut u32);
-    }
-
-    pub fn cpuid_count(mut eax: u32, mut ecx: u32) -> CpuIdResult {
-        let mut ebx = 0u32;
-        let mut edx = 0u32;
-
-        unsafe {
-            cpuid(&mut eax, &mut ebx, &mut ecx, &mut edx);
-        }
-
-        CpuIdResult { eax, ebx, ecx, edx }
-    }
-}
-
 /// Uses Rust's `cpuid` function from the `arch` module.
-#[cfg(feature = "use_arch")]
 pub mod native_cpuid {
     use super::CpuIdResult;
 
