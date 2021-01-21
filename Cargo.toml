@@ -1,6 +1,6 @@
 [package]
 name = "raw-cpuid"
-version = "9"
+version = "9.0.0"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 edition = "2018"
 
