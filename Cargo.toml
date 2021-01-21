@@ -1,6 +1,6 @@
 [package]
 name = "raw-cpuid"
-version = "8.1.2"
+version = "9"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 edition = "2018"
 
@@ -13,14 +13,13 @@ readme = "README.md"
 keywords = ["cpuid", "x86", "amd64", "os", "libcore"]
 license = "MIT"
 exclude = ["/ci"]
+rust = "1.26"
 
 [[bin]]
 name = "cpuid"
 path = "src/bin/cpuid.rs"
 
 [features]
-use_arch = []
-nightly = []
 serialize = ["serde", "serde_derive"]
 
 [dependencies]
