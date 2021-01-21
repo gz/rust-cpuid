@@ -19,12 +19,14 @@ extern crate bitflags;
 pub mod native_cpuid {
     use super::CpuIdResult;
 
-    #[cfg(target_arch = "x86")]
+    #[cfg(all(target_arch = "x86", not(target_env = "sgx"), target_feature = "sse"))]
     use core::arch::x86 as arch;
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(all(target_arch = "x86_64", not(target_env = "sgx")))]
     use core::arch::x86_64 as arch;
 
     pub fn cpuid_count(a: u32, c: u32) -> CpuIdResult {
+        // Safety: CPUID is supported on all x86_64 CPUs and all x86 CPUs with
+        // SSE, but not by SGX.
         let result = unsafe { self::arch::__cpuid_count(a, c) };
 
         CpuIdResult {
