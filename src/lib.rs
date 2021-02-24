@@ -1321,6 +1321,27 @@ impl FeatureInfo {
         get_bits(self.ebx, 24, 31) as u8
     }
 
+    pub fn amd_family_id(&self) -> u8 {
+        let base_family_id = self.family_id();
+        let extended_family_id = self.extended_family_id();
+        if base_family_id < 0xF {
+            base_family_id
+        } else {
+            base_family_id + extended_family_id
+        }
+    }
+
+    pub fn amd_model_id(&self) -> u8 {
+        let base_family_id = self.family_id();
+        let base_model_id = self.model_id();
+        let extended_model_id = self.extended_model_id();
+        if base_family_id < 0xF {
+            base_model_id
+        } else {
+            (extended_model_id << 4) | base_model_id
+        }
+    }
+
     /// Maximum number of addressable IDs for logical processors in this physical package.
     pub fn max_logical_processor_ids(&self) -> u8 {
         get_bits(self.ebx, 16, 23) as u8
