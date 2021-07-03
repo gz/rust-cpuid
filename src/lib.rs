@@ -140,11 +140,51 @@ macro_rules! check_bit_fn {
     };
 }
 
+/// Implements function to read/write cpuid.
+/// This allows to conveniently swap out the underlying cpuid implementation
+/// with one that returns data that is deterministic (for unit-testing).
+#[derive(Debug, Clone, Copy)]
+struct CpuIdReader {
+    cpuid_fn: fn(u32, u32) -> CpuIdResult,
+}
+
+impl CpuIdReader {
+    pub(crate) fn _new(cpuid_fn: fn(u32, u32) -> CpuIdResult) -> Self {
+        Self { cpuid_fn }
+    }
+
+    fn cpuid1(&self, eax: u32) -> CpuIdResult {
+        (self.cpuid_fn)(eax, 0)
+    }
+
+    fn cpuid2(&self, eax: u32, ecx: u32) -> CpuIdResult {
+        (self.cpuid_fn)(eax, ecx)
+    }
+}
+
+impl Default for CpuIdReader {
+    fn default() -> Self {
+        Self {
+            cpuid_fn: native_cpuid::cpuid_count,
+        }
+    }
+}
+
 /// Main type used to query for information about the CPU we're running on.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CpuId {
-    max_eax_value: u32,
+    read: CpuIdReader,
+    supported_leafs: u32,
+}
+
+impl Default for CpuId {
+    fn default() -> CpuId {
+        CpuId {
+            supported_leafs: cpuid!(EAX_VENDOR_INFO).eax,
+            read: CpuIdReader::default(),
+        }
+    }
 }
 
 /// Low-level data-structure to store result of cpuid instruction.
@@ -189,14 +229,12 @@ const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000001F;
 impl CpuId {
     /// Return new CPUID struct.
     pub fn new() -> CpuId {
-        let res = cpuid!(EAX_VENDOR_INFO);
-        CpuId {
-            max_eax_value: res.eax,
-        }
+        CpuId::default()
     }
 
+    /// Check if a non extended leaf  (`val`) is supported.
     fn leaf_is_supported(&self, val: u32) -> bool {
-        val <= self.max_eax_value
+        val <= self.supported_leafs
     }
 
     /// Return information about vendor.
@@ -204,7 +242,7 @@ impl CpuId {
     /// GenuineIntel for Intel CPUs or AuthenticAMD for AMD CPUs.
     pub fn get_vendor_info(&self) -> Option<VendorInfo> {
         if self.leaf_is_supported(EAX_VENDOR_INFO) {
-            let res = cpuid!(EAX_VENDOR_INFO);
+            let res = self.read.cpuid1(EAX_VENDOR_INFO);
             Some(VendorInfo {
                 ebx: res.ebx,
                 ecx: res.ecx,
@@ -218,7 +256,7 @@ impl CpuId {
     /// Query a set of features that are available on this CPU.
     pub fn get_feature_info(&self) -> Option<FeatureInfo> {
         if self.leaf_is_supported(EAX_FEATURE_INFO) {
-            let res = cpuid!(EAX_FEATURE_INFO);
+            let res = self.read.cpuid1(EAX_FEATURE_INFO);
             Some(FeatureInfo {
                 eax: res.eax,
                 ebx: res.ebx,
@@ -235,7 +273,7 @@ impl CpuId {
     /// into a static table of cache descriptions (see `CACHE_INFO_TABLE`).
     pub fn get_cache_info(&self) -> Option<CacheInfoIter> {
         if self.leaf_is_supported(EAX_CACHE_INFO) {
-            let res = cpuid!(EAX_CACHE_INFO);
+            let res = self.read.cpuid1(EAX_CACHE_INFO);
             Some(CacheInfoIter {
                 current: 1,
                 eax: res.eax,
@@ -251,7 +289,7 @@ impl CpuId {
     /// Retrieve serial number of processor.
     pub fn get_processor_serial(&self) -> Option<ProcessorSerial> {
         if self.leaf_is_supported(EAX_PROCESSOR_SERIAL) {
-            let res = cpuid!(EAX_PROCESSOR_SERIAL);
+            let res = self.read.cpuid1(EAX_PROCESSOR_SERIAL);
             Some(ProcessorSerial {
                 ecx: res.ecx,
                 edx: res.edx,
@@ -266,7 +304,10 @@ impl CpuId {
     /// set size, line size etc. for each level of the cache hierarchy.
     pub fn get_cache_parameters(&self) -> Option<CacheParametersIter> {
         if self.leaf_is_supported(EAX_CACHE_PARAMETERS) {
-            Some(CacheParametersIter { current: 0 })
+            Some(CacheParametersIter {
+                read: self.read,
+                current: 0,
+            })
         } else {
             None
         }
@@ -275,7 +316,7 @@ impl CpuId {
     /// Information about how monitor/mwait works on this CPU.
     pub fn get_monitor_mwait_info(&self) -> Option<MonitorMwaitInfo> {
         if self.leaf_is_supported(EAX_MONITOR_MWAIT_INFO) {
-            let res = cpuid!(EAX_MONITOR_MWAIT_INFO);
+            let res = self.read.cpuid1(EAX_MONITOR_MWAIT_INFO);
             Some(MonitorMwaitInfo {
                 eax: res.eax,
                 ebx: res.ebx,
@@ -290,7 +331,7 @@ impl CpuId {
     /// Query information about thermal and power management features of the CPU.
     pub fn get_thermal_power_info(&self) -> Option<ThermalPowerInfo> {
         if self.leaf_is_supported(EAX_THERMAL_POWER_INFO) {
-            let res = cpuid!(EAX_THERMAL_POWER_INFO);
+            let res = self.read.cpuid1(EAX_THERMAL_POWER_INFO);
             Some(ThermalPowerInfo {
                 eax: ThermalPowerFeaturesEax { bits: res.eax },
                 ebx: res.ebx,
@@ -305,7 +346,7 @@ impl CpuId {
     /// Find out about more features supported by this CPU.
     pub fn get_extended_feature_info(&self) -> Option<ExtendedFeatures> {
         if self.leaf_is_supported(EAX_STRUCTURED_EXTENDED_FEATURE_INFO) {
-            let res = cpuid!(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
+            let res = self.read.cpuid1(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
             Some(ExtendedFeatures {
                 eax: res.eax,
                 ebx: ExtendedFeaturesEbx { bits: res.ebx },
@@ -320,7 +361,7 @@ impl CpuId {
     /// Direct cache access info.
     pub fn get_direct_cache_access_info(&self) -> Option<DirectCacheAccessInfo> {
         if self.leaf_is_supported(EAX_DIRECT_CACHE_ACCESS_INFO) {
-            let res = cpuid!(EAX_DIRECT_CACHE_ACCESS_INFO);
+            let res = self.read.cpuid1(EAX_DIRECT_CACHE_ACCESS_INFO);
             Some(DirectCacheAccessInfo { eax: res.eax })
         } else {
             None
@@ -330,7 +371,7 @@ impl CpuId {
     /// Info about performance monitoring (how many counters etc.).
     pub fn get_performance_monitoring_info(&self) -> Option<PerformanceMonitoringInfo> {
         if self.leaf_is_supported(EAX_PERFORMANCE_MONITOR_INFO) {
-            let res = cpuid!(EAX_PERFORMANCE_MONITOR_INFO);
+            let res = self.read.cpuid1(EAX_PERFORMANCE_MONITOR_INFO);
             Some(PerformanceMonitoringInfo {
                 eax: res.eax,
                 ebx: PerformanceMonitoringFeaturesEbx { bits: res.ebx },
@@ -345,7 +386,10 @@ impl CpuId {
     /// Information about topology (how many cores and what kind of cores).
     pub fn get_extended_topology_info(&self) -> Option<ExtendedTopologyIter> {
         if self.leaf_is_supported(EAX_EXTENDED_TOPOLOGY_INFO) {
-            Some(ExtendedTopologyIter { level: 0 })
+            Some(ExtendedTopologyIter {
+                read: self.read,
+                level: 0,
+            })
         } else {
             None
         }
@@ -354,9 +398,10 @@ impl CpuId {
     /// Information for saving/restoring extended register state.
     pub fn get_extended_state_info(&self) -> Option<ExtendedStateInfo> {
         if self.leaf_is_supported(EAX_EXTENDED_STATE_INFO) {
-            let res = cpuid!(EAX_EXTENDED_STATE_INFO, 0);
-            let res1 = cpuid!(EAX_EXTENDED_STATE_INFO, 1);
+            let res = self.read.cpuid2(EAX_EXTENDED_STATE_INFO, 0);
+            let res1 = self.read.cpuid2(EAX_EXTENDED_STATE_INFO, 1);
             Some(ExtendedStateInfo {
+                read: self.read,
                 eax: ExtendedStateInfoXCR0Flags { bits: res.eax },
                 ebx: res.ebx,
                 ecx: res.ecx,
@@ -373,10 +418,11 @@ impl CpuId {
 
     /// Quality of service informations.
     pub fn get_rdt_monitoring_info(&self) -> Option<RdtMonitoringInfo> {
-        let res = cpuid!(EAX_RDT_MONITORING, 0);
+        let res = self.read.cpuid1(EAX_RDT_MONITORING);
 
         if self.leaf_is_supported(EAX_RDT_MONITORING) {
             Some(RdtMonitoringInfo {
+                read: self.read,
                 ebx: res.ebx,
                 edx: res.edx,
             })
@@ -387,10 +433,13 @@ impl CpuId {
 
     /// Quality of service enforcement information.
     pub fn get_rdt_allocation_info(&self) -> Option<RdtAllocationInfo> {
-        let res = cpuid!(EAX_RDT_ALLOCATION, 0);
+        let res = self.read.cpuid1(EAX_RDT_ALLOCATION);
 
         if self.leaf_is_supported(EAX_RDT_ALLOCATION) {
-            Some(RdtAllocationInfo { ebx: res.ebx })
+            Some(RdtAllocationInfo {
+                read: self.read,
+                ebx: res.ebx,
+            })
         } else {
             None
         }
@@ -400,9 +449,10 @@ impl CpuId {
         // Leaf 12H sub-leaf 0 (ECX = 0) is supported if CPUID.(EAX=07H, ECX=0H):EBX[SGX] = 1.
         self.get_extended_feature_info().and_then(|info| {
             if self.leaf_is_supported(EAX_SGX) && info.has_sgx() {
-                let res = cpuid!(EAX_SGX, 0);
-                let res1 = cpuid!(EAX_SGX, 1);
+                let res = self.read.cpuid2(EAX_SGX, 0);
+                let res1 = self.read.cpuid2(EAX_SGX, 1);
                 Some(SgxInfo {
+                    read: self.read,
                     eax: res.eax,
                     ebx: res.ebx,
                     ecx: res.ecx,
@@ -420,10 +470,10 @@ impl CpuId {
 
     /// Intel Processor Trace Enumeration Information.
     pub fn get_processor_trace_info(&self) -> Option<ProcessorTraceInfo> {
-        let res = cpuid!(EAX_TRACE_INFO, 0);
+        let res = self.read.cpuid2(EAX_TRACE_INFO, 0);
         if self.leaf_is_supported(EAX_TRACE_INFO) {
             let res1 = if res.eax >= 1 {
-                Some(cpuid!(EAX_TRACE_INFO, 1))
+                Some(self.read.cpuid2(EAX_TRACE_INFO, 1))
             } else {
                 None
             };
@@ -442,7 +492,7 @@ impl CpuId {
 
     /// Time Stamp Counter/Core Crystal Clock Information.
     pub fn get_tsc_info(&self) -> Option<TscInfo> {
-        let res = cpuid!(EAX_TIME_STAMP_COUNTER_INFO, 0);
+        let res = self.read.cpuid2(EAX_TIME_STAMP_COUNTER_INFO, 0);
         if self.leaf_is_supported(EAX_TIME_STAMP_COUNTER_INFO) {
             Some(TscInfo {
                 eax: res.eax,
@@ -456,7 +506,7 @@ impl CpuId {
 
     /// Processor Frequency Information.
     pub fn get_processor_frequency_info(&self) -> Option<ProcessorFrequencyInfo> {
-        let res = cpuid!(EAX_FREQUENCY_INFO, 0);
+        let res = self.read.cpuid1(EAX_FREQUENCY_INFO);
         if self.leaf_is_supported(EAX_FREQUENCY_INFO) {
             Some(ProcessorFrequencyInfo {
                 eax: res.eax,
@@ -470,8 +520,11 @@ impl CpuId {
 
     pub fn deterministic_address_translation_info(&self) -> Option<DatIter> {
         if self.leaf_is_supported(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO) {
-            let res = cpuid!(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO, 0);
+            let res = self
+                .read
+                .cpuid2(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO, 0);
             Some(DatIter {
+                read: self.read,
                 current: 0,
                 count: res.eax,
             })
@@ -481,9 +534,10 @@ impl CpuId {
     }
 
     pub fn get_soc_vendor_info(&self) -> Option<SoCVendorInfo> {
-        let res = cpuid!(EAX_SOC_VENDOR_INFO, 0);
+        let res = self.read.cpuid1(EAX_SOC_VENDOR_INFO);
         if self.leaf_is_supported(EAX_SOC_VENDOR_INFO) {
             Some(SoCVendorInfo {
+                read: self.read,
                 eax: res.eax,
                 ebx: res.ebx,
                 ecx: res.ecx,
@@ -495,9 +549,12 @@ impl CpuId {
     }
 
     pub fn get_hypervisor_info(&self) -> Option<HypervisorInfo> {
-        let res = cpuid!(EAX_HYPERVISOR_INFO);
+        let res = self.read.cpuid1(EAX_HYPERVISOR_INFO);
         if res.eax > 0 {
-            Some(HypervisorInfo { res })
+            Some(HypervisorInfo {
+                read: self.read,
+                res,
+            })
         } else {
             None
         }
@@ -506,7 +563,7 @@ impl CpuId {
     /// Extended functionality of CPU described here (including more supported features).
     /// This also contains a more detailed CPU model identifier.
     pub fn get_extended_function_info(&self) -> Option<ExtendedFunctionInfo> {
-        let res = cpuid!(EAX_EXTENDED_FUNCTION_INFO);
+        let res = self.read.cpuid1(EAX_EXTENDED_FUNCTION_INFO);
 
         if res.eax == 0 {
             return None;
@@ -574,19 +631,19 @@ impl CpuId {
 
         let max_eax_value = min(ef.max_eax_value + 1, ef.data.len() as u32);
         for i in 1..max_eax_value {
-            ef.data[i as usize] = cpuid!(EAX_EXTENDED_FUNCTION_INFO + i);
+            ef.data[i as usize] = self.read.cpuid1(EAX_EXTENDED_FUNCTION_INFO + i);
         }
 
         Some(ef)
     }
 
     pub fn get_memory_encryption_info(&self) -> Option<MemoryEncryptionInfo> {
-        let res = cpuid!(EAX_EXTENDED_FUNCTION_INFO);
+        let res = self.read.cpuid1(EAX_EXTENDED_FUNCTION_INFO);
         if res.eax < EAX_MEMORY_ENCRYPTION_INFO {
             return None;
         }
 
-        let res = cpuid!(EAX_MEMORY_ENCRYPTION_INFO);
+        let res = self.read.cpuid1(EAX_MEMORY_ENCRYPTION_INFO);
         Some(MemoryEncryptionInfo {
             eax: MemoryEncryptionInfoEax { bits: res.eax },
             ebx: res.ebx,
@@ -2002,6 +2059,7 @@ bitflags! {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParametersIter {
+    read: CpuIdReader,
     current: u32,
 }
 
@@ -2012,7 +2070,7 @@ impl Iterator for CacheParametersIter {
     /// Note: cpuid is called every-time we this function to get information
     /// about next cache.
     fn next(&mut self) -> Option<CacheParameter> {
-        let res = cpuid!(EAX_CACHE_PARAMETERS, self.current);
+        let res = self.read.cpuid2(EAX_CACHE_PARAMETERS, self.current);
         let cp = CacheParameter {
             eax: res.eax,
             ebx: res.ebx,
@@ -2933,6 +2991,7 @@ bitflags! {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedTopologyIter {
+    read: CpuIdReader,
     level: u32,
 }
 
@@ -3013,7 +3072,7 @@ impl Iterator for ExtendedTopologyIter {
     type Item = ExtendedTopologyLevel;
 
     fn next(&mut self) -> Option<ExtendedTopologyLevel> {
-        let res = cpuid!(EAX_EXTENDED_TOPOLOGY_INFO, self.level);
+        let res = self.read.cpuid2(EAX_EXTENDED_TOPOLOGY_INFO, self.level);
         self.level += 1;
 
         let et = ExtendedTopologyLevel {
@@ -3081,6 +3140,7 @@ bitflags! {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedStateInfo {
+    read: CpuIdReader,
     eax: ExtendedStateInfoXCR0Flags,
     ebx: u32,
     ecx: u32,
@@ -3211,6 +3271,7 @@ impl ExtendedStateInfo {
     /// Iterator over extended state enumeration levels >= 2.
     pub fn iter(&self) -> ExtendedStateIter {
         ExtendedStateIter {
+            read: self.read,
             level: 1,
             supported_xcr0: self.eax.bits(),
             supported_xss: self.ecx1.bits(),
@@ -3221,6 +3282,7 @@ impl ExtendedStateInfo {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedStateIter {
+    read: CpuIdReader,
     level: u32,
     supported_xcr0: u32,
     supported_xss: u32,
@@ -3248,7 +3310,7 @@ impl Iterator for ExtendedStateIter {
 
         let bit = 1 << self.level;
         if (self.supported_xcr0 & bit > 0) || (self.supported_xss & bit > 0) {
-            let res = cpuid!(EAX_EXTENDED_STATE_INFO, self.level);
+            let res = self.read.cpuid2(EAX_EXTENDED_STATE_INFO, self.level);
             return Some(ExtendedState {
                 subleaf: self.level,
                 eax: res.eax,
@@ -3307,6 +3369,7 @@ impl ExtendedState {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct RdtMonitoringInfo {
+    read: CpuIdReader,
     ebx: u32,
     edx: u32,
 }
@@ -3328,7 +3391,7 @@ impl RdtMonitoringInfo {
     /// L3 Cache Monitoring.
     pub fn l3_monitoring(&self) -> Option<L3MonitoringInfo> {
         if self.has_l3_monitoring() {
-            let res = cpuid!(EAX_RDT_MONITORING, 1);
+            let res = self.read.cpuid2(EAX_RDT_MONITORING, 1);
             Some(L3MonitoringInfo {
                 ebx: res.ebx,
                 ecx: res.ecx,
@@ -3384,6 +3447,7 @@ impl L3MonitoringInfo {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct RdtAllocationInfo {
+    read: CpuIdReader,
     ebx: u32,
 }
 
@@ -3402,7 +3466,7 @@ impl RdtAllocationInfo {
     /// L3 Cache Allocation Information.
     pub fn l3_cat(&self) -> Option<L3CatInfo> {
         if self.has_l3_cat() {
-            let res = cpuid!(EAX_RDT_ALLOCATION, 1);
+            let res = self.read.cpuid2(EAX_RDT_ALLOCATION, 1);
             Some(L3CatInfo {
                 eax: res.eax,
                 ebx: res.ebx,
@@ -3417,7 +3481,7 @@ impl RdtAllocationInfo {
     /// L2 Cache Allocation Information.
     pub fn l2_cat(&self) -> Option<L2CatInfo> {
         if self.has_l2_cat() {
-            let res = cpuid!(EAX_RDT_ALLOCATION, 2);
+            let res = self.read.cpuid2(EAX_RDT_ALLOCATION, 2);
             Some(L2CatInfo {
                 eax: res.eax,
                 ebx: res.ebx,
@@ -3431,7 +3495,7 @@ impl RdtAllocationInfo {
     /// Memory Bandwidth Allocation Information.
     pub fn memory_bandwidth_allocation(&self) -> Option<MemBwAllocationInfo> {
         if self.has_l2_cat() {
-            let res = cpuid!(EAX_RDT_ALLOCATION, 3);
+            let res = self.read.cpuid2(EAX_RDT_ALLOCATION, 3);
             Some(MemBwAllocationInfo {
                 eax: res.eax,
                 ecx: res.ecx,
@@ -3535,6 +3599,7 @@ impl MemBwAllocationInfo {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SgxInfo {
+    read: CpuIdReader,
     eax: u32,
     ebx: u32,
     ecx: u32,
@@ -3586,7 +3651,10 @@ impl SgxInfo {
     }
     /// Iterator over SGX sub-leafs.
     pub fn iter(&self) -> SgxSectionIter {
-        SgxSectionIter { current: 2 }
+        SgxSectionIter {
+            read: self.read,
+            current: 2,
+        }
     }
 }
 
@@ -3594,6 +3662,7 @@ impl SgxInfo {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SgxSectionIter {
+    read: CpuIdReader,
     current: u32,
 }
 
@@ -3601,7 +3670,7 @@ impl Iterator for SgxSectionIter {
     type Item = SgxSectionInfo;
 
     fn next(&mut self) -> Option<SgxSectionInfo> {
-        let res = cpuid!(EAX_SGX, self.current);
+        let res = self.read.cpuid2(EAX_SGX, self.current);
         self.current += 1;
         match get_bits(res.eax, 0, 3) {
             0b0001 => Some(SgxSectionInfo::Epc(EpcSection {
@@ -3850,6 +3919,7 @@ impl ProcessorFrequencyInfo {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DatIter {
+    read: CpuIdReader,
     current: u32,
     count: u32,
 }
@@ -3865,7 +3935,9 @@ impl Iterator for DatIter {
                 return None;
             }
 
-            let res = cpuid!(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO, self.current);
+            let res = self
+                .read
+                .cpuid2(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO, self.current);
             self.current += 1;
 
             // A sub-leaf index is also invalid if EDX[4:0] returns 0.
@@ -3996,6 +4068,7 @@ impl Default for DatType {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorInfo {
+    read: CpuIdReader,
     /// MaxSOCID_Index
     eax: u32,
     ebx: u32,
@@ -4018,15 +4091,16 @@ impl SoCVendorInfo {
 
     pub fn get_vendor_brand(&self) -> SoCVendorBrand {
         assert!(self.eax >= 3); // Leaf 17H is valid if MaxSOCID_Index >= 3.
-        let r1 = cpuid!(EAX_SOC_VENDOR_INFO, 1);
-        let r2 = cpuid!(EAX_SOC_VENDOR_INFO, 2);
-        let r3 = cpuid!(EAX_SOC_VENDOR_INFO, 3);
+        let r1 = self.read.cpuid2(EAX_SOC_VENDOR_INFO, 1);
+        let r2 = self.read.cpuid2(EAX_SOC_VENDOR_INFO, 2);
+        let r3 = self.read.cpuid2(EAX_SOC_VENDOR_INFO, 3);
         SoCVendorBrand { data: [r1, r2, r3] }
     }
 
     pub fn get_vendor_attributes(&self) -> Option<SoCVendorAttributesIter> {
         if self.eax > 3 {
             Some(SoCVendorAttributesIter {
+                read: self.read,
                 count: self.eax,
                 current: 3,
             })
@@ -4039,6 +4113,7 @@ impl SoCVendorInfo {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorAttributesIter {
+    read: CpuIdReader,
     count: u32,
     current: u32,
 }
@@ -4052,7 +4127,7 @@ impl Iterator for SoCVendorAttributesIter {
             return None;
         }
         self.count += 1;
-        Some(cpuid!(EAX_SOC_VENDOR_INFO, self.count))
+        Some(self.read.cpuid2(EAX_SOC_VENDOR_INFO, self.count))
     }
 }
 
@@ -4084,8 +4159,12 @@ impl fmt::Display for SoCVendorBrand {
     }
 }
 
-/// Information about Hypervisor (https://lwn.net/Articles/301888/)
+/// Information about Hypervisor
+///
+/// More information about this semi-official leaf can be found here
+/// <https://lwn.net/Articles/301888/>
 pub struct HypervisorInfo {
+    read: CpuIdReader,
     res: CpuIdResult,
 }
 
@@ -4129,7 +4208,7 @@ impl HypervisorInfo {
         // vm aware tsc frequency retrieval:
         // # EAX: (Virtual) TSC frequency in kHz.
         if self.res.eax >= 0x40000010 {
-            let virt_tinfo = cpuid!(0x40000010, 0);
+            let virt_tinfo = self.read.cpuid2(0x40000010, 0);
             Some(virt_tinfo.eax)
         } else {
             None
@@ -4140,7 +4219,7 @@ impl HypervisorInfo {
     pub fn apic_frequency(&self) -> Option<u32> {
         // # EBX: (Virtual) Bus (local apic timer) frequency in kHz.
         if self.res.eax >= 0x40000010 {
-            let virt_tinfo = cpuid!(0x40000010, 0);
+            let virt_tinfo = self.read.cpuid2(0x40000010, 0);
             Some(virt_tinfo.ebx)
         } else {
             None

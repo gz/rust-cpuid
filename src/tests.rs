@@ -371,6 +371,7 @@ fn extended_topology_info() {
 #[test]
 fn extended_state_info() {
     let es = ExtendedStateInfo {
+        read: Default::default(),
         eax: ExtendedStateInfoXCR0Flags { bits: 7 },
         ebx: 832,
         ecx: 832,
@@ -397,6 +398,7 @@ fn extended_state_info3() {
     });*/
 
     let esi = ExtendedStateInfo {
+        read: Default::default(),
         eax: ExtendedStateInfoXCR0Flags::LEGACY_X87
             | ExtendedStateInfoXCR0Flags::SSE128
             | ExtendedStateInfoXCR0Flags::AVX256
@@ -555,6 +557,7 @@ fn extended_state_info3() {
 #[test]
 fn extended_state_info2() {
     let es = ExtendedStateInfo {
+        read: Default::default(),
         eax: ExtendedStateInfoXCR0Flags { bits: 31 },
         ebx: 1088,
         ecx: 1088,
@@ -628,7 +631,11 @@ fn extended_state_info2() {
 
 #[test]
 fn quality_of_service_info() {
-    let qos = RdtMonitoringInfo { ebx: 832, edx: 0 };
+    let qos = RdtMonitoringInfo {
+        read: Default::default(),
+        ebx: 832,
+        edx: 0,
+    };
 
     assert!(qos.rmid_range() == 832);
     assert!(!qos.has_l3_monitoring());
@@ -722,6 +729,7 @@ fn extended_functions() {
 #[test]
 fn sgx_test() {
     let sgx = SgxInfo {
+        read: Default::default(),
         eax: 1,
         ebx: 0,
         ecx: 0,
