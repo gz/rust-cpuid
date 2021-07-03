@@ -559,6 +559,11 @@ impl CpuId {
     }
 }
 
+/// Vendor Info String, that can be for example "AuthenticAMD" or "GenuineIntel".
+///
+/// ## Technical Background
+/// The vendor info is a 12-byte (96 bit) long string stored in `ebx`, `edx` and `ecx` by
+/// the corresponding `cpuid` instruction.
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[repr(C)]
@@ -573,7 +578,8 @@ impl VendorInfo {
     pub fn as_string<'a>(&'a self) -> &'a str {
         let brand_string_start = self as *const VendorInfo as *const u8;
         unsafe {
-            // Safety: VendorInfo is laid out with repr(C).
+            // Safety: VendorInfo is laid out with repr(C) and exactly
+            // 12 byte long without any padding.
             let slice: &'a [u8] = slice::from_raw_parts(brand_string_start, size_of::<VendorInfo>());
             // Safety: The field is specified to be ASCII, and the only safe
             // way to construct VendorInfo is from real CPUID data or the
