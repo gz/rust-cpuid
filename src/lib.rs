@@ -12,7 +12,7 @@
 //! let cpuid = CpuId::new();
 //!
 //! match cpuid.get_vendor_info() {
-//!     Some(vf) => assert!(vf.as_string() == "GenuineIntel"),
+//!     Some(vf) => assert!(vf.as_string() == "GenuineIntel" || vf.as_string() == "AuthenticAMD"),
 //!     None => ()
 //! }
 //!
@@ -4443,4 +4443,16 @@ bitflags! {
         /// Bit 03: SEV-ES supported
         const SEV_ES = 1 << 3;
     }
+}
+
+#[cfg(doctest)]
+mod test_readme {
+    macro_rules! external_doc_test {
+        ($x:expr) => {
+            #[doc = $x]
+            extern "C" {}
+        };
+    }
+
+    external_doc_test!(include_str!("../README.md"));
 }

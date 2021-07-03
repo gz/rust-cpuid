@@ -5,11 +5,13 @@ A library to parse the x86 CPUID instruction, written in rust with no external d
 The code should be in sync with the latest March 2018 revision of the Intel Architectures Software Developer’s Manual.
 
 ## Library usage
+
 ```rust
+use raw_cpuid::CpuId;
 let cpuid = CpuId::new();
 
 match cpuid.get_vendor_info() {
-    Some(vf) => assert!(vf.as_string() == "GenuineIntel"),
+    Some(vf) => assert!(vf.as_string() == "GenuineIntel" || vf.as_string() == "AuthenticAMD"),
     None => ()
 }
 
