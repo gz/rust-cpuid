@@ -306,7 +306,6 @@ impl CpuId {
     pub fn get_extended_feature_info(&self) -> Option<ExtendedFeatures> {
         if self.leaf_is_supported(EAX_STRUCTURED_EXTENDED_FEATURE_INFO) {
             let res = cpuid!(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
-            assert!(res.eax == 0);
             Some(ExtendedFeatures {
                 eax: res.eax,
                 ebx: ExtendedFeaturesEbx { bits: res.ebx },
@@ -618,7 +617,8 @@ impl VendorInfo {
         unsafe {
             // Safety: VendorInfo is laid out with repr(C) and exactly
             // 12 byte long without any padding.
-            let slice: &'a [u8] = slice::from_raw_parts(brand_string_start, size_of::<VendorInfo>());
+            let slice: &'a [u8] =
+                slice::from_raw_parts(brand_string_start, size_of::<VendorInfo>());
             // Safety: The field is specified to be ASCII, and the only safe
             // way to construct VendorInfo is from real CPUID data or the
             // Default implementation.
@@ -4068,7 +4068,8 @@ impl SoCVendorBrand {
         let brand_string_start = self as *const SoCVendorBrand as *const u8;
         unsafe {
             // Safety: SoCVendorBrand is laid out with repr(C).
-            let slice: &'a [u8] = slice::from_raw_parts(brand_string_start, size_of::<SoCVendorBrand>());
+            let slice: &'a [u8] =
+                slice::from_raw_parts(brand_string_start, size_of::<SoCVendorBrand>());
             // Safety: The field is specified to be ASCII, and the only safe
             // way to construct SoCVendorBrand is from real CPUID data or the
             // Default implementation.
@@ -4188,7 +4189,8 @@ impl ExtendedFunctionInfo {
             let brand_string_start = &self.data[2] as *const CpuIdResult as *const u8;
             // Safety: CpuIdResult is laid out with repr(C), and the array
             // self.data contains 9 continguous elements.
-            let slice: &'a [u8] = unsafe { slice::from_raw_parts(brand_string_start, 3 * size_of::<CpuIdResult>()) };
+            let slice: &'a [u8] =
+                unsafe { slice::from_raw_parts(brand_string_start, 3 * size_of::<CpuIdResult>()) };
 
             // Brand terminated at nul byte or end, whichever comes first.
             let slice = slice.split(|&x| x == 0).next().unwrap();
