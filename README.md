@@ -1,4 +1,4 @@
-# cpuid [![Crates.io](https://img.shields.io/crates/v/raw_cpuid.svg)](https://crates.io/crates/raw-cpuid)
+# cpuid [![Crates.io](https://img.shields.io/crates/v/raw_cpuid.svg)](https://crates.io/crates/raw-cpuid) [![Standard checks](https://github.com/gz/rust-cpuid/actions/workflows/standard.yml/badge.svg)](https://github.com/gz/rust-cpuid/actions/workflows/standard.yml)
 
 A library to parse the x86 CPUID instruction, written in rust with no external dependencies. The implementation closely resembles the Intel CPUID manual description. The library does only depend on libcore.
 
