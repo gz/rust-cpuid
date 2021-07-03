@@ -1,4 +1,4 @@
-# cpuid [![Build Status](https://travis-ci.org/gz/rust-cpuid.svg)](https://travis-ci.org/gz/rust-cpuid) [![Crates.io](https://img.shields.io/crates/v/raw_cpuid.svg)](https://crates.io/crates/raw-cpuid)
+# cpuid [![Crates.io](https://img.shields.io/crates/v/raw_cpuid.svg)](https://crates.io/crates/raw-cpuid)
 
 A library to parse the x86 CPUID instruction, written in rust with no external dependencies. The implementation closely resembles the Intel CPUID manual description. The library does only depend on libcore.
 
@@ -36,5 +36,6 @@ match cpuid.get_cache_parameters() {
 ```
 
 ## Documentation
+
 * [API Documentation](https://docs.rs/raw-cpuid/)
 * [Examples](https://github.com/gz/rust-cpuid/tree/master/examples)
