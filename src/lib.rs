@@ -497,7 +497,7 @@ impl CpuId {
     pub fn get_hypervisor_info(&self) -> Option<HypervisorInfo> {
         let res = cpuid!(EAX_HYPERVISOR_INFO);
         if res.eax > 0 {
-            Some(HypervisorInfo { res: res })
+            Some(HypervisorInfo { res })
         } else {
             None
         }
@@ -1939,7 +1939,7 @@ bitflags! {
         // EDX flags
 
         /// Floating Point Unit On-Chip. The processor contains an x87 FPU.
-        const FPU = 1 << (32 + 0);
+        const FPU = 1 << 32;
         /// Virtual 8086 Mode Enhancements. Virtual 8086 mode enhancements, including CR4.VME for controlling the feature, CR4.PVI for protected mode virtual interrupts, software interrupt indirection, expansion of the TSS with the software indirection bitmap, and EFLAGS.VIF and EFLAGS.VIP flags.
         const VME = 1 << (32 + 1);
         /// Debugging Extensions. Support for I/O breakpoints, including CR4.DE for controlling the feature, and optional trapping of accesses to DR4 and DR5.
@@ -3329,13 +3329,13 @@ impl RdtMonitoringInfo {
     pub fn l3_monitoring(&self) -> Option<L3MonitoringInfo> {
         if self.has_l3_monitoring() {
             let res = cpuid!(EAX_RDT_MONITORING, 1);
-            return Some(L3MonitoringInfo {
+            Some(L3MonitoringInfo {
                 ebx: res.ebx,
                 ecx: res.ecx,
                 edx: res.edx,
-            });
+            })
         } else {
-            return None;
+            None
         }
     }
 }
@@ -3403,14 +3403,14 @@ impl RdtAllocationInfo {
     pub fn l3_cat(&self) -> Option<L3CatInfo> {
         if self.has_l3_cat() {
             let res = cpuid!(EAX_RDT_ALLOCATION, 1);
-            return Some(L3CatInfo {
+            Some(L3CatInfo {
                 eax: res.eax,
                 ebx: res.ebx,
                 ecx: res.ecx,
                 edx: res.edx,
-            });
+            })
         } else {
-            return None;
+            None
         }
     }
 
@@ -3418,13 +3418,13 @@ impl RdtAllocationInfo {
     pub fn l2_cat(&self) -> Option<L2CatInfo> {
         if self.has_l2_cat() {
             let res = cpuid!(EAX_RDT_ALLOCATION, 2);
-            return Some(L2CatInfo {
+            Some(L2CatInfo {
                 eax: res.eax,
                 ebx: res.ebx,
                 edx: res.edx,
-            });
+            })
         } else {
-            return None;
+            None
         }
     }
 
@@ -3432,13 +3432,13 @@ impl RdtAllocationInfo {
     pub fn memory_bandwidth_allocation(&self) -> Option<MemBwAllocationInfo> {
         if self.has_l2_cat() {
             let res = cpuid!(EAX_RDT_ALLOCATION, 3);
-            return Some(MemBwAllocationInfo {
+            Some(MemBwAllocationInfo {
                 eax: res.eax,
                 ecx: res.ecx,
                 edx: res.edx,
-            });
+            })
         } else {
-            return None;
+            None
         }
     }
 }
