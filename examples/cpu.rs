@@ -38,7 +38,7 @@ fn main() {
     );
 
     cpuid.get_feature_info().as_ref().map_or_else(
-        || println!("Family: {}\nExtended Family: {}\nModel: {}\nExtended Model: {}\nStepping: {}\nBrand Index: {}", "n/a", "n/a", "n/a", "n/a", "n/a", "n/a"),
+        || println!("Family: n/a\nExtended Family: n/a\nModel: n/a\nExtended Model: n/a\nStepping: n/a\nBrand Index: n/a"),
         |finfo| {
             println!(
                 "Family: {}\nExtended Family: {}\nModel: {}\nExtended Model: {}\nStepping: {}\nBrand Index: {}",

@@ -13,7 +13,6 @@ readme = "README.md"
 keywords = ["cpuid", "x86", "amd64", "os", "libcore"]
 license = "MIT"
 exclude = ["/ci"]
-rust = "1.26"
 
 [[bin]]
 name = "cpuid"

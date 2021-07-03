@@ -88,7 +88,7 @@ fn enumerate_with_extended_topology_info() {
 
     println!("Enumeration of all cores in the system (with x2APIC IDs):");
     let mut all_x2apic_ids: Vec<u32> = gather_all_x2apic_ids();
-    all_x2apic_ids.sort();
+    all_x2apic_ids.sort_unstable();
     for x2apic_id in all_x2apic_ids {
         let smt_select_mask = !(u32::max_value() << smt_x2apic_shift);
         let core_select_mask = (!((u32::max_value()) << core_x2apic_shift)) ^ smt_select_mask;
@@ -146,7 +146,7 @@ fn enumerate_with_legacy_leaf_1_4() {
 
     println!("Enumeration of all cores in the system (with APIC IDs):");
     let mut all_xapic_ids: Vec<u8> = gather_all_xapic_ids();
-    all_xapic_ids.sort();
+    all_xapic_ids.sort_unstable();
 
     for xapic_id in all_xapic_ids {
         let smt_id = xapic_id & smt_select_mask;
@@ -195,9 +195,9 @@ fn main() {
         },
     );
 
-    println!("");
+    println!();
     enumerate_with_legacy_leaf_1_4();
 
-    println!("");
+    println!();
     enumerate_with_extended_topology_info();
 }

@@ -21,7 +21,7 @@ fn main() {
                 };
 
                 let associativity = if cache.is_fully_associative() {
-                    format!("fully associative")
+                    "fully associative".to_string()
                 } else {
                     format!("{}-way associativity", cache.associativity())
                 };
