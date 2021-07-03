@@ -50,6 +50,9 @@ mod tests;
 #[macro_use]
 extern crate serde_derive;
 
+#[cfg(feature = "serialize")]
+extern crate serde;
+
 #[macro_use]
 extern crate bitflags;
 
@@ -174,6 +177,7 @@ impl Default for CpuIdReader {
 #[derive(Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CpuId {
+    #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     supported_leafs: u32,
 }
@@ -2059,6 +2063,7 @@ bitflags! {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParametersIter {
+    #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     current: u32,
 }
@@ -2991,6 +2996,7 @@ bitflags! {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedTopologyIter {
+    #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     level: u32,
 }
@@ -3140,6 +3146,7 @@ bitflags! {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedStateInfo {
+    #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     eax: ExtendedStateInfoXCR0Flags,
     ebx: u32,
@@ -3282,6 +3289,7 @@ impl ExtendedStateInfo {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedStateIter {
+    #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     level: u32,
     supported_xcr0: u32,
@@ -3369,6 +3377,7 @@ impl ExtendedState {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct RdtMonitoringInfo {
+    #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     ebx: u32,
     edx: u32,
@@ -3447,6 +3456,7 @@ impl L3MonitoringInfo {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct RdtAllocationInfo {
+    #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     ebx: u32,
 }
@@ -3599,6 +3609,7 @@ impl MemBwAllocationInfo {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SgxInfo {
+    #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     eax: u32,
     ebx: u32,
@@ -3662,6 +3673,7 @@ impl SgxInfo {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SgxSectionIter {
+    #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     current: u32,
 }
@@ -3919,6 +3931,7 @@ impl ProcessorFrequencyInfo {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DatIter {
+    #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     current: u32,
     count: u32,
@@ -4068,6 +4081,7 @@ impl Default for DatType {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorInfo {
+    #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     /// MaxSOCID_Index
     eax: u32,
@@ -4113,6 +4127,7 @@ impl SoCVendorInfo {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorAttributesIter {
+    #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     count: u32,
     current: u32,
@@ -4163,7 +4178,10 @@ impl fmt::Display for SoCVendorBrand {
 ///
 /// More information about this semi-official leaf can be found here
 /// <https://lwn.net/Articles/301888/>
+#[derive(Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct HypervisorInfo {
+    #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     res: CpuIdResult,
 }
