@@ -712,16 +712,13 @@ impl VendorInfo {
     /// Return vendor identification as human readable string.
     pub fn as_string<'a>(&'a self) -> &'a str {
         let brand_string_start = self as *const VendorInfo as *const u8;
-        unsafe {
+        let slice = unsafe {
             // Safety: VendorInfo is laid out with repr(C) and exactly
             // 12 byte long without any padding.
-            let slice: &'a [u8] =
-                slice::from_raw_parts(brand_string_start, size_of::<VendorInfo>());
-            // Safety: The field is specified to be ASCII, and the only safe
-            // way to construct VendorInfo is from real CPUID data or the
-            // Default implementation.
-            str::from_utf8_unchecked(slice)
-        }
+            slice::from_raw_parts(brand_string_start, size_of::<VendorInfo>())
+        };
+
+        str::from_utf8(slice).unwrap_or("InvalidVendorString")
     }
 }
 
@@ -4193,15 +4190,11 @@ pub struct SoCVendorBrand {
 impl SoCVendorBrand {
     pub fn as_string<'a>(&'a self) -> &'a str {
         let brand_string_start = self as *const SoCVendorBrand as *const u8;
-        unsafe {
+        let slice = unsafe {
             // Safety: SoCVendorBrand is laid out with repr(C).
-            let slice: &'a [u8] =
-                slice::from_raw_parts(brand_string_start, size_of::<SoCVendorBrand>());
-            // Safety: The field is specified to be ASCII, and the only safe
-            // way to construct SoCVendorBrand is from real CPUID data or the
-            // Default implementation.
-            str::from_utf8_unchecked(slice)
-        }
+            slice::from_raw_parts(brand_string_start, size_of::<SoCVendorBrand>())
+        };
+        str::from_utf8(slice).unwrap_or("InvalidSoCVendorString")
     }
 }
 
@@ -4329,10 +4322,7 @@ impl ExtendedFunctionInfo {
             // Brand terminated at nul byte or end, whichever comes first.
             let slice = slice.split(|&x| x == 0).next().unwrap();
 
-            // Safety: Field is specified to be ASCII, and the only safe way
-            // to construct ExtendedFunctionInfo is from real CPUID data
-            // or the Default implementation.
-            Some(unsafe { str::from_utf8_unchecked(slice) })
+            str::from_utf8(slice).ok()
         } else {
             None
         }

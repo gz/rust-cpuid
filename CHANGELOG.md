@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - Use more idiomatic rust code in readme/doc.rs example.
+- Use `str::from_utf8` instead of `str::from_utf8_unchecked` to avoid potential
+  panics with the Deserialize trait (Fixes #43).
 
 ## [9.1.0] - 2021-07-03
 
