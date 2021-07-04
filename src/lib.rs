@@ -177,7 +177,7 @@ impl Default for CpuIdReader {
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 enum Vendor {
     Intel,
-    AMD,
+    Amd,
     Unknown(u32, u32, u32),
 }
 
@@ -191,7 +191,7 @@ impl Vendor {
 
         match vi.as_string() {
             "GenuineIntel" => Vendor::Intel,
-            "AuthenticAMD" => Vendor::AMD,
+            "AuthenticAMD" => Vendor::Amd,
             _ => Vendor::Unknown(res.ebx, res.ecx, res.edx),
         }
     }
@@ -270,14 +270,14 @@ impl CpuId {
         CpuId {
             supported_leafs: vendor_leaf.eax,
             vendor: Vendor::from_vendor_leaf(vendor_leaf),
-            read: read,
+            read,
         }
     }
 
     /// Check if a non extended leaf  (`val`) is supported.
     fn leaf_is_supported(&self, val: u32) -> bool {
         // Exclude reserved functions/leafs on AMD
-        if self.vendor == Vendor::AMD && ((val >= 0x2 && val <= 0x4) || (val >= 0x8 && val <= 0xa))
+        if self.vendor == Vendor::Amd && ((0x2..=0x4).contains(&val) || (0x8..=0xa).contains(&val))
         {
             return false;
         }
