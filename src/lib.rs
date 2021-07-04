@@ -173,21 +173,43 @@ impl Default for CpuIdReader {
     }
 }
 
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+enum Vendor {
+    Intel,
+    AMD,
+    Unknown(u32, u32, u32),
+}
+
+impl Vendor {
+    fn from_vendor_leaf(res: CpuIdResult) -> Self {
+        let vi = VendorInfo {
+            ebx: res.ebx,
+            ecx: res.ecx,
+            edx: res.edx,
+        };
+
+        match vi.as_string() {
+            "GenuineIntel" => Vendor::Intel,
+            "AuthenticAMD" => Vendor::AMD,
+            _ => Vendor::Unknown(res.ebx, res.ecx, res.edx),
+        }
+    }
+}
+
 /// Main type used to query for information about the CPU we're running on.
 #[derive(Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CpuId {
     #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
+    vendor: Vendor,
     supported_leafs: u32,
 }
 
 impl Default for CpuId {
     fn default() -> CpuId {
-        CpuId {
-            supported_leafs: cpuid!(EAX_VENDOR_INFO).eax,
-            read: CpuIdReader::default(),
-        }
+        CpuId::with_cpuid_fn(native_cpuid::cpuid_count)
     }
 }
 
@@ -244,14 +266,22 @@ impl CpuId {
 
     pub fn with_cpuid_fn(cpuid_fn: fn(u32, u32) -> CpuIdResult) -> Self {
         let read = CpuIdReader::new(cpuid_fn);
+        let vendor_leaf = read.cpuid1(EAX_VENDOR_INFO);
         CpuId {
-            supported_leafs: read.cpuid1(EAX_VENDOR_INFO).eax,
-            read,
+            supported_leafs: vendor_leaf.eax,
+            vendor: Vendor::from_vendor_leaf(vendor_leaf),
+            read: read,
         }
     }
 
     /// Check if a non extended leaf  (`val`) is supported.
     fn leaf_is_supported(&self, val: u32) -> bool {
+        // Exclude reserved functions/leafs on AMD
+        if self.vendor == Vendor::AMD && ((val >= 0x2 && val <= 0x4) || (val >= 0x8 && val <= 0xa))
+        {
+            return false;
+        }
+
         val <= self.supported_leafs
     }
 
@@ -488,8 +518,8 @@ impl CpuId {
 
     /// Intel Processor Trace Enumeration Information.
     pub fn get_processor_trace_info(&self) -> Option<ProcessorTraceInfo> {
-        let res = self.read.cpuid2(EAX_TRACE_INFO, 0);
         if self.leaf_is_supported(EAX_TRACE_INFO) {
+            let res = self.read.cpuid2(EAX_TRACE_INFO, 0);
             let res1 = if res.eax >= 1 {
                 Some(self.read.cpuid2(EAX_TRACE_INFO, 1))
             } else {
@@ -510,8 +540,8 @@ impl CpuId {
 
     /// Time Stamp Counter/Core Crystal Clock Information.
     pub fn get_tsc_info(&self) -> Option<TscInfo> {
-        let res = self.read.cpuid2(EAX_TIME_STAMP_COUNTER_INFO, 0);
         if self.leaf_is_supported(EAX_TIME_STAMP_COUNTER_INFO) {
+            let res = self.read.cpuid2(EAX_TIME_STAMP_COUNTER_INFO, 0);
             Some(TscInfo {
                 eax: res.eax,
                 ebx: res.ebx,
@@ -524,8 +554,8 @@ impl CpuId {
 
     /// Processor Frequency Information.
     pub fn get_processor_frequency_info(&self) -> Option<ProcessorFrequencyInfo> {
-        let res = self.read.cpuid1(EAX_FREQUENCY_INFO);
         if self.leaf_is_supported(EAX_FREQUENCY_INFO) {
+            let res = self.read.cpuid1(EAX_FREQUENCY_INFO);
             Some(ProcessorFrequencyInfo {
                 eax: res.eax,
                 ebx: res.ebx,
@@ -552,8 +582,8 @@ impl CpuId {
     }
 
     pub fn get_soc_vendor_info(&self) -> Option<SoCVendorInfo> {
-        let res = self.read.cpuid1(EAX_SOC_VENDOR_INFO);
         if self.leaf_is_supported(EAX_SOC_VENDOR_INFO) {
+            let res = self.read.cpuid1(EAX_SOC_VENDOR_INFO);
             Some(SoCVendorInfo {
                 read: self.read,
                 eax: res.eax,
@@ -3484,7 +3514,7 @@ impl RdtAllocationInfo {
         doc = "Supports Memory Bandwidth Allocation.",
         has_memory_bandwidth_allocation,
         ebx,
-        1
+        3
     );
 
     /// L3 Cache Allocation Information.
@@ -3542,9 +3572,9 @@ pub struct L3CatInfo {
 }
 
 impl L3CatInfo {
-    /// Length of the capacity bit mask using minus-one notation.
+    /// Length of the capacity bit mask.
     pub fn capacity_mask_length(&self) -> u8 {
-        get_bits(self.eax, 0, 4) as u8
+        (get_bits(self.eax, 0, 4) + 1) as u8
     }
 
     /// Bit-granular map of isolation/contention of allocation units.
@@ -3575,9 +3605,9 @@ pub struct L2CatInfo {
 }
 
 impl L2CatInfo {
-    /// Length of the capacity bit mask using minus-one notation.
+    /// Length of the capacity bit mask.
     pub fn capacity_mask_length(&self) -> u8 {
-        get_bits(self.eax, 0, 4) as u8
+        (get_bits(self.eax, 0, 4) + 1) as u8
     }
 
     /// Bit-granular map of isolation/contention of allocation units.
@@ -3601,9 +3631,9 @@ pub struct MemBwAllocationInfo {
 }
 
 impl MemBwAllocationInfo {
-    /// Reports the maximum MBA throttling value supported for the corresponding ResID using minus-one notation.
+    /// Reports the maximum MBA throttling value supported for the corresponding ResID.
     pub fn max_hba_throttling(&self) -> u16 {
-        get_bits(self.eax, 0, 11) as u16
+        (get_bits(self.eax, 0, 11) + 1) as u16
     }
 
     /// Highest COS number supported for this Leaf.
