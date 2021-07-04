@@ -30,3 +30,4 @@ serde_derive = {version = "1.0", optional = true }
 libc = { version = "0.2", default-features = false }
 core_affinity = "0.5.10"
 rustversion = "1.0"
+phf = { version = "0.9", features = ["macros"] }

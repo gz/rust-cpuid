@@ -152,7 +152,7 @@ struct CpuIdReader {
 }
 
 impl CpuIdReader {
-    pub(crate) fn _new(cpuid_fn: fn(u32, u32) -> CpuIdResult) -> Self {
+    fn new(cpuid_fn: fn(u32, u32) -> CpuIdResult) -> Self {
         Self { cpuid_fn }
     }
 
@@ -192,7 +192,7 @@ impl Default for CpuId {
 }
 
 /// Low-level data-structure to store result of cpuid instruction.
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[repr(C)]
 pub struct CpuIdResult {
@@ -204,6 +204,12 @@ pub struct CpuIdResult {
     pub ecx: u32,
     /// Return value EDX register
     pub edx: u32,
+}
+
+impl CpuIdResult {
+    pub fn all_zero(&self) -> bool {
+        self.eax == 0 && self.ebx == 0 && self.ecx == 0 && self.edx == 0
+    }
 }
 
 const EAX_VENDOR_INFO: u32 = 0x0;
@@ -232,8 +238,16 @@ const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000001F;
 
 impl CpuId {
     /// Return new CPUID struct.
-    pub fn new() -> CpuId {
-        CpuId::default()
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_cpuid_fn(cpuid_fn: fn(u32, u32) -> CpuIdResult) -> Self {
+        let read = CpuIdReader::new(cpuid_fn);
+        CpuId {
+            supported_leafs: read.cpuid1(EAX_VENDOR_INFO).eax,
+            read,
+        }
     }
 
     /// Check if a non extended leaf  (`val`) is supported.
