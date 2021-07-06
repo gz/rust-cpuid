@@ -7,10 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [9.1.1] - 2021-07-06
+
+### Changed
+
 - Use more idiomatic rust code in readme/doc.rs example.
 - Use `str::from_utf8` instead of `str::from_utf8_unchecked` to avoid potential
   panics with the Deserialize trait ([#43](https://github.com/gz/rust-cpuid/issues/43)).
 - More extensive Debug trait implementation ([#49](https://github.com/gz/rust-cpuid/pull/49))
+- Fix 2 clippy warnings
 
 ## [9.1.0] - 2021-07-03
 
