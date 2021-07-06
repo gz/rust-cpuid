@@ -4693,6 +4693,9 @@ pub enum Hypervisor {
     VMware,
     HyperV,
     KVM,
+    /// QEMU is the hypervisor-type when QEMU is used
+    /// without KVM as accelerator.
+    QEMU,
     Unknown(u32, u32, u32),
 }
 
@@ -4707,6 +4710,9 @@ impl HypervisorInfo {
             (0x7263694d, 0x666f736f, 0x76482074) => Hypervisor::HyperV,
             // "KVMKVMKVM\0\0\0"
             (0x4b4d564b, 0x564b4d56, 0x0000004d) => Hypervisor::KVM,
+            // `TCGTCGTCGTCG` is the magic value of the CPU signature of QEMU,
+            // see https://github.com/qemu/qemu/blob/6512fa497c2fa9751b9d774ab32d87a9764d1958/target/i386/cpu.c
+            (0x54474354, 0x43544743, 0x47435447) => Hypervisor::QEMU,
             (ebx, ecx, edx) => Hypervisor::Unknown(ebx, ecx, edx),
         }
     }
