@@ -74,6 +74,7 @@ pub mod native_cpuid {
 
 use core::cmp::min;
 use core::fmt;
+use core::fmt::{Debug, Formatter};
 use core::mem::size_of;
 use core::slice;
 use core::str;
@@ -191,7 +192,6 @@ impl Vendor {
 }
 
 /// Main type used to query for information about the CPU we're running on.
-#[derive(Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CpuId {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -207,7 +207,7 @@ impl Default for CpuId {
 }
 
 /// Low-level data-structure to store result of cpuid instruction.
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[repr(C)]
 pub struct CpuIdResult {
@@ -224,6 +224,17 @@ pub struct CpuIdResult {
 impl CpuIdResult {
     pub fn all_zero(&self) -> bool {
         self.eax == 0 && self.ebx == 0 && self.ecx == 0 && self.edx == 0
+    }
+}
+
+impl Debug for CpuIdResult {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("CpuIdResult")
+            .field("eax", &(self.eax as *const u32))
+            .field("ebx", &(self.ebx as *const u32))
+            .field("ecx", &(self.ecx as *const u32))
+            .field("edx", &(self.edx as *const u32))
+            .finish()
     }
 }
 
@@ -377,7 +388,7 @@ impl CpuId {
                 eax: ThermalPowerFeaturesEax { bits: res.eax },
                 ebx: res.ebx,
                 ecx: ThermalPowerFeaturesEcx { bits: res.ecx },
-                edx: res.edx,
+                _edx: res.edx,
             })
         } else {
             None
@@ -389,10 +400,10 @@ impl CpuId {
         if self.leaf_is_supported(EAX_STRUCTURED_EXTENDED_FEATURE_INFO) {
             let res = self.read.cpuid1(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
             Some(ExtendedFeatures {
-                eax: res.eax,
+                _eax: res.eax,
                 ebx: ExtendedFeaturesEbx { bits: res.ebx },
                 ecx: ExtendedFeaturesEcx { bits: res.ecx },
-                edx: res.edx,
+                _edx: res.edx,
             })
         } else {
             None
@@ -416,7 +427,7 @@ impl CpuId {
             Some(PerformanceMonitoringInfo {
                 eax: res.eax,
                 ebx: PerformanceMonitoringFeaturesEbx { bits: res.ebx },
-                ecx: res.ecx,
+                _ecx: res.ecx,
                 edx: res.edx,
             })
         } else {
@@ -446,11 +457,11 @@ impl CpuId {
                 eax: ExtendedStateInfoXCR0Flags { bits: res.eax },
                 ebx: res.ebx,
                 ecx: res.ecx,
-                edx: res.edx,
+                _edx: res.edx,
                 eax1: res1.eax,
                 ebx1: res1.ebx,
                 ecx1: ExtendedStateInfoXSSFlags { bits: res1.ecx },
-                edx1: res1.edx,
+                _edx1: res1.edx,
             })
         } else {
             None
@@ -496,7 +507,7 @@ impl CpuId {
                     read: self.read,
                     eax: res.eax,
                     ebx: res.ebx,
-                    ecx: res.ecx,
+                    _ecx: res.ecx,
                     edx: res.edx,
                     eax1: res1.eax,
                     ebx1: res1.ebx,
@@ -520,10 +531,10 @@ impl CpuId {
             };
 
             Some(ProcessorTraceInfo {
-                eax: res.eax,
+                _eax: res.eax,
                 ebx: res.ebx,
                 ecx: res.ecx,
-                edx: res.edx,
+                _edx: res.edx,
                 leaf1: res1,
             })
         } else {
@@ -699,7 +710,51 @@ impl CpuId {
 /// ## Technical Background
 /// The vendor info is a 12-byte (96 bit) long string stored in `ebx`, `edx` and `ecx` by
 /// the corresponding `cpuid` instruction.
-#[derive(Debug, Default)]
+impl Debug for CpuId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("CpuId")
+            .field("vendor", &self.vendor)
+            // .field("supported_leafs", &(self.supported_leafs as *const u32))
+            .field("vendor_info", &self.get_vendor_info())
+            .field("feature_info", &self.get_feature_info())
+            .field("cache_info", &self.get_cache_info())
+            .field("processor_serial", &self.get_processor_serial())
+            .field("cache_parameters", &self.get_cache_parameters())
+            .field("monitor_mwait_info", &self.get_monitor_mwait_info())
+            .field("thermal_power_info", &self.get_thermal_power_info())
+            .field("extended_feature_info", &self.get_extended_feature_info())
+            .field(
+                "direct_cache_access_info",
+                &self.get_direct_cache_access_info(),
+            )
+            .field(
+                "performance_monitoring_info",
+                &self.get_performance_monitoring_info(),
+            )
+            .field("extended_topology_info", &self.get_extended_topology_info())
+            .field("extended_state_info", &self.get_extended_state_info())
+            .field("rdt_monitoring_info", &self.get_rdt_monitoring_info())
+            .field("rdt_allocation_info", &self.get_rdt_allocation_info())
+            .field("sgx_info", &self.get_sgx_info())
+            .field("processor_trace_info", &self.get_processor_trace_info())
+            .field("tsc_info", &self.get_tsc_info())
+            .field(
+                "processor_frequency_info",
+                &self.get_processor_frequency_info(),
+            )
+            .field(
+                "deterministic_address_translation_info",
+                &self.deterministic_address_translation_info(),
+            )
+            .field("soc_vendor_info", &self.get_soc_vendor_info())
+            .field("hypervisor_info", &self.get_hypervisor_info())
+            .field("extended_function_info", &self.get_extended_function_info())
+            .field("memory_encryption_info", &self.get_memory_encryption_info())
+            .finish()
+    }
+}
+
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[repr(C)]
 pub struct VendorInfo {
@@ -722,8 +777,16 @@ impl VendorInfo {
     }
 }
 
+impl Debug for VendorInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("VendorInfo")
+            .field("brand_string", &self.as_string())
+            .finish()
+    }
+}
+
 /// Used to iterate over cache information contained in cpuid instruction.
-#[derive(Debug, Default)]
+#[derive(Default, Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheInfoIter {
     current: u32,
@@ -779,6 +842,16 @@ impl Iterator for CacheInfoIter {
     }
 }
 
+impl Debug for CacheInfoIter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        let mut debug = f.debug_list();
+        self.clone().for_each(|ref item| {
+            debug.entry(item);
+        });
+        debug.finish()
+    }
+}
+
 /// What type of cache are we dealing with?
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -798,7 +871,7 @@ impl Default for CacheInfoType {
 }
 
 /// Describes any kind of cache (TLB, Data and Instruction caches plus prefetchers).
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheInfo {
     /// Number as retrieved from cpuid
@@ -926,6 +999,15 @@ impl CacheInfo {
             0xFF => "CPUID leaf 2 does not report cache descriptor information, use CPUID leaf 4 to query cache parameters",
             _ => "Unknown cache type!"
         }
+    }
+}
+
+impl Debug for CacheInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CacheInfo")
+            .field("typ", &self.typ)
+            .field("desc", &self.desc())
+            .finish()
     }
 }
 
@@ -1386,7 +1468,7 @@ impl fmt::Display for VendorInfo {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorSerial {
     ecx: u32,
@@ -1411,7 +1493,17 @@ impl ProcessorSerial {
     }
 }
 
-#[derive(Debug, Default)]
+impl Debug for ProcessorSerial {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("ProcessorSerial")
+            .field("serial_lower", &self.serial_lower())
+            .field("serial_middle", &self.serial_middle())
+            .field("serial_middle", &self.serial_middle())
+            .finish()
+    }
+}
+
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct FeatureInfo {
     eax: u32,
@@ -1964,6 +2056,26 @@ impl FeatureInfo {
     );
 }
 
+impl Debug for FeatureInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("FeatureInfo")
+            .field("extended_family_id", &self.extended_family_id())
+            .field("extended_model_id", &self.extended_model_id())
+            .field("family_id", &self.family_id())
+            .field("model_id", &self.model_id())
+            .field("stepping_id", &self.stepping_id())
+            .field("brand_index", &self.brand_index())
+            .field("cflush_cache_line_size", &self.cflush_cache_line_size())
+            .field("initial_local_apic_id", &self.initial_local_apic_id())
+            .field(
+                "max_logical_processor_ids",
+                &self.max_logical_processor_ids(),
+            )
+            .field("edx_ecx", &self.edx_ecx)
+            .finish()
+    }
+}
+
 bitflags! {
     #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -2094,7 +2206,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default, Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParametersIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -2128,7 +2240,17 @@ impl Iterator for CacheParametersIter {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+impl Debug for CacheParametersIter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        let mut debug = f.debug_list();
+        self.clone().for_each(|ref item| {
+            debug.entry(item);
+        });
+        debug.finish()
+    }
+}
+
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParameter {
     eax: u32,
@@ -2238,7 +2360,27 @@ impl CacheParameter {
     }
 }
 
-#[derive(Debug, Default)]
+impl Debug for CacheParameter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("CacheParameter")
+            .field("cache_type", &self.cache_type())
+            .field("level", &self.level())
+            .field("is_self_initializing", &self.is_self_initializing())
+            .field("is_fully_associative", &self.is_fully_associative())
+            .field("max_cores_for_cache", &self.max_cores_for_cache())
+            .field("max_cores_for_package", &self.max_cores_for_package())
+            .field("coherency_line_size", &self.coherency_line_size())
+            .field("physical_line_partitions", &self.physical_line_partitions())
+            .field("associativity", &self.associativity())
+            .field("sets", &self.sets())
+            .field("is_write_back_invalidate", &self.is_write_back_invalidate())
+            .field("is_inclusive", &self.is_inclusive())
+            .field("has_complex_indexing", &self.has_complex_indexing())
+            .finish()
+    }
+}
+
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct MonitorMwaitInfo {
     eax: u32,
@@ -2309,13 +2451,35 @@ impl MonitorMwaitInfo {
     }
 }
 
-#[derive(Debug, Default)]
+impl Debug for MonitorMwaitInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("MonitorMwaitInfo")
+            .field("smallest_monitor_line", &self.smallest_monitor_line())
+            .field("largest_monitor_line", &self.largest_monitor_line())
+            .field("extensions_supported", &self.extensions_supported())
+            .field(
+                "interrupts_as_break_event",
+                &self.interrupts_as_break_event(),
+            )
+            .field("supported_c0_states", &self.supported_c0_states())
+            .field("supported_c1_states", &self.supported_c1_states())
+            .field("supported_c2_states", &self.supported_c2_states())
+            .field("supported_c3_states", &self.supported_c3_states())
+            .field("supported_c4_states", &self.supported_c4_states())
+            .field("supported_c5_states", &self.supported_c5_states())
+            .field("supported_c6_states", &self.supported_c6_states())
+            .field("supported_c7_states", &self.supported_c7_states())
+            .finish()
+    }
+}
+
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ThermalPowerInfo {
     eax: ThermalPowerFeaturesEax,
     ebx: u32,
     ecx: ThermalPowerFeaturesEcx,
-    edx: u32,
+    _edx: u32,
 }
 
 impl ThermalPowerInfo {
@@ -2475,6 +2639,42 @@ impl ThermalPowerInfo {
     );
 }
 
+impl Debug for ThermalPowerInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("ThermalPowerInfo")
+            .field("dts_irq_threshold", &self.dts_irq_threshold())
+            .field("has_dts", &self.has_dts())
+            .field("has_arat", &self.has_arat())
+            .field("has_pln", &self.has_pln())
+            .field("has_ecmd", &self.has_ecmd())
+            .field("has_ptm", &self.has_ptm())
+            .field("has_hwp", &self.has_hwp())
+            .field("has_hwp_notification", &self.has_hwp_notification())
+            .field("has_hwp_activity_window", &self.has_hwp_activity_window())
+            .field(
+                "has_hwp_energy_performance_preference",
+                &self.has_hwp_energy_performance_preference(),
+            )
+            .field(
+                "has_hwp_package_level_request",
+                &self.has_hwp_package_level_request(),
+            )
+            .field("has_hdc", &self.has_hdc())
+            .field("has_turbo_boost3", &self.has_turbo_boost3())
+            .field("has_hwp_capabilities", &self.has_hwp_capabilities())
+            .field("has_hwp_peci_override", &self.has_hwp_peci_override())
+            .field("has_flexible_hwp", &self.has_flexible_hwp())
+            .field("has_hwp_fast_access_mode", &self.has_hwp_fast_access_mode())
+            .field(
+                "has_ignore_idle_processor_hwp_request",
+                &self.has_ignore_idle_processor_hwp_request(),
+            )
+            .field("has_hw_coord_feedback", &self.has_hw_coord_feedback())
+            .field("has_energy_bias_pref", &self.has_energy_bias_pref())
+            .finish()
+    }
+}
+
 bitflags! {
     #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -2537,13 +2737,13 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedFeatures {
-    eax: u32,
+    _eax: u32,
     ebx: ExtendedFeaturesEbx,
     ecx: ExtendedFeaturesEcx,
-    edx: u32,
+    _edx: u32,
 }
 
 impl ExtendedFeatures {
@@ -2791,6 +2991,16 @@ impl ExtendedFeatures {
     }
 }
 
+impl Debug for ExtendedFeatures {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("ExtendedFeatures")
+            .field("ebx", &self.ebx)
+            .field("ecx", &self.ecx)
+            .field("mawau_value", &self.mawau_value())
+            .finish()
+    }
+}
+
 bitflags! {
     #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -2894,7 +3104,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DirectCacheAccessInfo {
     eax: u32,
@@ -2907,12 +3117,20 @@ impl DirectCacheAccessInfo {
     }
 }
 
-#[derive(Debug, Default)]
+impl Debug for DirectCacheAccessInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("DirectCacheAccessInfo")
+            .field("dca_cap_value", &self.get_dca_cap_value())
+            .finish()
+    }
+}
+
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct PerformanceMonitoringInfo {
     eax: u32,
     ebx: PerformanceMonitoringFeaturesEbx,
-    ecx: u32,
+    _ecx: u32,
     edx: u32,
 }
 
@@ -3004,6 +3222,22 @@ impl PerformanceMonitoringInfo {
     );
 }
 
+impl Debug for PerformanceMonitoringInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("PerformanceMonitoringInfo")
+            .field("version_id", &self.version_id())
+            .field("number_of_counters", &self.number_of_counters())
+            .field("counter_bit_width", &self.counter_bit_width())
+            .field("ebx_length", &self.ebx_length())
+            .field("fixed_function_counters", &self.fixed_function_counters())
+            .field(
+                "fixed_function_counters_bit_width",
+                &self.fixed_function_counters_bit_width(),
+            )
+            .finish()
+    }
+}
+
 bitflags! {
     #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -3027,7 +3261,7 @@ bitflags! {
 
 /// Iterates over the system topology in order to retrieve more
 /// system information at each level of the topology.
-#[derive(Debug, Default)]
+#[derive(Default, Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedTopologyIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -3129,6 +3363,16 @@ impl Iterator for ExtendedTopologyIter {
     }
 }
 
+impl Debug for ExtendedTopologyIter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        let mut debug = f.debug_list();
+        self.clone().for_each(|ref item| {
+            debug.entry(item);
+        });
+        debug.finish()
+    }
+}
+
 bitflags! {
     #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -3177,7 +3421,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedStateInfo {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -3185,11 +3429,11 @@ pub struct ExtendedStateInfo {
     eax: ExtendedStateInfoXCR0Flags,
     ebx: u32,
     ecx: u32,
-    edx: u32,
+    _edx: u32,
     eax1: u32,
     ebx1: u32,
     ecx1: ExtendedStateInfoXSSFlags,
-    edx1: u32,
+    _edx1: u32,
 }
 
 impl ExtendedStateInfo {
@@ -3320,7 +3564,30 @@ impl ExtendedStateInfo {
     }
 }
 
-#[derive(Debug, Default)]
+impl Debug for ExtendedStateInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("ExtendedStateInfo")
+            .field("eax", &self.eax)
+            .field("ecx1", &self.ecx1)
+            .field(
+                "xsave_area_size_enabled_features",
+                &self.xsave_area_size_enabled_features(),
+            )
+            .field(
+                "xsave_area_size_supported_features",
+                &self.xsave_area_size_supported_features(),
+            )
+            .field("has_xsaveopt", &self.has_xsaveopt())
+            .field("has_xsavec", &self.has_xsavec())
+            .field("has_xgetbv", &self.has_xgetbv())
+            .field("has_xsaves_xrstors", &self.has_xsaves_xrstors())
+            .field("xsave_size", &self.xsave_size())
+            .field("extended_state_iter", &self.iter())
+            .finish()
+    }
+}
+
+#[derive(Default, Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedStateIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -3365,7 +3632,17 @@ impl Iterator for ExtendedStateIter {
     }
 }
 
-#[derive(Debug, Default)]
+impl Debug for ExtendedStateIter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut debug = f.debug_list();
+        self.clone().for_each(|ref item| {
+            debug.entry(item);
+        });
+        debug.finish()
+    }
+}
+
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedState {
     pub subleaf: u32,
@@ -3408,7 +3685,19 @@ impl ExtendedState {
     }
 }
 
-#[derive(Debug, Default)]
+impl Debug for ExtendedState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ExtendedState")
+            .field("size", &self.size())
+            .field("offset", &self.offset())
+            .field("is_in_ia32_xss", &self.is_in_ia32_xss())
+            .field("is_in_xcr0", &self.is_in_xcr0())
+            .field("is_compacted_format", &self.is_compacted_format())
+            .finish()
+    }
+}
+
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct RdtMonitoringInfo {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -3446,7 +3735,16 @@ impl RdtMonitoringInfo {
     }
 }
 
-#[derive(Debug, Default)]
+impl Debug for RdtMonitoringInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("RdtMonitoringInfo")
+            .field("rmid_range", &self.rmid_range())
+            .field("l3_monitoring", &self.l3_monitoring())
+            .finish()
+    }
+}
+
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L3MonitoringInfo {
     ebx: u32,
@@ -3487,7 +3785,16 @@ impl L3MonitoringInfo {
     );
 }
 
-#[derive(Debug, Default)]
+impl Debug for L3MonitoringInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("L3MonitoringInfo")
+            .field("conversion_factor", &self.conversion_factor())
+            .field("maximum_rmid_range", &self.maximum_rmid_range())
+            .finish()
+    }
+}
+
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct RdtAllocationInfo {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -3551,8 +3858,21 @@ impl RdtAllocationInfo {
     }
 }
 
+impl Debug for RdtAllocationInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("RdtAllocationInfo")
+            .field("l3_cat", &self.l3_cat())
+            .field("l2_cat", &self.l2_cat())
+            .field(
+                "memory_bandwidth_allocation",
+                &self.memory_bandwidth_allocation(),
+            )
+            .finish()
+    }
+}
+
 /// L3 Cache Allocation Technology Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 1).
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L3CatInfo {
     eax: u32,
@@ -3585,8 +3905,18 @@ impl L3CatInfo {
     );
 }
 
+impl Debug for L3CatInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("L3CatInfo")
+            .field("capacity_mask_length", &self.capacity_mask_length())
+            .field("isolation_bitmap", &self.isolation_bitmap())
+            .field("highest_cos", &self.highest_cos())
+            .finish()
+    }
+}
+
 /// L2 Cache Allocation Technology Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 2).
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L2CatInfo {
     eax: u32,
@@ -3611,8 +3941,18 @@ impl L2CatInfo {
     }
 }
 
+impl Debug for L2CatInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("L2CatInfo")
+            .field("capacity_mask_length", &self.capacity_mask_length())
+            .field("isolation_bitmap", &self.isolation_bitmap())
+            .field("highest_cos", &self.highest_cos())
+            .finish()
+    }
+}
+
 /// Memory Bandwidth Allocation Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 3).
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct MemBwAllocationInfo {
     eax: u32,
@@ -3639,15 +3979,28 @@ impl MemBwAllocationInfo {
     );
 }
 
+impl Debug for MemBwAllocationInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("MemBwAllocationInfo")
+            .field("max_hba_throttling", &self.max_hba_throttling())
+            .field("highest_cos", &self.highest_cos())
+            .field(
+                "has_linear_response_delay",
+                &self.has_linear_response_delay(),
+            )
+            .finish()
+    }
+}
+
 /// Intel SGX Capability Enumeration Leaf, sub-leaf 0 (EAX = 12H, ECX = 0 and ECX = 1)
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SgxInfo {
     #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     eax: u32,
     ebx: u32,
-    ecx: u32,
+    _ecx: u32,
     edx: u32,
     eax1: u32,
     ebx1: u32,
@@ -3703,8 +4056,32 @@ impl SgxInfo {
     }
 }
 
+impl Debug for SgxInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("SgxInfo")
+            .field("has_sgx1", &self.has_sgx1())
+            .field("has_sgx2", &self.has_sgx2())
+            .field("miscselect", &self.miscselect())
+            .field(
+                "max_enclave_size_non_64bit",
+                &self.max_enclave_size_non_64bit(),
+            )
+            .field("max_enclave_size_64bit", &self.max_enclave_size_64bit())
+            .field(
+                "has_encls_leaves_etrackc_erdinfo_eldbc_elduc",
+                &self.has_encls_leaves_etrackc_erdinfo_eldbc_elduc(),
+            )
+            .field(
+                "has_enclv_leaves_einvirtchild_edecvirtchild_esetcontext",
+                &self.has_enclv_leaves_einvirtchild_edecvirtchild_esetcontext(),
+            )
+            .field("sgx_section_iter", &self.iter())
+            .finish()
+    }
+}
+
 /// Iterator over the SGX sub-leafs (ECX >= 2).
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SgxSectionIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -3727,6 +4104,14 @@ impl Iterator for SgxSectionIter {
             })),
             _ => None,
         }
+    }
+}
+
+impl Debug for SgxSectionIter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("SgxSectionIter")
+            // TODO find way to include all elements here nicely
+            .finish()
     }
 }
 
@@ -3770,13 +4155,13 @@ impl EpcSection {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorTraceInfo {
-    eax: u32,
+    _eax: u32,
     ebx: u32,
     ecx: u32,
-    edx: u32,
+    _edx: u32,
     leaf1: Option<CpuIdResult>,
 }
 
@@ -3884,6 +4269,29 @@ impl ProcessorTraceInfo {
     }
 }
 
+impl Debug for ProcessorTraceInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("ProcessorTraceInfo")
+            .field(
+                "configurable_address_ranges",
+                &self.configurable_address_ranges(),
+            )
+            .field(
+                "supported_mtc_period_encodings",
+                &self.supported_mtc_period_encodings(),
+            )
+            .field(
+                "supported_cycle_threshold_value_encodings",
+                &self.supported_cycle_threshold_value_encodings(),
+            )
+            .field(
+                "supported_psb_frequency_encodings",
+                &self.supported_psb_frequency_encodings(),
+            )
+            .finish()
+    }
+}
+
 /// Time Stamp Counter and Nominal Core Crystal Clock Information Leaf.
 #[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -3896,9 +4304,10 @@ pub struct TscInfo {
 impl fmt::Debug for TscInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("TscInfo")
-            .field("denominator/eax", &self.denominator())
-            .field("numerator/ebx", &self.numerator())
-            .field("nominal_frequency/ecx", &self.nominal_frequency())
+            .field("denominator", &self.denominator())
+            .field("numerator", &self.numerator())
+            .field("nominal_frequency", &self.nominal_frequency())
+            .field("tsc_frequency", &self.tsc_frequency())
             .finish()
     }
 }
@@ -3936,7 +4345,7 @@ impl TscInfo {
 }
 
 /// Processor Frequency Information
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorFrequencyInfo {
     eax: u32,
@@ -3961,8 +4370,18 @@ impl ProcessorFrequencyInfo {
     }
 }
 
+impl fmt::Debug for ProcessorFrequencyInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("ProcessorFrequencyInfo")
+            .field("processor_base_frequency", &self.processor_base_frequency())
+            .field("processor_max_frequency", &self.processor_max_frequency())
+            .field("bus_frequency", &self.bus_frequency())
+            .finish()
+    }
+}
+
 /// Deterministic Address Translation Structure Iterator
-#[derive(Debug, Default)]
+#[derive(Default, Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DatIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -3996,7 +4415,7 @@ impl Iterator for DatIter {
             }
 
             return Some(DatInfo {
-                eax: res.eax,
+                _eax: res.eax,
                 ebx: res.ebx,
                 ecx: res.ecx,
                 edx: res.edx,
@@ -4005,11 +4424,21 @@ impl Iterator for DatIter {
     }
 }
 
+impl Debug for DatIter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut debug = f.debug_list();
+        self.clone().for_each(|ref item| {
+            debug.entry(item);
+        });
+        debug.finish()
+    }
+}
+
 /// Deterministic Address Translation Structure
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DatInfo {
-    eax: u32,
+    _eax: u32,
     ebx: u32,
     ecx: u32,
     edx: u32,
@@ -4089,6 +4518,18 @@ impl DatInfo {
     }
 }
 
+impl Debug for DatInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DatInfo")
+            .field("has_4k_entries", &self.has_4k_entries())
+            .field("has_2mb_entries", &self.has_2mb_entries())
+            .field("has_4mb_entries", &self.has_4mb_entries())
+            .field("has_1gb_entries", &self.has_1gb_entries())
+            .field("is_fully_associative", &self.is_fully_associative())
+            .finish()
+    }
+}
+
 /// Deterministic Address Translation cache type (EDX bits 04 -- 00)
 #[derive(Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -4112,7 +4553,7 @@ impl Default for DatType {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorInfo {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -4137,12 +4578,16 @@ impl SoCVendorInfo {
         self.edx
     }
 
-    pub fn get_vendor_brand(&self) -> SoCVendorBrand {
-        assert!(self.eax >= 3); // Leaf 17H is valid if MaxSOCID_Index >= 3.
-        let r1 = self.read.cpuid2(EAX_SOC_VENDOR_INFO, 1);
-        let r2 = self.read.cpuid2(EAX_SOC_VENDOR_INFO, 2);
-        let r3 = self.read.cpuid2(EAX_SOC_VENDOR_INFO, 3);
-        SoCVendorBrand { data: [r1, r2, r3] }
+    pub fn get_vendor_brand(&self) -> Option<SoCVendorBrand> {
+        // Leaf 17H is valid if MaxSOCID_Index >= 3.
+        if self.eax >= 3 {
+            let r1 = cpuid!(EAX_SOC_VENDOR_INFO, 1);
+            let r2 = cpuid!(EAX_SOC_VENDOR_INFO, 2);
+            let r3 = cpuid!(EAX_SOC_VENDOR_INFO, 3);
+            Some(SoCVendorBrand { data: [r1, r2, r3] })
+        } else {
+            None
+        }
     }
 
     pub fn get_vendor_attributes(&self) -> Option<SoCVendorAttributesIter> {
@@ -4155,6 +4600,18 @@ impl SoCVendorInfo {
         } else {
             None
         }
+    }
+}
+
+impl fmt::Debug for SoCVendorInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("SoCVendorInfo")
+            .field("soc_vendor_id", &self.get_soc_vendor_id())
+            .field("project_id", &self.get_project_id())
+            .field("stepping_id", &self.get_stepping_id())
+            .field("vendor_brand", &self.get_vendor_brand())
+            .field("vendor_attributes", &self.get_vendor_attributes())
+            .finish()
     }
 }
 
@@ -4219,7 +4676,8 @@ pub struct HypervisorInfo {
 impl fmt::Debug for HypervisorInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("HypervisorInfo")
-            .field("type", &self.identify())
+            .field("res", &self.res)
+            .field("identify", &self.identify())
             .field("tsc_frequency", &self.tsc_frequency())
             .field("apic_frequency", &self.apic_frequency())
             .finish()
@@ -4275,7 +4733,7 @@ impl HypervisorInfo {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedFunctionInfo {
     max_eax_value: u32,
@@ -4310,7 +4768,8 @@ impl ExtendedFunctionInfo {
         val <= self.max_eax_value
     }
 
-    /// Retrieve processor brand string.
+    /// Retrieve processor brand string. For example
+    /// "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz".
     pub fn processor_brand_string<'a>(&'a self) -> Option<&'a str> {
         if self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING) {
             let brand_string_start = &self.data[2] as *const CpuIdResult as *const u8;
@@ -4466,6 +4925,29 @@ impl ExtendedFunctionInfo {
                 bits: self.data[1].edx,
             }
             .contains(ExtendedFunctionInfoEdx::I64BIT_MODE)
+    }
+}
+
+impl Debug for ExtendedFunctionInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("ExtendedFunctionInfo")
+            .field("processor_brand_string", &self.processor_brand_string())
+            .field("extended_signature", &self.extended_signature())
+            .field("cache_line_size", &self.cache_line_size())
+            .field("l2_associativity", &self.l2_associativity())
+            .field("cache_size", &self.cache_size())
+            .field("physical_address_bits", &self.physical_address_bits())
+            .field("linear_address_bits", &self.linear_address_bits())
+            .field("has_invariant_tsc", &self.has_invariant_tsc())
+            .field("has_lahf_sahf", &self.has_lahf_sahf())
+            .field("has_lzcnt", &self.has_lzcnt())
+            .field("has_prefetchw", &self.has_prefetchw())
+            .field("has_syscall_sysret", &self.has_syscall_sysret())
+            .field("has_execute_disable", &self.has_execute_disable())
+            .field("has_1gib_pages", &self.has_1gib_pages())
+            .field("has_rdtscp", &self.has_rdtscp())
+            .field("has_64bit_mode", &self.has_64bit_mode())
+            .finish()
     }
 }
 

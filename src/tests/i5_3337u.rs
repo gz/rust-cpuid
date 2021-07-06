@@ -179,7 +179,7 @@ fn thermal_power_features() {
         eax: ThermalPowerFeaturesEax { bits: 119 },
         ebx: 2,
         ecx: ThermalPowerFeaturesEcx { bits: 9 },
-        edx: 0,
+        _edx: 0,
     };
 
     assert!(tpfeatures.eax.contains(ThermalPowerFeaturesEax::DTS));
@@ -213,7 +213,7 @@ fn thermal_power_features() {
             | ThermalPowerFeaturesEax::HDC,
         ebx: 2,
         ecx: ThermalPowerFeaturesEcx::HW_COORD_FEEDBACK | ThermalPowerFeaturesEcx::ENERGY_BIAS_PREF,
-        edx: 0,
+        _edx: 0,
     };
 
     assert!(tpfeatures.has_dts());
@@ -237,12 +237,12 @@ fn thermal_power_features() {
 #[test]
 fn extended_features() {
     let tpfeatures = ExtendedFeatures {
-        eax: 0,
+        _eax: 0,
         ebx: ExtendedFeaturesEbx { bits: 641 },
         ecx: ExtendedFeaturesEcx { bits: 0 },
-        edx: 0,
+        _edx: 0,
     };
-    assert!(tpfeatures.eax == 0);
+    assert!(tpfeatures._eax == 0);
     assert!(tpfeatures.has_fsgsbase());
     assert!(!tpfeatures.has_tsc_adjust_msr());
     assert!(!tpfeatures.has_bmi1());
@@ -257,7 +257,7 @@ fn extended_features() {
     assert!(!tpfeatures.has_fpu_cs_ds_deprecated());
 
     let tpfeatures2 = ExtendedFeatures {
-        eax: 0,
+        _eax: 0,
         ebx: ExtendedFeaturesEbx::FSGSBASE
             | ExtendedFeaturesEbx::ADJUST_MSR
             | ExtendedFeaturesEbx::BMI1
@@ -274,7 +274,7 @@ fn extended_features() {
             | ExtendedFeaturesEbx::CLFLUSHOPT
             | ExtendedFeaturesEbx::PROCESSOR_TRACE,
         ecx: ExtendedFeaturesEcx { bits: 0 },
-        edx: 201326592,
+        _edx: 201326592,
     };
 
     assert!(tpfeatures2.has_fsgsbase());
@@ -305,7 +305,7 @@ fn performance_monitoring_info() {
     let pm = PerformanceMonitoringInfo {
         eax: 120587267,
         ebx: PerformanceMonitoringFeaturesEbx { bits: 0 },
-        ecx: 0,
+        _ecx: 0,
         edx: 1539,
     };
 
@@ -375,11 +375,11 @@ fn extended_state_info() {
         eax: ExtendedStateInfoXCR0Flags { bits: 7 },
         ebx: 832,
         ecx: 832,
-        edx: 0,
+        _edx: 0,
         eax1: 1,
         ebx1: 0,
         ecx1: ExtendedStateInfoXSSFlags { bits: 0 },
-        edx1: 0,
+        _edx1: 0,
     };
 
     assert!(es.xsave_area_size_enabled_features() == 832);
@@ -410,11 +410,11 @@ fn extended_state_info3() {
             | ExtendedStateInfoXCR0Flags::PKRU,
         ebx: 2688,
         ecx: 2696,
-        edx: 0,
+        _edx: 0,
         eax1: 15,
         ebx1: 2560,
         ecx1: ExtendedStateInfoXSSFlags::PT,
-        edx1: 0,
+        _edx1: 0,
     };
 
     assert!(esi.xcr0_supports_legacy_x87());
@@ -561,11 +561,11 @@ fn extended_state_info2() {
         eax: ExtendedStateInfoXCR0Flags { bits: 31 },
         ebx: 1088,
         ecx: 1088,
-        edx: 0,
+        _edx: 0,
         eax1: 15,
         ebx1: 960,
         ecx1: ExtendedStateInfoXSSFlags { bits: 256 },
-        edx1: 0,
+        _edx1: 0,
     };
 
     assert!(es.xcr0_supports_legacy_x87());
@@ -732,7 +732,7 @@ fn sgx_test() {
         read: Default::default(),
         eax: 1,
         ebx: 0,
-        ecx: 0,
+        _ecx: 0,
         edx: 9247,
         eax1: 54,
         ebx1: 0,
