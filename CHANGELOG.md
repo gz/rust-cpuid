@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+ - Updated Debug trait for SGX iterators.
+
 ## [9.1.1] - 2021-07-06
 
 ### Changed
