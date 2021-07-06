@@ -4081,7 +4081,7 @@ impl Debug for SgxInfo {
 }
 
 /// Iterator over the SGX sub-leafs (ECX >= 2).
-#[derive(Default)]
+#[derive(Default, Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SgxSectionIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -4109,9 +4109,11 @@ impl Iterator for SgxSectionIter {
 
 impl Debug for SgxSectionIter {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("SgxSectionIter")
-            // TODO find way to include all elements here nicely
-            .finish()
+        let mut debug = f.debug_list();
+        self.clone().for_each(|ref item| {
+            debug.entry(item);
+        });
+        debug.finish()
     }
 }
 
