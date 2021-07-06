@@ -388,7 +388,7 @@ impl CpuId {
                 eax: ThermalPowerFeaturesEax { bits: res.eax },
                 ebx: res.ebx,
                 ecx: ThermalPowerFeaturesEcx { bits: res.ecx },
-                edx: res.edx,
+                _edx: res.edx,
             })
         } else {
             None
@@ -400,10 +400,10 @@ impl CpuId {
         if self.leaf_is_supported(EAX_STRUCTURED_EXTENDED_FEATURE_INFO) {
             let res = self.read.cpuid1(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
             Some(ExtendedFeatures {
-                eax: res.eax,
+                _eax: res.eax,
                 ebx: ExtendedFeaturesEbx { bits: res.ebx },
                 ecx: ExtendedFeaturesEcx { bits: res.ecx },
-                edx: res.edx,
+                _edx: res.edx,
             })
         } else {
             None
@@ -427,7 +427,7 @@ impl CpuId {
             Some(PerformanceMonitoringInfo {
                 eax: res.eax,
                 ebx: PerformanceMonitoringFeaturesEbx { bits: res.ebx },
-                ecx: res.ecx,
+                _ecx: res.ecx,
                 edx: res.edx,
             })
         } else {
@@ -457,11 +457,11 @@ impl CpuId {
                 eax: ExtendedStateInfoXCR0Flags { bits: res.eax },
                 ebx: res.ebx,
                 ecx: res.ecx,
-                edx: res.edx,
+                _edx: res.edx,
                 eax1: res1.eax,
                 ebx1: res1.ebx,
                 ecx1: ExtendedStateInfoXSSFlags { bits: res1.ecx },
-                edx1: res1.edx,
+                _edx1: res1.edx,
             })
         } else {
             None
@@ -507,7 +507,7 @@ impl CpuId {
                     read: self.read,
                     eax: res.eax,
                     ebx: res.ebx,
-                    ecx: res.ecx,
+                    _ecx: res.ecx,
                     edx: res.edx,
                     eax1: res1.eax,
                     ebx1: res1.ebx,
@@ -531,10 +531,10 @@ impl CpuId {
             };
 
             Some(ProcessorTraceInfo {
-                eax: res.eax,
+                _eax: res.eax,
                 ebx: res.ebx,
                 ecx: res.ecx,
-                edx: res.edx,
+                _edx: res.edx,
                 leaf1: res1,
             })
         } else {
@@ -2476,7 +2476,7 @@ pub struct ThermalPowerInfo {
     eax: ThermalPowerFeaturesEax,
     ebx: u32,
     ecx: ThermalPowerFeaturesEcx,
-    edx: u32,
+    _edx: u32,
 }
 
 impl ThermalPowerInfo {
@@ -2728,10 +2728,10 @@ bitflags! {
 #[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedFeatures {
-    eax: u32,
+    _eax: u32,
     ebx: ExtendedFeaturesEbx,
     ecx: ExtendedFeaturesEcx,
-    edx: u32,
+    _edx: u32,
 }
 
 impl ExtendedFeatures {
@@ -3118,7 +3118,7 @@ impl Debug for DirectCacheAccessInfo {
 pub struct PerformanceMonitoringInfo {
     eax: u32,
     ebx: PerformanceMonitoringFeaturesEbx,
-    ecx: u32,
+    _ecx: u32,
     edx: u32,
 }
 
@@ -3417,11 +3417,11 @@ pub struct ExtendedStateInfo {
     eax: ExtendedStateInfoXCR0Flags,
     ebx: u32,
     ecx: u32,
-    edx: u32,
+    _edx: u32,
     eax1: u32,
     ebx1: u32,
     ecx1: ExtendedStateInfoXSSFlags,
-    edx1: u32,
+    _edx1: u32,
 }
 
 impl ExtendedStateInfo {
@@ -3979,7 +3979,7 @@ pub struct SgxInfo {
     read: CpuIdReader,
     eax: u32,
     ebx: u32,
-    ecx: u32,
+    _ecx: u32,
     edx: u32,
     eax1: u32,
     ebx1: u32,
@@ -4131,10 +4131,10 @@ impl EpcSection {
 #[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorTraceInfo {
-    eax: u32,
+    _eax: u32,
     ebx: u32,
     ecx: u32,
-    edx: u32,
+    _edx: u32,
     leaf1: Option<CpuIdResult>,
 }
 
@@ -4388,7 +4388,7 @@ impl Iterator for DatIter {
             }
 
             return Some(DatInfo {
-                eax: res.eax,
+                _eax: res.eax,
                 ebx: res.ebx,
                 ecx: res.ecx,
                 edx: res.edx,
@@ -4411,7 +4411,7 @@ impl Debug for DatIter {
 #[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DatInfo {
-    eax: u32,
+    _eax: u32,
     ebx: u32,
     ecx: u32,
     edx: u32,
