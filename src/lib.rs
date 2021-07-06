@@ -765,7 +765,7 @@ pub struct VendorInfo {
 
 impl VendorInfo {
     /// Return vendor identification as human readable string.
-    pub fn as_string<'a>(&'a self) -> &'a str {
+    pub fn as_string(&self) -> &str {
         let brand_string_start = self as *const VendorInfo as *const u8;
         let slice = unsafe {
             // Safety: VendorInfo is laid out with repr(C) and exactly
@@ -4645,7 +4645,7 @@ pub struct SoCVendorBrand {
 }
 
 impl SoCVendorBrand {
-    pub fn as_string<'a>(&'a self) -> &'a str {
+    pub fn as_string(&self) -> &str {
         let brand_string_start = self as *const SoCVendorBrand as *const u8;
         let slice = unsafe {
             // Safety: SoCVendorBrand is laid out with repr(C).
