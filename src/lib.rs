@@ -2067,7 +2067,10 @@ impl Debug for FeatureInfo {
             .field("brand_index", &self.brand_index())
             .field("cflush_cache_line_size", &self.cflush_cache_line_size())
             .field("initial_local_apic_id", &self.initial_local_apic_id())
-            .field("max_logical_processor_ids", &self.max_logical_processor_ids())
+            .field(
+                "max_logical_processor_ids",
+                &self.max_logical_processor_ids(),
+            )
             .field("edx_ecx", &self.edx_ecx)
             .finish()
     }
@@ -2241,7 +2244,7 @@ impl Debug for CacheParametersIter {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         let mut debug = f.debug_list();
         self.clone().for_each(|ref item| {
-           debug.entry(item);
+            debug.entry(item);
         });
         debug.finish()
     }
@@ -2648,15 +2651,24 @@ impl Debug for ThermalPowerInfo {
             .field("has_hwp", &self.has_hwp())
             .field("has_hwp_notification", &self.has_hwp_notification())
             .field("has_hwp_activity_window", &self.has_hwp_activity_window())
-            .field("has_hwp_energy_performance_preference", &self.has_hwp_energy_performance_preference())
-            .field("has_hwp_package_level_request", &self.has_hwp_package_level_request())
+            .field(
+                "has_hwp_energy_performance_preference",
+                &self.has_hwp_energy_performance_preference(),
+            )
+            .field(
+                "has_hwp_package_level_request",
+                &self.has_hwp_package_level_request(),
+            )
             .field("has_hdc", &self.has_hdc())
             .field("has_turbo_boost3", &self.has_turbo_boost3())
             .field("has_hwp_capabilities", &self.has_hwp_capabilities())
             .field("has_hwp_peci_override", &self.has_hwp_peci_override())
             .field("has_flexible_hwp", &self.has_flexible_hwp())
             .field("has_hwp_fast_access_mode", &self.has_hwp_fast_access_mode())
-            .field("has_ignore_idle_processor_hwp_request", &self.has_ignore_idle_processor_hwp_request())
+            .field(
+                "has_ignore_idle_processor_hwp_request",
+                &self.has_ignore_idle_processor_hwp_request(),
+            )
             .field("has_hw_coord_feedback", &self.has_hw_coord_feedback())
             .field("has_energy_bias_pref", &self.has_energy_bias_pref())
             .finish()
@@ -3557,8 +3569,14 @@ impl Debug for ExtendedStateInfo {
         f.debug_struct("ExtendedStateInfo")
             .field("eax", &self.eax)
             .field("ecx1", &self.ecx1)
-            .field("xsave_area_size_enabled_features", &self.xsave_area_size_enabled_features())
-            .field("xsave_area_size_supported_features", &self.xsave_area_size_supported_features())
+            .field(
+                "xsave_area_size_enabled_features",
+                &self.xsave_area_size_enabled_features(),
+            )
+            .field(
+                "xsave_area_size_supported_features",
+                &self.xsave_area_size_supported_features(),
+            )
             .field("has_xsaveopt", &self.has_xsaveopt())
             .field("has_xsavec", &self.has_xsavec())
             .field("has_xgetbv", &self.has_xgetbv())
@@ -3618,7 +3636,7 @@ impl Debug for ExtendedStateIter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut debug = f.debug_list();
         self.clone().for_each(|ref item| {
-           debug.entry(item);
+            debug.entry(item);
         });
         debug.finish()
     }
@@ -3966,7 +3984,10 @@ impl Debug for MemBwAllocationInfo {
         f.debug_struct("MemBwAllocationInfo")
             .field("max_hba_throttling", &self.max_hba_throttling())
             .field("highest_cos", &self.highest_cos())
-            .field("has_linear_response_delay", &self.has_linear_response_delay())
+            .field(
+                "has_linear_response_delay",
+                &self.has_linear_response_delay(),
+            )
             .finish()
     }
 }
@@ -4046,8 +4067,14 @@ impl Debug for SgxInfo {
                 &self.max_enclave_size_non_64bit(),
             )
             .field("max_enclave_size_64bit", &self.max_enclave_size_64bit())
-            .field("has_encls_leaves_etrackc_erdinfo_eldbc_elduc", &self.has_encls_leaves_etrackc_erdinfo_eldbc_elduc())
-            .field("has_enclv_leaves_einvirtchild_edecvirtchild_esetcontext", &self.has_enclv_leaves_einvirtchild_edecvirtchild_esetcontext())
+            .field(
+                "has_encls_leaves_etrackc_erdinfo_eldbc_elduc",
+                &self.has_encls_leaves_etrackc_erdinfo_eldbc_elduc(),
+            )
+            .field(
+                "has_enclv_leaves_einvirtchild_edecvirtchild_esetcontext",
+                &self.has_enclv_leaves_einvirtchild_edecvirtchild_esetcontext(),
+            )
             .field("sgx_section_iter", &self.iter())
             .finish()
     }
