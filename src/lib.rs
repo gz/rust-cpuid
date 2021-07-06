@@ -74,10 +74,10 @@ pub mod native_cpuid {
 
 use core::cmp::min;
 use core::fmt;
+use core::fmt::{Debug, Formatter};
 use core::mem::size_of;
 use core::slice;
 use core::str;
-use core::fmt::{Formatter, Debug};
 
 #[cfg(not(test))]
 mod std {
@@ -723,8 +723,14 @@ impl Debug for CpuId {
             .field("monitor_mwait_info", &self.get_monitor_mwait_info())
             .field("thermal_power_info", &self.get_thermal_power_info())
             .field("extended_feature_info", &self.get_extended_feature_info())
-            .field("direct_cache_access_info", &self.get_direct_cache_access_info())
-            .field("performance_monitoring_info", &self.get_performance_monitoring_info())
+            .field(
+                "direct_cache_access_info",
+                &self.get_direct_cache_access_info(),
+            )
+            .field(
+                "performance_monitoring_info",
+                &self.get_performance_monitoring_info(),
+            )
             .field("extended_topology_info", &self.get_extended_topology_info())
             .field("extended_state_info", &self.get_extended_state_info())
             .field("rdt_monitoring_info", &self.get_rdt_monitoring_info())
@@ -732,8 +738,14 @@ impl Debug for CpuId {
             .field("sgx_info", &self.get_sgx_info())
             .field("processor_trace_info", &self.get_processor_trace_info())
             .field("tsc_info", &self.get_tsc_info())
-            .field("processor_frequency_info", &self.get_processor_frequency_info())
-            .field("deterministic_address_translation_info", &self.deterministic_address_translation_info())
+            .field(
+                "processor_frequency_info",
+                &self.get_processor_frequency_info(),
+            )
+            .field(
+                "deterministic_address_translation_info",
+                &self.deterministic_address_translation_info(),
+            )
             .field("soc_vendor_info", &self.get_soc_vendor_info())
             .field("hypervisor_info", &self.get_hypervisor_info())
             .field("extended_function_info", &self.get_extended_function_info())
@@ -2443,7 +2455,10 @@ impl Debug for MonitorMwaitInfo {
             .field("smallest_monitor_line", &self.smallest_monitor_line())
             .field("largest_monitor_line", &self.largest_monitor_line())
             .field("extensions_supported", &self.extensions_supported())
-            .field("interrupts_as_break_event", &self.interrupts_as_break_event())
+            .field(
+                "interrupts_as_break_event",
+                &self.interrupts_as_break_event(),
+            )
             .field("supported_c0_states", &self.supported_c0_states())
             .field("supported_c1_states", &self.supported_c1_states())
             .field("supported_c2_states", &self.supported_c2_states())
@@ -3196,7 +3211,10 @@ impl Debug for PerformanceMonitoringInfo {
             .field("counter_bit_width", &self.counter_bit_width())
             .field("ebx_length", &self.ebx_length())
             .field("fixed_function_counters", &self.fixed_function_counters())
-            .field("fixed_function_counters_bit_width", &self.fixed_function_counters_bit_width())
+            .field(
+                "fixed_function_counters_bit_width",
+                &self.fixed_function_counters_bit_width(),
+            )
             .finish()
     }
 }
@@ -3800,7 +3818,10 @@ impl Debug for RdtAllocationInfo {
             .field("ebx", &(self.ebx as *const u32))
             .field("l3_cat", &self.l3_cat())
             .field("l2_cat", &self.l2_cat())
-            .field("memory_bandwidth_allocation", &self.memory_bandwidth_allocation())
+            .field(
+                "memory_bandwidth_allocation",
+                &self.memory_bandwidth_allocation(),
+            )
             .finish()
     }
 }
@@ -4008,7 +4029,10 @@ impl Debug for SgxInfo {
             .field("ecx1", &(self.ecx1 as *const u32))
             .field("edx1", &(self.edx1 as *const u32))
             .field("miscselect", &self.miscselect())
-            .field("max_enclave_size_non_64bit", &self.max_enclave_size_non_64bit())
+            .field(
+                "max_enclave_size_non_64bit",
+                &self.max_enclave_size_non_64bit(),
+            )
             .field("max_enclave_size_64bit", &self.max_enclave_size_64bit())
             .field("iter", &self.iter())
             .finish()
@@ -4212,10 +4236,22 @@ impl Debug for ProcessorTraceInfo {
             .field("ecx", &(self.ecx as *const u32))
             .field("edx", &(self.edx as *const u32))
             .field("leaf1", &self.leaf1)
-            .field("configurable_address_ranges", &(self.configurable_address_ranges() as *const u32))
-            .field("supported_mtc_period_encodings", &(self.supported_mtc_period_encodings() as *const u32))
-            .field("supported_cycle_threshold_value_encodings", &(self.supported_cycle_threshold_value_encodings() as *const u32))
-            .field("supported_psb_frequency_encodings", &(self.supported_psb_frequency_encodings() as *const u32))
+            .field(
+                "configurable_address_ranges",
+                &(self.configurable_address_ranges() as *const u32),
+            )
+            .field(
+                "supported_mtc_period_encodings",
+                &(self.supported_mtc_period_encodings() as *const u32),
+            )
+            .field(
+                "supported_cycle_threshold_value_encodings",
+                &(self.supported_cycle_threshold_value_encodings() as *const u32),
+            )
+            .field(
+                "supported_psb_frequency_encodings",
+                &(self.supported_psb_frequency_encodings() as *const u32),
+            )
             .finish()
     }
 }
@@ -4496,9 +4532,7 @@ impl SoCVendorInfo {
             let r1 = cpuid!(EAX_SOC_VENDOR_INFO, 1);
             let r2 = cpuid!(EAX_SOC_VENDOR_INFO, 2);
             let r3 = cpuid!(EAX_SOC_VENDOR_INFO, 3);
-            Some(
-                SoCVendorBrand { data: [r1, r2, r3] }
-            )
+            Some(SoCVendorBrand { data: [r1, r2, r3] })
         } else {
             None
         }
