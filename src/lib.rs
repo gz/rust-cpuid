@@ -4693,16 +4693,29 @@ pub enum Hypervisor {
     VMware,
     HyperV,
     KVM,
-    /// QEMU is the hypervisor-type when QEMU is used
-    /// without KVM as accelerator.
+    /// QEMU is the hypervisor identity when QEMU is used
+    /// without an accelerator, such as KVM.
     QEMU,
+    Bhyve,
+    QNX,
+    ACRN,
     Unknown(u32, u32, u32),
 }
 
 impl HypervisorInfo {
+    /// Returns the identity of the [`Hypervisor`].
+    ///
+    /// ## Technical Background
+    ///
+    /// The value is a 12-byte (12 character) fixed-length ASCII string.
+    ///
+    /// Usually all of these IDs can be found in the original source code on
+    /// Github relatively easy (if the project is open source). Once you
+    /// have an ID, you find cumulated lists with all kinds of IDs on Github
+    /// relatively easy.
     pub fn identify(&self) -> Hypervisor {
         match (self.res.ebx, self.res.ecx, self.res.edx) {
-            // "VMwareVMware"
+            // "VMwareVMware" (0x56 => V, 0x4d => M, ...)
             (0x61774d56, 0x4d566572, 0x65726177) => Hypervisor::VMware,
             // "XenVMMXenVMM"
             (0x566e6558, 0x65584d4d, 0x4d4d566e) => Hypervisor::Xen,
@@ -4710,9 +4723,22 @@ impl HypervisorInfo {
             (0x7263694d, 0x666f736f, 0x76482074) => Hypervisor::HyperV,
             // "KVMKVMKVM\0\0\0"
             (0x4b4d564b, 0x564b4d56, 0x0000004d) => Hypervisor::KVM,
-            // `TCGTCGTCGTCG` is the magic value of the CPU signature of QEMU,
+            // "TCGTCGTCGTCG"
             // see https://github.com/qemu/qemu/blob/6512fa497c2fa9751b9d774ab32d87a9764d1958/target/i386/cpu.c
             (0x54474354, 0x43544743, 0x47435447) => Hypervisor::QEMU,
+            // "bhyve bhyve "
+            // found this in another library ("heim-virt")
+            (0x76796862, 0x68622065, 0x20657679) => Hypervisor::Bhyve,
+            // "BHyVE BHyVE "
+            // But this value is in the original source code. To be safe, we keep both.
+            // See https://github.com/lattera/bhyve/blob/5946a9115d2771a1d27f14a835c7fbc05b30f7f9/sys/amd64/vmm/x86.c#L165
+            (0x56794842, 0x48422045, 0x20455679) => Hypervisor::Bhyve,
+            // "QNXQVMBSQG"
+            // This can be verified in multiple Git repos (e.g. by Intel)
+            // https://github.com/search?q=QNXQVMBSQG&type=code
+            (0x51584e51, 0x53424d56, 0x00004751) => Hypervisor::QNX,
+            // "ACRNACRNACRN"
+            (0x4e524341, 0x4e524341, 0x4e524341) => Hypervisor::ACRN,
             (ebx, ecx, edx) => Hypervisor::Unknown(ebx, ecx, edx),
         }
     }
