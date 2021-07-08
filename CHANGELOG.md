@@ -8,8 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased v10]
 
  - Extend Hypervisor enum with more variants ([#50](https://github.com/gz/rust-cpuid/pull/50)) (**breaking change**)
+ - Remove `has_rdseet` function (deprecated since 3.2), clients should use the correctly named `has_rdseed` function instead (**breaking change**).
  - Updated Debug trait for SGX iterators.
  - Make CpuId derive Clone and Copy ([#53](https://github.com/gz/rust-cpuid/pull/50))
+
 
 ## [9.1.1] - 2021-07-06
 
