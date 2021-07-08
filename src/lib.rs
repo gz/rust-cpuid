@@ -193,6 +193,7 @@ impl Vendor {
 
 /// Main type used to query for information about the CPU we're running on.
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy)]
 pub struct CpuId {
     #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
