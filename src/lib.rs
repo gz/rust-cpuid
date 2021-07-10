@@ -602,15 +602,22 @@ impl CpuId {
     }
 
     pub fn get_hypervisor_info(&self) -> Option<HypervisorInfo> {
-        let res = self.read.cpuid1(EAX_HYPERVISOR_INFO);
-        if res.eax > 0 {
-            Some(HypervisorInfo {
-                read: self.read,
-                res,
+        // We only fetch HypervisorInfo, if the Hypervisor-Flag is set.
+        // See https://github.com/gz/rust-cpuid/issues/52
+        self.get_feature_info()
+            .filter(|fi| fi.has_hypervisor())
+            .map(|_| {
+                let res = self.read.cpuid1(EAX_HYPERVISOR_INFO);
+                if res.eax > 0 {
+                    Some(HypervisorInfo {
+                        read: self.read,
+                        res,
+                    })
+                } else {
+                    None
+                }
             })
-        } else {
-            None
-        }
+            .flatten()
     }
 
     /// Extended functionality of CPU described here (including more supported features).
