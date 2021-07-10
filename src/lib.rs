@@ -4675,7 +4675,6 @@ pub struct HypervisorInfo {
 impl fmt::Debug for HypervisorInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("HypervisorInfo")
-            .field("res", &self.res)
             .field("identify", &self.identify())
             .field("tsc_frequency", &self.tsc_frequency())
             .field("apic_frequency", &self.apic_frequency())
