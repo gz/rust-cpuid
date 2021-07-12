@@ -163,14 +163,9 @@ fn enumerate_with_legacy_leaf_1_4() {
 fn main() {
     let cpuid = CpuId::new();
 
-    cpuid.get_extended_function_info().map_or_else(
-        || println!("Couldn't find processor serial number."),
-        |extfuninfo| {
-            println!(
-                "CPU Model is: {}",
-                extfuninfo.processor_brand_string().unwrap_or("Unknown CPU")
-            )
-        },
+    cpuid.get_processor_brand_string().map_or_else(
+        || println!("CPU model identifier not available."),
+        |pbs| println!("CPU Model is: {}", pbs.as_str()),
     );
     cpuid.get_extended_topology_info().map_or_else(
         || println!("No topology information available."),

@@ -14,10 +14,10 @@ fn main() {
 
     println!(
         "CPU Model is: {}",
-        cpuid.get_extended_function_info().as_ref().map_or_else(
-            || "n/a",
-            |extfuninfo| extfuninfo.processor_brand_string().unwrap_or("unreadable"),
-        )
+        cpuid
+            .get_processor_brand_string()
+            .as_ref()
+            .map_or_else(|| "n/a", |pbs| pbs.as_str())
     );
 
     println!(
@@ -41,11 +41,13 @@ fn main() {
         || println!("Family: n/a\nExtended Family: n/a\nModel: n/a\nExtended Model: n/a\nStepping: n/a\nBrand Index: n/a"),
         |finfo| {
             println!(
-                "Family: {}\nExtended Family: {}\nModel: {}\nExtended Model: {}\nStepping: {}\nBrand Index: {}",
-                finfo.family_id(),
+                "Base Family: {}\nExtended Family: {}\nFamily: {}\nBase Model: {}\nExtended Model: {}\nModel: {}\nStepping: {}\nBrand Index: {}",
+                finfo.base_family_id(),
                 finfo.extended_family_id(),
-                finfo.model_id(),
+                finfo.family_id(),
+                finfo.base_model_id(),
                 finfo.extended_model_id(),
+                finfo.model_id(),
                 finfo.stepping_id(),
                 finfo.brand_index(),
             );

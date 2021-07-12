@@ -80,7 +80,6 @@ use core::mem::size_of;
 use core::slice;
 use core::str;
 
-use alloc::vec::Vec;
 pub use extended::*;
 
 #[cfg(not(test))]
@@ -1572,7 +1571,6 @@ impl Debug for ProcessorSerial {
     }
 }
 
-#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct FeatureInfo {
     vendor: Vendor,
