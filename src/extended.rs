@@ -436,3 +436,17 @@ impl Debug for ProcessorBrandString {
             .finish()
     }
 }
+
+/// L1 Cache and TLB Information.
+///
+/// # Intel
+/// This info is unavailable on Intel CPUs.
+pub struct L1CacheTlbInfo {
+    data: CpuIdResult,
+}
+
+impl L1CacheTlbInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self { data }
+    }
+}

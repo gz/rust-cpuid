@@ -280,6 +280,7 @@ const EAX_HYPERVISOR_INFO: u32 = 0x4000_0000;
 const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x8000_0000;
 const EAX_EXTENDED_PROCESSOR_AND_FEATURE_IDENTIFIERS: u32 = 0x8000_0001;
 const EAX_EXTENDED_BRAND_STRING: u32 = 0x8000_0002;
+const EAX_L1_CACHE_INFO: u32 = 0x8000_0005;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 
 impl CpuId {
@@ -668,7 +669,7 @@ impl CpuId {
     }
 
     /// Retrieve processor brand string leafs.
-    pub fn get_processor_brand_string<'a>(&'a self) -> Option<ProcessorBrandString> {
+    pub fn get_processor_brand_string(&self) -> Option<ProcessorBrandString> {
         if self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING)
             && self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING + 1)
             && self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING + 2)
@@ -678,6 +679,18 @@ impl CpuId {
                 self.read.cpuid1(EAX_EXTENDED_BRAND_STRING + 1),
                 self.read.cpuid1(EAX_EXTENDED_BRAND_STRING + 2),
             ]))
+        } else {
+            None
+        }
+    }
+
+    /// L1 Instruction Cache Information (LEAF=0x8000_0005)
+    ///
+    /// # Intel
+    /// This leaf is not supported on Intel (will return None).
+    pub fn get_l1_cache_and_tlb_info(&self) -> Option<L1CacheTlbInfo> {
+        if self.vendor == Vendor::Amd && self.leaf_is_supported(EAX_L1_CACHE_INFO) {
+            Some(L1CacheTlbInfo::new(self.read.cpuid1(EAX_L1_CACHE_INFO)))
         } else {
             None
         }
