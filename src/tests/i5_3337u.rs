@@ -704,6 +704,26 @@ fn extended_functions() {
         ],
     };
 
+    assert!(ef.extended_signature().unwrap() == 0x0);
+    assert!(ef.cache_line_size().unwrap() == 64);
+    assert!(ef.l2_associativity().unwrap() == L2Associativity::EightWay);
+    assert!(ef.cache_size().unwrap() == 256);
+    assert!(ef.physical_address_bits().unwrap() == 36);
+    assert!(ef.linear_address_bits().unwrap() == 48);
+}
+
+#[test]
+fn extended_processor_feature_identifiers() {
+    let ef = ExtendedProcessorFeatureIdentifiers::new(
+        Vendor::Intel,
+        CpuIdResult {
+            eax: 0,
+            ebx: 0,
+            ecx: 1,
+            edx: 672139264,
+        },
+    );
+
     assert!(ef.has_lahf_sahf());
     assert!(!ef.has_lzcnt());
     assert!(!ef.has_prefetchw());
@@ -712,14 +732,6 @@ fn extended_functions() {
     assert!(!ef.has_1gib_pages());
     assert!(ef.has_rdtscp());
     assert!(ef.has_64bit_mode());
-    assert!(ef.has_invariant_tsc());
-
-    assert!(ef.extended_signature().unwrap() == 0x0);
-    assert!(ef.cache_line_size().unwrap() == 64);
-    assert!(ef.l2_associativity().unwrap() == L2Associativity::EightWay);
-    assert!(ef.cache_size().unwrap() == 256);
-    assert!(ef.physical_address_bits().unwrap() == 36);
-    assert!(ef.linear_address_bits().unwrap() == 48);
 }
 
 #[test]
