@@ -197,8 +197,12 @@ impl Vendor {
 pub struct CpuId {
     #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
+    /// CPU vendor to differntiate cases where logic needs to differ in code .
     vendor: Vendor,
+    /// How many basic leafs are supported (EAX < EAX_HYPERVISOR_INFO)
     supported_leafs: u32,
+    /// How many extended leafs are supported (e.g., leafs with EAX > EAX_EXTENDED_FUNCTION_INFO)
+    supported_extended_leafs: u32,
 }
 
 impl Default for CpuId {
@@ -259,9 +263,9 @@ const EAX_TIME_STAMP_COUNTER_INFO: u32 = 0x15;
 const EAX_FREQUENCY_INFO: u32 = 0x16;
 const EAX_SOC_VENDOR_INFO: u32 = 0x17;
 const EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO: u32 = 0x18;
-const EAX_HYPERVISOR_INFO: u32 = 0x40000000;
-const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x80000000;
-const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000001F;
+const EAX_HYPERVISOR_INFO: u32 = 0x4000_0000;
+const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x8000_0000;
+const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 
 impl CpuId {
     /// Return new CPUID struct.
@@ -272,8 +276,10 @@ impl CpuId {
     pub fn with_cpuid_fn(cpuid_fn: fn(u32, u32) -> CpuIdResult) -> Self {
         let read = CpuIdReader::new(cpuid_fn);
         let vendor_leaf = read.cpuid1(EAX_VENDOR_INFO);
+        let extended_leaf = read.cpuid1(EAX_EXTENDED_FUNCTION_INFO);
         CpuId {
             supported_leafs: vendor_leaf.eax,
+            supported_extended_leafs: extended_leaf.eax,
             vendor: Vendor::from_vendor_leaf(vendor_leaf),
             read,
         }
@@ -287,12 +293,16 @@ impl CpuId {
             return false;
         }
 
-        val <= self.supported_leafs
+        if val < EAX_EXTENDED_FUNCTION_INFO {
+            val <= self.supported_leafs
+        } else {
+            val <= self.supported_extended_leafs
+        }
     }
 
     /// Return information about vendor.
     /// This is typically a ASCII readable string such as
-    /// GenuineIntel for Intel CPUs or AuthenticAMD for AMD CPUs.
+    /// GenuineIntel for Intel CPUs or AuthenticAMD for AMD CPUs (LEAF=0x00).
     pub fn get_vendor_info(&self) -> Option<VendorInfo> {
         if self.leaf_is_supported(EAX_VENDOR_INFO) {
             let res = self.read.cpuid1(EAX_VENDOR_INFO);
@@ -306,7 +316,7 @@ impl CpuId {
         }
     }
 
-    /// Query a set of features that are available on this CPU.
+    /// Query a set of features that are available on this CPU (LEAF=0x01).
     pub fn get_feature_info(&self) -> Option<FeatureInfo> {
         if self.leaf_is_supported(EAX_FEATURE_INFO) {
             let res = self.read.cpuid1(EAX_FEATURE_INFO);
@@ -323,7 +333,7 @@ impl CpuId {
     }
 
     /// Query basic information about caches. This will just return an index
-    /// into a static table of cache descriptions (see `CACHE_INFO_TABLE`).
+    /// into a static table of cache descriptions (see `CACHE_INFO_TABLE`) (LEAF=0x02).
     pub fn get_cache_info(&self) -> Option<CacheInfoIter> {
         if self.leaf_is_supported(EAX_CACHE_INFO) {
             let res = self.read.cpuid1(EAX_CACHE_INFO);
@@ -339,7 +349,7 @@ impl CpuId {
         }
     }
 
-    /// Retrieve serial number of processor.
+    /// Retrieve serial number of processor (LEAF=0x03).
     pub fn get_processor_serial(&self) -> Option<ProcessorSerial> {
         if self.leaf_is_supported(EAX_PROCESSOR_SERIAL) {
             let res = self.read.cpuid1(EAX_PROCESSOR_SERIAL);
@@ -354,7 +364,7 @@ impl CpuId {
 
     /// Retrieve more elaborate information about caches (as opposed
     /// to `get_cache_info`). This will tell us about associativity,
-    /// set size, line size etc. for each level of the cache hierarchy.
+    /// set size, line size etc. for each level of the cache hierarchy (LEAF=0x04).
     pub fn get_cache_parameters(&self) -> Option<CacheParametersIter> {
         if self.leaf_is_supported(EAX_CACHE_PARAMETERS) {
             Some(CacheParametersIter {
@@ -366,7 +376,7 @@ impl CpuId {
         }
     }
 
-    /// Information about how monitor/mwait works on this CPU.
+    /// Information about how monitor/mwait works on this CPU (LEAF=0x05).
     pub fn get_monitor_mwait_info(&self) -> Option<MonitorMwaitInfo> {
         if self.leaf_is_supported(EAX_MONITOR_MWAIT_INFO) {
             let res = self.read.cpuid1(EAX_MONITOR_MWAIT_INFO);
@@ -381,7 +391,7 @@ impl CpuId {
         }
     }
 
-    /// Query information about thermal and power management features of the CPU.
+    /// Query information about thermal and power management features of the CPU (LEAF=0x06).
     pub fn get_thermal_power_info(&self) -> Option<ThermalPowerInfo> {
         if self.leaf_is_supported(EAX_THERMAL_POWER_INFO) {
             let res = self.read.cpuid1(EAX_THERMAL_POWER_INFO);
@@ -396,7 +406,7 @@ impl CpuId {
         }
     }
 
-    /// Find out about more features supported by this CPU.
+    /// Find out about more features supported by this CPU (LEAF=0x07).
     pub fn get_extended_feature_info(&self) -> Option<ExtendedFeatures> {
         if self.leaf_is_supported(EAX_STRUCTURED_EXTENDED_FEATURE_INFO) {
             let res = self.read.cpuid1(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
@@ -411,7 +421,7 @@ impl CpuId {
         }
     }
 
-    /// Direct cache access info.
+    /// Direct cache access info (LEAF=0x09).
     pub fn get_direct_cache_access_info(&self) -> Option<DirectCacheAccessInfo> {
         if self.leaf_is_supported(EAX_DIRECT_CACHE_ACCESS_INFO) {
             let res = self.read.cpuid1(EAX_DIRECT_CACHE_ACCESS_INFO);
@@ -421,7 +431,7 @@ impl CpuId {
         }
     }
 
-    /// Info about performance monitoring (how many counters etc.).
+    /// Info about performance monitoring -- how many counters etc (LEAF=0x0A)
     pub fn get_performance_monitoring_info(&self) -> Option<PerformanceMonitoringInfo> {
         if self.leaf_is_supported(EAX_PERFORMANCE_MONITOR_INFO) {
             let res = self.read.cpuid1(EAX_PERFORMANCE_MONITOR_INFO);
@@ -436,7 +446,7 @@ impl CpuId {
         }
     }
 
-    /// Information about topology (how many cores and what kind of cores).
+    /// Information about topology -- how many cores and what kind of cores (LEAF=0x0B).
     pub fn get_extended_topology_info(&self) -> Option<ExtendedTopologyIter> {
         if self.leaf_is_supported(EAX_EXTENDED_TOPOLOGY_INFO) {
             Some(ExtendedTopologyIter {
@@ -448,7 +458,7 @@ impl CpuId {
         }
     }
 
-    /// Information for saving/restoring extended register state.
+    /// Information for saving/restoring extended register state (LEAF=0x0D).
     pub fn get_extended_state_info(&self) -> Option<ExtendedStateInfo> {
         if self.leaf_is_supported(EAX_EXTENDED_STATE_INFO) {
             let res = self.read.cpuid2(EAX_EXTENDED_STATE_INFO, 0);
@@ -469,7 +479,7 @@ impl CpuId {
         }
     }
 
-    /// Quality of service informations.
+    /// Quality of service monitoring information (LEAF=0x0F).
     pub fn get_rdt_monitoring_info(&self) -> Option<RdtMonitoringInfo> {
         let res = self.read.cpuid1(EAX_RDT_MONITORING);
 
@@ -484,7 +494,7 @@ impl CpuId {
         }
     }
 
-    /// Quality of service enforcement information.
+    /// Quality of service enforcement information (LEAF=0x10).
     pub fn get_rdt_allocation_info(&self) -> Option<RdtAllocationInfo> {
         let res = self.read.cpuid1(EAX_RDT_ALLOCATION);
 
@@ -498,6 +508,7 @@ impl CpuId {
         }
     }
 
+    /// Information about secure enclave support (LEAF=0x12).
     pub fn get_sgx_info(&self) -> Option<SgxInfo> {
         // Leaf 12H sub-leaf 0 (ECX = 0) is supported if CPUID.(EAX=07H, ECX=0H):EBX[SGX] = 1.
         self.get_extended_feature_info().and_then(|info| {
@@ -521,7 +532,7 @@ impl CpuId {
         })
     }
 
-    /// Intel Processor Trace Enumeration Information.
+    /// Intel Processor Trace Enumeration Information (LEAF=0x14).
     pub fn get_processor_trace_info(&self) -> Option<ProcessorTraceInfo> {
         if self.leaf_is_supported(EAX_TRACE_INFO) {
             let res = self.read.cpuid2(EAX_TRACE_INFO, 0);
@@ -543,7 +554,7 @@ impl CpuId {
         }
     }
 
-    /// Time Stamp Counter/Core Crystal Clock Information.
+    /// Time Stamp Counter/Core Crystal Clock Information (LEAF=0x15).
     pub fn get_tsc_info(&self) -> Option<TscInfo> {
         if self.leaf_is_supported(EAX_TIME_STAMP_COUNTER_INFO) {
             let res = self.read.cpuid2(EAX_TIME_STAMP_COUNTER_INFO, 0);
@@ -557,7 +568,7 @@ impl CpuId {
         }
     }
 
-    /// Processor Frequency Information.
+    /// Processor Frequency Information (LEAF=0x16).
     pub fn get_processor_frequency_info(&self) -> Option<ProcessorFrequencyInfo> {
         if self.leaf_is_supported(EAX_FREQUENCY_INFO) {
             let res = self.read.cpuid1(EAX_FREQUENCY_INFO);
@@ -571,21 +582,7 @@ impl CpuId {
         }
     }
 
-    pub fn deterministic_address_translation_info(&self) -> Option<DatIter> {
-        if self.leaf_is_supported(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO) {
-            let res = self
-                .read
-                .cpuid2(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO, 0);
-            Some(DatIter {
-                read: self.read,
-                current: 0,
-                count: res.eax,
-            })
-        } else {
-            None
-        }
-    }
-
+    /// Contains SoC vendor specific information (LEAF=0x17).
     pub fn get_soc_vendor_info(&self) -> Option<SoCVendorInfo> {
         if self.leaf_is_supported(EAX_SOC_VENDOR_INFO) {
             let res = self.read.cpuid1(EAX_SOC_VENDOR_INFO);
@@ -601,6 +598,24 @@ impl CpuId {
         }
     }
 
+    /// Contains information about the deterministic address translation feature (LEAF=0x18)
+    pub fn get_deterministic_address_translation_info(&self) -> Option<DatIter> {
+        if self.leaf_is_supported(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO) {
+            let res = self
+                .read
+                .cpuid2(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO, 0);
+            Some(DatIter {
+                read: self.read,
+                current: 0,
+                count: res.eax,
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Returns information provided by the hypervisor, if running
+    /// in a virtual environment (LEAF=0x4000_00xx).
     pub fn get_hypervisor_info(&self) -> Option<HypervisorInfo> {
         // We only fetch HypervisorInfo, if the Hypervisor-Flag is set.
         // See https://github.com/gz/rust-cpuid/issues/52
@@ -620,8 +635,35 @@ impl CpuId {
             .flatten()
     }
 
+    /// Informations about memory encryption support (LEAF=0x8000_001F)
+    pub fn get_memory_encryption_info(&self) -> Option<MemoryEncryptionInfo> {
+        if self.leaf_is_supported(EAX_MEMORY_ENCRYPTION_INFO) {
+            let res = self.read.cpuid1(EAX_MEMORY_ENCRYPTION_INFO);
+            Some(MemoryEncryptionInfo {
+                eax: MemoryEncryptionInfoEax { bits: res.eax },
+                ebx: res.ebx,
+                ecx: res.ecx,
+                edx: res.edx,
+            })
+        } else {
+            None
+        }
+    }
+
+    #[deprecated(
+        since = "10",
+        note = "Renamed, use `get_deterministic_address_translation_info` which is consistent with other function names in `CpuId`."
+    )]
+    pub fn deterministic_address_translation_info(&self) -> Option<DatIter> {
+        self.get_deterministic_address_translation_info()
+    }
+
     /// Extended functionality of CPU described here (including more supported features).
     /// This also contains a more detailed CPU model identifier.
+    #[deprecated(
+        since = "10",
+        note = "Removed due to added AMD support. Use functions `TODO1`, `TODO2` ... in `CpuId` to query individual extended function leafs directly instead."
+    )]
     pub fn get_extended_function_info(&self) -> Option<ExtendedFunctionInfo> {
         let res = self.read.cpuid1(EAX_EXTENDED_FUNCTION_INFO);
 
@@ -696,21 +738,6 @@ impl CpuId {
 
         Some(ef)
     }
-
-    pub fn get_memory_encryption_info(&self) -> Option<MemoryEncryptionInfo> {
-        let res = self.read.cpuid1(EAX_EXTENDED_FUNCTION_INFO);
-        if res.eax < EAX_MEMORY_ENCRYPTION_INFO {
-            return None;
-        }
-
-        let res = self.read.cpuid1(EAX_MEMORY_ENCRYPTION_INFO);
-        Some(MemoryEncryptionInfo {
-            eax: MemoryEncryptionInfoEax { bits: res.eax },
-            ebx: res.ebx,
-            ecx: res.ecx,
-            edx: res.edx,
-        })
-    }
 }
 
 /// Vendor Info String, that can be for example "AuthenticAMD" or "GenuineIntel".
@@ -723,6 +750,7 @@ impl Debug for CpuId {
         f.debug_struct("CpuId")
             .field("vendor", &self.vendor)
             // .field("supported_leafs", &(self.supported_leafs as *const u32))
+            // .field("supported_extended_leafs", &(self.supported_extended_leafs as *const u32))
             .field("vendor_info", &self.get_vendor_info())
             .field("feature_info", &self.get_feature_info())
             .field("cache_info", &self.get_cache_info())
@@ -752,7 +780,7 @@ impl Debug for CpuId {
             )
             .field(
                 "deterministic_address_translation_info",
-                &self.deterministic_address_translation_info(),
+                &self.get_deterministic_address_translation_info(),
             )
             .field("soc_vendor_info", &self.get_soc_vendor_info())
             .field("hypervisor_info", &self.get_hypervisor_info())
