@@ -13,6 +13,7 @@ fn genuine_intel() {
 #[test]
 fn feature_info() {
     let finfo = FeatureInfo {
+        vendor: Vendor::Intel,
         eax: 198313,
         ebx: 34605056,
         edx_ecx: FeatureInfoFlags {
@@ -20,11 +21,11 @@ fn feature_info() {
         },
     };
 
-    assert!(finfo.model_id() == 10);
+    assert!(finfo.base_model_id() == 10);
     assert!(finfo.extended_model_id() == 3);
     assert!(finfo.stepping_id() == 9);
     assert!(finfo.extended_family_id() == 0);
-    assert!(finfo.family_id() == 6);
+    assert!(finfo.base_family_id() == 6);
     assert!(finfo.stepping_id() == 9);
     assert!(finfo.brand_index() == 0);
 

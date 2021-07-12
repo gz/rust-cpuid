@@ -88,8 +88,8 @@ fn version_info() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
     let f = cpuid.get_feature_info().expect("Need to find feature info");
 
-    assert_eq!(f.family_id(), 0xf);
-    assert_eq!(f.model_id(), 0x1);
+    assert_eq!(f.base_family_id(), 0xf);
+    assert_eq!(f.base_model_id(), 0x1);
     assert_eq!(f.stepping_id(), 0x0);
     assert_eq!(f.extended_family_id(), 0x8);
     assert_eq!(f.extended_model_id(), 0x7);
