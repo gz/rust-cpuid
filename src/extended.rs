@@ -74,7 +74,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Check support for 64-bit mode.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_cmp_legacy(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::CMP_LEGACY)
     }
@@ -82,7 +82,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Secure virtual machine supported.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_svm(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::SVM)
     }
@@ -90,7 +90,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Extended APIC space. This bit indicates the presence of extended APIC register space starting at offset 400h from the “APIC Base Address Register,” as specified in the BKDG.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_ext_apic_space(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::EXT_APIC_SPACE)
     }
@@ -98,7 +98,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// LOCK MOV CR0 means MOV CR8. See “MOV(CRn)” in APM3.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_alt_mov_cr8(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::ALTMOVCR8)
     }
@@ -112,7 +112,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// See “EXTRQ”, “INSERTQ”, “MOVNTSS”, and “MOVNTSD” in APM4.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_sse4a(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::SSE4A)
     }
@@ -120,7 +120,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Misaligned SSE mode. See “Misaligned Access Support Added for SSE Instructions” in APM1.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_misaligned_sse_mode(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::MISALIGNSSE)
     }
@@ -136,7 +136,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Indicates OS-visible workaround support
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_osvw(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::OSVW)
     }
@@ -144,7 +144,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Instruction based sampling.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_ibs(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::IBS)
     }
@@ -152,7 +152,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Extended operation support.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_xop(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::XOP)
     }
@@ -163,7 +163,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// the value of MSRC000_0080[SVME].
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_skinit(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::SKINIT)
     }
@@ -173,7 +173,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Indicates support for MSRC001_0074.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_wdt(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::WDT)
     }
@@ -181,7 +181,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Lightweight profiling support
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_lwp(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::LWP)
     }
@@ -189,15 +189,15 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Four-operand FMA instruction support.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_fma4(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::FMA4)
     }
 
-    /// Trailing bit manipulation instruction support. .
+    /// Trailing bit manipulation instruction support.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_tbm(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::TBM)
     }
@@ -207,7 +207,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Indicates support for CPUID Fn8000_001D_EAX_x[N:0]-CPUID Fn8000_001E_EDX.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_topology_extensions(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::TOPEXT)
     }
@@ -217,7 +217,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Indicates support for MSRC001_020[A,8,6,4,2,0] and MSRC001_020[B,9,7,5,3,1].
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_perf_cntr_extensions(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFCTREXT)
     }
@@ -227,7 +227,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Indicates support for MSRC001_024[6,4,2,0] and MSRC001_024[7,5,3,1].
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_nb_perf_cntr_extensions(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFCTREXTNB)
     }
@@ -237,7 +237,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Indicates support for MSRC001_1027 and MSRC001_101[B:9].
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_data_access_bkpt_extension(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::DATABRKPEXT)
     }
@@ -247,7 +247,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Indicates support for MSRC001_0280 [Performance Time Stamp Counter].
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_perf_tsc(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFTSC)
     }
@@ -255,7 +255,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Support for L3 performance counter extension.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_perf_cntr_llc_extensions(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFCTREXTLLC)
     }
@@ -263,15 +263,15 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Support for MWAITX and MONITORX instructions.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_monitorx_mwaitx(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::MONITORX)
     }
 
-    /// Breakpoint Addressing masking extended to bit 31. .
+    /// Breakpoint Addressing masking extended to bit 31.
     ///
     /// # Intel
-    /// This feature unavailable on Intel (will return false).
+    /// This feature is unavailable on Intel CPUs (will return false).
     pub fn has_addr_mask_extension(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::ADDRMASKEXT)
     }
@@ -284,6 +284,22 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Is there support for execute disable bit.
     pub fn has_execute_disable(&self) -> bool {
         self.edx.contains(ExtendedFunctionInfoEdx::EXECUTE_DISABLE)
+    }
+
+    /// AMD extensions to MMX instructions.
+    ///
+    /// # Intel
+    /// This feature is unavailable on Intel CPUs (will return false).
+    pub fn has_mmx_extensions(&self) -> bool {
+        self.vendor == Vendor::Amd && self.edx.contains(ExtendedFunctionInfoEdx::MMXEXT)
+    }
+
+    /// FXSAVE and FXRSTOR instruction optimizations.
+    ///
+    /// # Intel
+    /// This feature is unavailable on Intel CPUs (will return false).
+    pub fn has_fast_fxsave_fxstor(&self) -> bool {
+        self.vendor == Vendor::Amd && self.edx.contains(ExtendedFunctionInfoEdx::FFXSR)
     }
 
     /// Is there support for 1GiB pages.
@@ -299,6 +315,22 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// Check support for 64-bit mode.
     pub fn has_64bit_mode(&self) -> bool {
         self.edx.contains(ExtendedFunctionInfoEdx::I64BIT_MODE)
+    }
+
+    /// 3DNow AMD extensions.
+    ///
+    /// # Intel
+    /// This feature is unavailable on Intel CPUs (will return false).
+    pub fn has_amd_3dnow_extensions(&self) -> bool {
+        self.vendor == Vendor::Amd && self.edx.contains(ExtendedFunctionInfoEdx::THREEDNOWEXT)
+    }
+
+    /// 3DNow extensions.
+    ///
+    /// # Intel
+    /// This feature is unavailable on Intel CPUs (will return false).
+    pub fn has_3dnow(&self) -> bool {
+        self.vendor == Vendor::Amd && self.edx.contains(ExtendedFunctionInfoEdx::THREEDNOW)
     }
 }
 
@@ -355,9 +387,13 @@ bitflags! {
     struct ExtendedFunctionInfoEdx: u32 {
         const SYSCALL_SYSRET = 1 << 11;
         const EXECUTE_DISABLE = 1 << 20;
+        const MMXEXT = 1 << 22;
+        const FFXSR = 1 << 24;
         const GIB_PAGES = 1 << 26;
         const RDTSCP = 1 << 27;
         const I64BIT_MODE = 1 << 29;
+        const THREEDNOWEXT = 1 << 30;
+        const THREEDNOW = 1 << 31;
     }
 }
 
