@@ -87,14 +87,193 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::SVM)
     }
 
+    /// Extended APIC space. This bit indicates the presence of extended APIC register space starting at offset 400h from the “APIC Base Address Register,” as specified in the BKDG.
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_ext_apic_space(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::EXT_APIC_SPACE)
+    }
+
+    /// LOCK MOV CR0 means MOV CR8. See “MOV(CRn)” in APM3.
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_alt_mov_cr8(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::ALTMOVCR8)
+    }
+
     /// Is LZCNT available?
     pub fn has_lzcnt(&self) -> bool {
         self.ecx.contains(ExtendedFunctionInfoEcx::LZCNT)
     }
 
+    /// XTRQ, INSERTQ, MOVNTSS, and MOVNTSD instruction support.
+    /// See “EXTRQ”, “INSERTQ”, “MOVNTSS”, and “MOVNTSD” in APM4.
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_sse4a(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::SSE4A)
+    }
+
+    /// Misaligned SSE mode. See “Misaligned Access Support Added for SSE Instructions” in APM1.
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_misaligned_sse_mode(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::MISALIGNSSE)
+    }
+
     /// Is PREFETCHW available?
+    ///
+    /// # AMD
+    /// PREFETCH and PREFETCHW instruction support.
     pub fn has_prefetchw(&self) -> bool {
         self.ecx.contains(ExtendedFunctionInfoEcx::PREFETCHW)
+    }
+
+    /// Indicates OS-visible workaround support
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_osvw(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::OSVW)
+    }
+
+    /// Instruction based sampling.
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_ibs(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::IBS)
+    }
+
+    /// Extended operation support.
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_xop(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::XOP)
+    }
+
+    /// SKINIT and STGI are supported.
+    ///
+    /// Indicates support for SKINIT and STGI, independent of
+    /// the value of MSRC000_0080[SVME].
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_skinit(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::SKINIT)
+    }
+
+    /// Watchdog timer support.
+    ///
+    /// Indicates support for MSRC001_0074.
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_wdt(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::WDT)
+    }
+
+    /// Lightweight profiling support
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_lwp(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::LWP)
+    }
+
+    /// Four-operand FMA instruction support.
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_fma4(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::FMA4)
+    }
+
+    /// Trailing bit manipulation instruction support. .
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_tbm(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::TBM)
+    }
+
+    /// Topology extensions support.
+    ///
+    /// Indicates support for CPUID Fn8000_001D_EAX_x[N:0]-CPUID Fn8000_001E_EDX.
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_topology_extensions(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::TOPEXT)
+    }
+
+    /// Processor performance counter extensions support.
+    ///
+    /// Indicates support for MSRC001_020[A,8,6,4,2,0] and MSRC001_020[B,9,7,5,3,1].
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_perf_cntr_extensions(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFCTREXT)
+    }
+
+    /// NB performance counter extensions support.
+    ///
+    /// Indicates support for MSRC001_024[6,4,2,0] and MSRC001_024[7,5,3,1].
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_nb_perf_cntr_extensions(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFCTREXTNB)
+    }
+
+    /// Data access breakpoint extension.
+    ///
+    /// Indicates support for MSRC001_1027 and MSRC001_101[B:9].
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_data_access_bkpt_extension(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::DATABRKPEXT)
+    }
+
+    /// Performance time-stamp counter.
+    ///
+    /// Indicates support for MSRC001_0280 [Performance Time Stamp Counter].
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_perf_tsc(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFTSC)
+    }
+
+    /// Support for L3 performance counter extension.
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_perf_cntr_llc_extensions(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFCTREXTLLC)
+    }
+
+    /// Support for MWAITX and MONITORX instructions.
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_monitorx_mwaitx(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::MONITORX)
+    }
+
+    /// Breakpoint Addressing masking extended to bit 31. .
+    ///
+    /// # Intel
+    /// This feature unavailable on Intel (will return false).
+    pub fn has_addr_mask_extension(&self) -> bool {
+        self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::ADDRMASKEXT)
     }
 
     /// Are fast system calls available.
