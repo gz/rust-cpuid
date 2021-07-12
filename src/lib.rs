@@ -278,6 +278,7 @@ const EAX_HYPERVISOR_INFO: u32 = 0x4000_0000;
 //
 
 const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x8000_0000;
+const EAX_EXTENDED_PROCESSOR_AND_FEATURE_IDENTIFIERS: u32 = 0x8000_0001;
 const EAX_EXTENDED_BRAND_STRING: u32 = 0x8000_0002;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 
@@ -648,6 +649,22 @@ impl CpuId {
                 }
             })
             .flatten()
+    }
+
+    /// Extended Processor and Processor Feature Identifiers.
+    /// (LEAF=0x8000_0001)
+    pub fn get_extended_processor_and_feature_identifiers(
+        &self,
+    ) -> Option<ExtendedProcessorFeatureIdentifiers> {
+        if self.leaf_is_supported(EAX_EXTENDED_PROCESSOR_AND_FEATURE_IDENTIFIERS) {
+            Some(ExtendedProcessorFeatureIdentifiers::new(
+                self.vendor,
+                self.read
+                    .cpuid1(EAX_EXTENDED_PROCESSOR_AND_FEATURE_IDENTIFIERS),
+            ))
+        } else {
+            None
+        }
     }
 
     /// Retrieve processor brand string leafs.

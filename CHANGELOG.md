@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased v10]
 
- - Removed `get_extended_function_info` with new AMD support: Use `get_processor_brand_string`, `xxx` instead. (**breaking change**)
+ - Removed `get_extended_function_info` with new AMD support: Use `get_processor_brand_string`, `get_extended_processor_and_feature_identifiers`, `xxx` instead. (**breaking change**)
  - Removed `deterministic_address_translation_info`. Use `get_deterministic_address_translation_info` instead. (**breaking change**)
  - Renamed `model_id` and `family_id` to `base_model_id` and `base_family_id` in `FeatureInfo`. Added new `family_id` and `model_id` functions
    that compute the actual model and family according to the spec by joining base and extended family/model. (**breaking change**)
