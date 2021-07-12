@@ -4951,78 +4951,6 @@ impl ExtendedFunctionInfo {
     pub fn has_invariant_tsc(&self) -> bool {
         self.leaf_is_supported(7) && self.data[7].edx & (1 << 8) > 0
     }
-
-    /// Is LAHF/SAHF available in 64-bit mode?
-    pub fn has_lahf_sahf(&self) -> bool {
-        self.leaf_is_supported(1)
-            && ExtendedFunctionInfoEcx {
-                bits: self.data[1].ecx,
-            }
-            .contains(ExtendedFunctionInfoEcx::LAHF_SAHF)
-    }
-
-    /// Is LZCNT available?
-    pub fn has_lzcnt(&self) -> bool {
-        self.leaf_is_supported(1)
-            && ExtendedFunctionInfoEcx {
-                bits: self.data[1].ecx,
-            }
-            .contains(ExtendedFunctionInfoEcx::LZCNT)
-    }
-
-    /// Is PREFETCHW available?
-    pub fn has_prefetchw(&self) -> bool {
-        self.leaf_is_supported(1)
-            && ExtendedFunctionInfoEcx {
-                bits: self.data[1].ecx,
-            }
-            .contains(ExtendedFunctionInfoEcx::PREFETCHW)
-    }
-
-    /// Are fast system calls available.
-    pub fn has_syscall_sysret(&self) -> bool {
-        self.leaf_is_supported(1)
-            && ExtendedFunctionInfoEdx {
-                bits: self.data[1].edx,
-            }
-            .contains(ExtendedFunctionInfoEdx::SYSCALL_SYSRET)
-    }
-
-    /// Is there support for execute disable bit.
-    pub fn has_execute_disable(&self) -> bool {
-        self.leaf_is_supported(1)
-            && ExtendedFunctionInfoEdx {
-                bits: self.data[1].edx,
-            }
-            .contains(ExtendedFunctionInfoEdx::EXECUTE_DISABLE)
-    }
-
-    /// Is there support for 1GiB pages.
-    pub fn has_1gib_pages(&self) -> bool {
-        self.leaf_is_supported(1)
-            && ExtendedFunctionInfoEdx {
-                bits: self.data[1].edx,
-            }
-            .contains(ExtendedFunctionInfoEdx::GIB_PAGES)
-    }
-
-    /// Check support for rdtscp instruction.
-    pub fn has_rdtscp(&self) -> bool {
-        self.leaf_is_supported(1)
-            && ExtendedFunctionInfoEdx {
-                bits: self.data[1].edx,
-            }
-            .contains(ExtendedFunctionInfoEdx::RDTSCP)
-    }
-
-    /// Check support for 64-bit mode.
-    pub fn has_64bit_mode(&self) -> bool {
-        self.leaf_is_supported(1)
-            && ExtendedFunctionInfoEdx {
-                bits: self.data[1].edx,
-            }
-            .contains(ExtendedFunctionInfoEdx::I64BIT_MODE)
-    }
 }
 
 /*impl Debug for ExtendedFunctionInfo {
@@ -5047,36 +4975,6 @@ impl ExtendedFunctionInfo {
             .finish()
     }
 }*/
-
-bitflags! {
-    #[derive(Default)]
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-    struct ExtendedFunctionInfoEcx: u32 {
-        /// LAHF/SAHF available in 64-bit mode.
-        const LAHF_SAHF = 1 << 0;
-        /// Bit 05: LZCNT
-        const LZCNT = 1 << 5;
-        /// Bit 08: PREFETCHW
-        const PREFETCHW = 1 << 8;
-    }
-}
-
-bitflags! {
-    #[derive(Default)]
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-    struct ExtendedFunctionInfoEdx: u32 {
-        /// SYSCALL/SYSRET available in 64-bit mode (Bit 11).
-        const SYSCALL_SYSRET = 1 << 11;
-        /// Execute Disable Bit available (Bit 20).
-        const EXECUTE_DISABLE = 1 << 20;
-        /// 1-GByte pages are available if 1 (Bit 26).
-        const GIB_PAGES = 1 << 26;
-        /// RDTSCP and IA32_TSC_AUX are available if 1 (Bit 27).
-        const RDTSCP = 1 << 27;
-        /// Intel ® 64 Architecture available if 1 (Bit 29).
-        const I64BIT_MODE = 1 << 29;
-    }
-}
 
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
