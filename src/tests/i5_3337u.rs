@@ -704,10 +704,6 @@ fn extended_functions() {
         ],
     };
 
-    assert_eq!(
-        ef.processor_brand_string().unwrap(),
-        "       Intel(R) Core(TM) i5-3337U CPU @ 1.80GHz"
-    );
     assert!(ef.has_lahf_sahf());
     assert!(!ef.has_lzcnt());
     assert!(!ef.has_prefetchw());
@@ -724,6 +720,35 @@ fn extended_functions() {
     assert!(ef.cache_size().unwrap() == 256);
     assert!(ef.physical_address_bits().unwrap() == 36);
     assert!(ef.linear_address_bits().unwrap() == 48);
+}
+
+#[test]
+fn processor_brand_string() {
+    let pbs = crate::extended::ProcessorBrandString::new([
+        CpuIdResult {
+            eax: 538976288,
+            ebx: 1226842144,
+            ecx: 1818588270,
+            edx: 539578920,
+        },
+        CpuIdResult {
+            eax: 1701998403,
+            ebx: 692933672,
+            ecx: 758475040,
+            edx: 926102323,
+        },
+        CpuIdResult {
+            eax: 1346576469,
+            ebx: 541073493,
+            ecx: 808988209,
+            edx: 8013895,
+        },
+    ]);
+
+    assert_eq!(
+        pbs.as_str(),
+        "       Intel(R) Core(TM) i5-3337U CPU @ 1.80GHz"
+    );
 }
 
 #[cfg(test)]
