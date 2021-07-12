@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Remove `has_rdseet` function (deprecated since 3.2), clients should use the correctly named `has_rdseed` function instead (**breaking change**).
  - Updated Debug trait for SGX iterators.
  - Make CpuId derive Clone and Copy ([#53](https://github.com/gz/rust-cpuid/pull/53))
- - Marked `get_extended_function_info` as deprecated. Use xxx instead.
+ - Marked `get_extended_function_info` as deprecated. Use `get_processor_brand_string`, `xxx` instead.
  - Marked `deterministic_address_translation_info` as deprecated. Use `get_deterministic_address_translation_info` instead.
  - Improved documentation in some places by adding leaf numbers.
 

@@ -77,7 +77,7 @@ fn main() {
         println!("Processor Frequency");
         println!("{:?}", info);
     }
-    if let Some(dats) = cpuid.deterministic_address_translation_info() {
+    if let Some(dats) = cpuid.get_deterministic_address_translation_info() {
         println!("Deterministic Address Translation");
         for dat in dats {
             println!("{:?}", dat);
@@ -87,8 +87,8 @@ fn main() {
         println!("SoC Vendor Info");
         println!("{:?}", info);
     }
-    if let Some(info) = cpuid.get_extended_function_info() {
-        println!("Extended Function Info");
+    if let Some(info) = cpuid.get_processor_brand_string() {
+        println!("Processor Brand String");
         println!("{:?}", info);
     }
     if let Some(info) = cpuid.get_memory_encryption_info() {

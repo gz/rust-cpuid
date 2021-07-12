@@ -37,6 +37,7 @@
 #[macro_use]
 extern crate std;
 
+mod extended;
 #[cfg(test)]
 mod tests;
 #[cfg(feature = "serialize")]
@@ -51,7 +52,7 @@ extern crate bitflags;
 
 /// Uses Rust's `cpuid` function from the `arch` module.
 pub mod native_cpuid {
-    use super::CpuIdResult;
+    use crate::CpuIdResult;
 
     #[cfg(all(target_arch = "x86", not(target_env = "sgx"), target_feature = "sse"))]
     use core::arch::x86 as arch;
@@ -78,6 +79,8 @@ use core::fmt::{Debug, Formatter};
 use core::mem::size_of;
 use core::slice;
 use core::str;
+
+pub use extended::*;
 
 #[cfg(not(test))]
 mod std {
@@ -243,6 +246,9 @@ impl Debug for CpuIdResult {
     }
 }
 
+//
+// Normal leafs:
+//
 const EAX_VENDOR_INFO: u32 = 0x0;
 const EAX_FEATURE_INFO: u32 = 0x1;
 const EAX_CACHE_INFO: u32 = 0x2;
@@ -263,8 +269,16 @@ const EAX_TIME_STAMP_COUNTER_INFO: u32 = 0x15;
 const EAX_FREQUENCY_INFO: u32 = 0x16;
 const EAX_SOC_VENDOR_INFO: u32 = 0x17;
 const EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO: u32 = 0x18;
+
+/// Hypervisor leaf
 const EAX_HYPERVISOR_INFO: u32 = 0x4000_0000;
+
+//
+// Extended leafs:
+//
+
 const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x8000_0000;
+const EAX_EXTENDED_BRAND_STRING: u32 = 0x8000_0002;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 
 impl CpuId {
@@ -635,6 +649,22 @@ impl CpuId {
             .flatten()
     }
 
+    /// Retrieve processor brand string leafs.
+    pub fn get_processor_brand_string<'a>(&'a self) -> Option<ProcessorBrandString> {
+        if self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING)
+            && self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING + 1)
+            && self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING + 2)
+        {
+            Some(ProcessorBrandString::new([
+                self.read.cpuid1(EAX_EXTENDED_BRAND_STRING),
+                self.read.cpuid1(EAX_EXTENDED_BRAND_STRING + 1),
+                self.read.cpuid1(EAX_EXTENDED_BRAND_STRING + 2),
+            ]))
+        } else {
+            None
+        }
+    }
+
     /// Informations about memory encryption support (LEAF=0x8000_001F)
     pub fn get_memory_encryption_info(&self) -> Option<MemoryEncryptionInfo> {
         if self.leaf_is_supported(EAX_MEMORY_ENCRYPTION_INFO) {
@@ -651,7 +681,7 @@ impl CpuId {
     }
 
     #[deprecated(
-        since = "10",
+        since = "10.0.0",
         note = "Renamed, use `get_deterministic_address_translation_info` which is consistent with other function names in `CpuId`."
     )]
     pub fn deterministic_address_translation_info(&self) -> Option<DatIter> {
@@ -661,7 +691,7 @@ impl CpuId {
     /// Extended functionality of CPU described here (including more supported features).
     /// This also contains a more detailed CPU model identifier.
     #[deprecated(
-        since = "10",
+        since = "10.0.0",
         note = "Removed due to added AMD support. Use functions `TODO1`, `TODO2` ... in `CpuId` to query individual extended function leafs directly instead."
     )]
     pub fn get_extended_function_info(&self) -> Option<ExtendedFunctionInfo> {
@@ -784,7 +814,8 @@ impl Debug for CpuId {
             )
             .field("soc_vendor_info", &self.get_soc_vendor_info())
             .field("hypervisor_info", &self.get_hypervisor_info())
-            .field("extended_function_info", &self.get_extended_function_info())
+            .field("processor_brand_string", &self.get_processor_brand_string())
+            //.field("extended_function_info", &self.get_extended_function_info())
             .field("memory_encryption_info", &self.get_memory_encryption_info())
             .finish()
     }
@@ -4818,31 +4849,11 @@ impl Default for L2Associativity {
 }
 
 const EAX_EXTENDED_PROC_SIGNATURE: u32 = 0x1;
-const EAX_EXTENDED_BRAND_STRING: u32 = 0x4;
 const EAX_EXTENDED_CACHE_INFO: u32 = 0x6;
 
 impl ExtendedFunctionInfo {
     fn leaf_is_supported(&self, val: u32) -> bool {
         val <= self.max_eax_value
-    }
-
-    /// Retrieve processor brand string. For example
-    /// "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz".
-    pub fn processor_brand_string<'a>(&'a self) -> Option<&'a str> {
-        if self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING) {
-            let brand_string_start = &self.data[2] as *const CpuIdResult as *const u8;
-            // Safety: CpuIdResult is laid out with repr(C), and the array
-            // self.data contains 9 continguous elements.
-            let slice: &'a [u8] =
-                unsafe { slice::from_raw_parts(brand_string_start, 3 * size_of::<CpuIdResult>()) };
-
-            // Brand terminated at nul byte or end, whichever comes first.
-            let slice = slice.split(|&x| x == 0).next().unwrap();
-
-            str::from_utf8(slice).ok()
-        } else {
-            None
-        }
     }
 
     /// Extended Processor Signature and Feature Bits.
@@ -4986,7 +4997,7 @@ impl ExtendedFunctionInfo {
     }
 }
 
-impl Debug for ExtendedFunctionInfo {
+/*impl Debug for ExtendedFunctionInfo {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("ExtendedFunctionInfo")
             .field("processor_brand_string", &self.processor_brand_string())
@@ -5007,7 +5018,7 @@ impl Debug for ExtendedFunctionInfo {
             .field("has_64bit_mode", &self.has_64bit_mode())
             .finish()
     }
-}
+}*/
 
 bitflags! {
     #[derive(Default)]
