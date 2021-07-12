@@ -832,8 +832,11 @@ impl Debug for CpuId {
             )
             .field("soc_vendor_info", &self.get_soc_vendor_info())
             .field("hypervisor_info", &self.get_hypervisor_info())
+            .field(
+                "extended_processor_and_feature_identifiers",
+                &self.get_extended_processor_and_feature_identifiers(),
+            )
             .field("processor_brand_string", &self.get_processor_brand_string())
-            //.field("extended_function_info", &self.get_extended_function_info())
             .field("memory_encryption_info", &self.get_memory_encryption_info())
             .finish()
     }
