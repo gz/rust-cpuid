@@ -7,14 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased v10]
 
+ - Removed `get_extended_function_info` with new AMD support: Use `get_processor_brand_string`, `xxx` instead. (**breaking change**)
+ - Removed `deterministic_address_translation_info`. Use `get_deterministic_address_translation_info` instead. (**breaking change**)
+ - Renamed `model_id` and `family_id` to `base_model_id` and `base_family_id` in `FeatureInfo`. Added new `family_id` and `model_id` functions
+   that compute the actual model and family according to the spec by joining base and extended family/model. (**breaking change**)
  - Extend Hypervisor enum with more variants ([#50](https://github.com/gz/rust-cpuid/pull/50)) (**breaking change**)
  - Remove `has_rdseet` function (deprecated since 3.2), clients should use the correctly named `has_rdseed` function instead (**breaking change**).
  - Updated Debug trait for SGX iterators.
  - Make CpuId derive Clone and Copy ([#53](https://github.com/gz/rust-cpuid/pull/53))
- - Marked `get_extended_function_info` as deprecated. Use `get_processor_brand_string`, `xxx` instead.
- - Marked `deterministic_address_translation_info` as deprecated. Use `get_deterministic_address_translation_info` instead.
  - Improved documentation in some places by adding leaf numbers.
-
+ 
 ## [9.1.1] - 2021-07-06
 
 ### Changed

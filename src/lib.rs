@@ -80,6 +80,7 @@ use core::mem::size_of;
 use core::slice;
 use core::str;
 
+use alloc::vec::Vec;
 pub use extended::*;
 
 #[cfg(not(test))]
@@ -335,6 +336,7 @@ impl CpuId {
         if self.leaf_is_supported(EAX_FEATURE_INFO) {
             let res = self.read.cpuid1(EAX_FEATURE_INFO);
             Some(FeatureInfo {
+                vendor: self.vendor,
                 eax: res.eax,
                 ebx: res.ebx,
                 edx_ecx: FeatureInfoFlags {
@@ -1573,6 +1575,7 @@ impl Debug for ProcessorSerial {
 #[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct FeatureInfo {
+    vendor: Vendor,
     eax: u32,
     ebx: u32,
     edx_ecx: FeatureInfoFlags,
@@ -1590,13 +1593,40 @@ impl FeatureInfo {
     }
 
     /// Version Information: Family
-    pub fn family_id(&self) -> u8 {
+    pub fn base_family_id(&self) -> u8 {
         get_bits(self.eax, 8, 11) as u8
     }
 
     /// Version Information: Model
-    pub fn model_id(&self) -> u8 {
+    pub fn base_model_id(&self) -> u8 {
         get_bits(self.eax, 4, 7) as u8
+    }
+
+    pub fn family_id(&self) -> u8 {
+        let base_family_id = self.base_family_id();
+        let extended_family_id = self.extended_family_id();
+        let just_use_base = (self.vendor == Vendor::Amd && base_family_id < 0xf)
+            || (self.vendor == Vendor::Intel && base_family_id != 0xf);
+
+        if just_use_base {
+            base_family_id
+        } else {
+            base_family_id + extended_family_id
+        }
+    }
+
+    pub fn model_id(&self) -> u8 {
+        let base_family_id = self.base_family_id();
+        let base_model_id = self.base_model_id();
+        let extended_model_id = self.extended_model_id();
+        let just_use_base = (self.vendor == Vendor::Amd && base_family_id < 0xf)
+            || (self.vendor == Vendor::Intel && base_family_id != 0xf && base_family_id != 0x6);
+
+        if just_use_base {
+            base_model_id
+        } else {
+            (extended_model_id << 4) | base_model_id
+        }
     }
 
     /// Version Information: Stepping ID
