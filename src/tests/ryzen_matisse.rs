@@ -381,6 +381,6 @@ fn remaining_unsupported_leafs() {
     assert!(cpuid.get_processor_trace_info().is_none());
     assert!(cpuid.get_tsc_info().is_none());
     assert!(cpuid.get_processor_frequency_info().is_none());
-    assert!(cpuid.deterministic_address_translation_info().is_none());
+    assert!(cpuid.get_deterministic_address_translation_info().is_none());
     assert!(cpuid.get_soc_vendor_info().is_none());
 }
