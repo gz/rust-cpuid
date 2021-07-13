@@ -113,6 +113,10 @@ impl ExtendedProcessorFeatureIdentifiers {
 
     /// Is LZCNT available?
     ///
+    /// # AMD
+    /// It's called ABM (Advanced bit manipulation) on AMD and also adds support for
+    /// some other instructions.
+    ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
     pub fn has_lzcnt(&self) -> bool {
