@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Updated Debug trait for SGX iterators.
  - Make CpuId derive Clone and Copy ([#53](https://github.com/gz/rust-cpuid/pull/53))
  - Improved documentation in some places by adding leaf numbers.
+ - Added AMD support for leafs 0x8000_0001, 0x8000_0006
+ - Updated AMD leaf 0x8000_001f (Encrypted Memory) to latest manual.
  
 ## [9.1.1] - 2021-07-06
 

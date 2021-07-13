@@ -7,6 +7,9 @@ use core::str;
 use crate::{get_bits, CpuIdResult, Vendor};
 
 /// Extended Processor and Processor Feature Identifiers (LEAF=0x8000_0001)
+///
+/// # Platforms
+/// ✅ AMD 🟡 Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedProcessorFeatureIdentifiers {
     vendor: Vendor,
@@ -36,91 +39,103 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// (use `CpuId.get_feature_info` instead)
     ///
     /// # Intel
-    /// Vague mention of "Extended Processor Signature", not clear what it's supposed to represent.
+    /// Vague mention of "Extended Processor Signature", not clear what it's supposed to
+    /// represent.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn extended_signature(&self) -> u32 {
         self.eax
     }
 
     /// Returns package type on AMD.
     ///
-    /// # Intel
-    /// This field is not used (reseved).
+    /// Package type. If (Family[7:0] >= 10h), this field is valid. If (Family[7:0]<10h),
+    /// this field is reserved
     ///
-    /// # AMD
-    /// Package type. If (Family[7:0] >= 10h), this field is valid.
-    /// If (Family[7:0]<10h), this field is reserved
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
     pub fn pkg_type(&self) -> u32 {
         get_bits(self.ebx, 28, 31)
     }
 
     /// Returns brand ID on AMD.
     ///
-    /// # Intel
-    /// This field is not used (reserved).
+    /// This field, in conjunction with CPUID LEAF=0x0000_0001_EBX[8BitBrandId], and used
+    /// by firmware to generate the processor name string.
     ///
-    /// # AMD
-    /// This field, in conjunction with CPUID
-    /// LEAF=0x0000_0001_EBX[8BitBrandId], and used by firmware to generate the
-    /// processor name string.
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
     pub fn brand_id(&self) -> u32 {
         get_bits(self.ebx, 0, 15)
     }
 
     /// Is LAHF/SAHF available in 64-bit mode?
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn has_lahf_sahf(&self) -> bool {
         self.ecx.contains(ExtendedFunctionInfoEcx::LAHF_SAHF)
     }
 
-    /// Check support for 64-bit mode.
+    /// Check support legacy cmp.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_cmp_legacy(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::CMP_LEGACY)
     }
 
     /// Secure virtual machine supported.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_svm(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::SVM)
     }
 
-    /// Extended APIC space. This bit indicates the presence of extended APIC register space starting at offset 400h from the “APIC Base Address Register,” as specified in the BKDG.
+    /// Extended APIC space.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// This bit indicates the presence of extended APIC register space starting at offset
+    /// 400h from the “APIC Base Address Register,” as specified in the BKDG.
+    ///
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_ext_apic_space(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::EXT_APIC_SPACE)
     }
 
     /// LOCK MOV CR0 means MOV CR8. See “MOV(CRn)” in APM3.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_alt_mov_cr8(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::ALTMOVCR8)
     }
 
     /// Is LZCNT available?
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn has_lzcnt(&self) -> bool {
         self.ecx.contains(ExtendedFunctionInfoEcx::LZCNT)
     }
 
     /// XTRQ, INSERTQ, MOVNTSS, and MOVNTSD instruction support.
-    /// See “EXTRQ”, “INSERTQ”, “MOVNTSS”, and “MOVNTSD” in APM4.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// See “EXTRQ”, “INSERTQ”,“MOVNTSS”, and “MOVNTSD” in APM4.
+    ///
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_sse4a(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::SSE4A)
     }
 
-    /// Misaligned SSE mode. See “Misaligned Access Support Added for SSE Instructions” in APM1.
+    /// Misaligned SSE mode. See “Misaligned Access Support Added for SSE Instructions” in
+    /// APM1.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_misaligned_sse_mode(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::MISALIGNSSE)
     }
@@ -129,41 +144,44 @@ impl ExtendedProcessorFeatureIdentifiers {
     ///
     /// # AMD
     /// PREFETCH and PREFETCHW instruction support.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn has_prefetchw(&self) -> bool {
         self.ecx.contains(ExtendedFunctionInfoEcx::PREFETCHW)
     }
 
     /// Indicates OS-visible workaround support
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_osvw(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::OSVW)
     }
 
     /// Instruction based sampling.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_ibs(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::IBS)
     }
 
     /// Extended operation support.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_xop(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::XOP)
     }
 
     /// SKINIT and STGI are supported.
     ///
-    /// Indicates support for SKINIT and STGI, independent of
-    /// the value of MSRC000_0080[SVME].
+    /// Indicates support for SKINIT and STGI, independent of the value of
+    /// MSRC000_0080[SVME].
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_skinit(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::SKINIT)
     }
@@ -172,32 +190,32 @@ impl ExtendedProcessorFeatureIdentifiers {
     ///
     /// Indicates support for MSRC001_0074.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_wdt(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::WDT)
     }
 
     /// Lightweight profiling support
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_lwp(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::LWP)
     }
 
     /// Four-operand FMA instruction support.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_fma4(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::FMA4)
     }
 
     /// Trailing bit manipulation instruction support.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_tbm(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::TBM)
     }
@@ -206,8 +224,8 @@ impl ExtendedProcessorFeatureIdentifiers {
     ///
     /// Indicates support for CPUID Fn8000_001D_EAX_x[N:0]-CPUID Fn8000_001E_EDX.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_topology_extensions(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::TOPEXT)
     }
@@ -216,8 +234,8 @@ impl ExtendedProcessorFeatureIdentifiers {
     ///
     /// Indicates support for MSRC001_020[A,8,6,4,2,0] and MSRC001_020[B,9,7,5,3,1].
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_perf_cntr_extensions(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFCTREXT)
     }
@@ -226,8 +244,8 @@ impl ExtendedProcessorFeatureIdentifiers {
     ///
     /// Indicates support for MSRC001_024[6,4,2,0] and MSRC001_024[7,5,3,1].
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_nb_perf_cntr_extensions(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFCTREXTNB)
     }
@@ -236,8 +254,8 @@ impl ExtendedProcessorFeatureIdentifiers {
     ///
     /// Indicates support for MSRC001_1027 and MSRC001_101[B:9].
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_data_access_bkpt_extension(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::DATABRKPEXT)
     }
@@ -246,89 +264,104 @@ impl ExtendedProcessorFeatureIdentifiers {
     ///
     /// Indicates support for MSRC001_0280 [Performance Time Stamp Counter].
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_perf_tsc(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFTSC)
     }
 
     /// Support for L3 performance counter extension.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_perf_cntr_llc_extensions(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFCTREXTLLC)
     }
 
     /// Support for MWAITX and MONITORX instructions.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_monitorx_mwaitx(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::MONITORX)
     }
 
     /// Breakpoint Addressing masking extended to bit 31.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_addr_mask_extension(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::ADDRMASKEXT)
     }
 
     /// Are fast system calls available.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn has_syscall_sysret(&self) -> bool {
         self.edx.contains(ExtendedFunctionInfoEdx::SYSCALL_SYSRET)
     }
 
     /// Is there support for execute disable bit.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn has_execute_disable(&self) -> bool {
         self.edx.contains(ExtendedFunctionInfoEdx::EXECUTE_DISABLE)
     }
 
     /// AMD extensions to MMX instructions.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_mmx_extensions(&self) -> bool {
         self.vendor == Vendor::Amd && self.edx.contains(ExtendedFunctionInfoEdx::MMXEXT)
     }
 
     /// FXSAVE and FXRSTOR instruction optimizations.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_fast_fxsave_fxstor(&self) -> bool {
         self.vendor == Vendor::Amd && self.edx.contains(ExtendedFunctionInfoEdx::FFXSR)
     }
 
     /// Is there support for 1GiB pages.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn has_1gib_pages(&self) -> bool {
         self.edx.contains(ExtendedFunctionInfoEdx::GIB_PAGES)
     }
 
     /// Check support for rdtscp instruction.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn has_rdtscp(&self) -> bool {
         self.edx.contains(ExtendedFunctionInfoEdx::RDTSCP)
     }
 
     /// Check support for 64-bit mode.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn has_64bit_mode(&self) -> bool {
         self.edx.contains(ExtendedFunctionInfoEdx::I64BIT_MODE)
     }
 
     /// 3DNow AMD extensions.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_amd_3dnow_extensions(&self) -> bool {
         self.vendor == Vendor::Amd && self.edx.contains(ExtendedFunctionInfoEdx::THREEDNOWEXT)
     }
 
     /// 3DNow extensions.
     ///
-    /// # Intel
-    /// This feature is unavailable on Intel CPUs (will return false).
+    /// # Platform
+    /// ✅ AMD ❌ Intel (will return false)
     pub fn has_3dnow(&self) -> bool {
         self.vendor == Vendor::Amd && self.edx.contains(ExtendedFunctionInfoEdx::THREEDNOW)
     }
@@ -399,6 +432,9 @@ bitflags! {
 
 /// ASCII string up to 48 characters in length corresponding to the processor name.
 /// (LEAF = 0x8000_0002..=0x8000_0004)
+///
+/// # Platforms
+/// ✅ AMD ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorBrandString {
     data: [CpuIdResult; 3],
@@ -437,16 +473,456 @@ impl Debug for ProcessorBrandString {
     }
 }
 
-/// L1 Cache and TLB Information.
+/// L1 Cache and TLB Information (LEAF=0x8000_0005).
 ///
-/// # Intel
-/// This info is unavailable on Intel CPUs.
+/// # Availability
+/// ✅ AMD ❌ Intel (reserved=0)
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L1CacheTlbInfo {
-    data: CpuIdResult,
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    edx: u32,
 }
 
 impl L1CacheTlbInfo {
     pub(crate) fn new(data: CpuIdResult) -> Self {
-        Self { data }
+        Self {
+            eax: data.eax,
+            ebx: data.ebx,
+            ecx: data.ecx,
+            edx: data.edx,
+        }
+    }
+
+    /// Data TLB associativity for 2-MB and 4-MB pages.
+    pub fn dtlb_2m_4m_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.eax, 24, 31) as u8;
+        Associativity::for_l1(assoc_bits)
+    }
+
+    /// Data TLB number of entries for 2-MB and 4-MB pages.
+    ///
+    /// The value returned is for the number of entries available for the 2-MB page size;
+    /// 4-MB pages require two 2-MB entries, so the number of entries available for the
+    /// 4-MB page size is one-half the returned value.
+    pub fn dtlb_2m_4m_size(&self) -> u8 {
+        get_bits(self.eax, 16, 23) as u8
+    }
+
+    /// Instruction TLB associativity for 2-MB and 4-MB pages.
+    pub fn itlb_2m_4m_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.eax, 8, 15) as u8;
+        Associativity::for_l1(assoc_bits)
+    }
+
+    /// Instruction TLB number of entries for 2-MB and 4-MB pages.
+    ///
+    /// The value returned is for the number of entries available for the 2-MB page size;
+    /// 4-MB pages require two 2-MB entries, so the number of entries available for the
+    /// 4-MB page size is one-half the returned value.
+    pub fn itlb_2m_4m_size(&self) -> u8 {
+        get_bits(self.eax, 0, 7) as u8
+    }
+
+    /// Data TLB associativity for 4K pages.
+    pub fn dtlb_4k_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.ebx, 24, 31) as u8;
+        Associativity::for_l1(assoc_bits)
+    }
+
+    /// Data TLB number of entries for 4K pages.
+    pub fn dtlb_4k_size(&self) -> u8 {
+        get_bits(self.ebx, 16, 23) as u8
+    }
+
+    /// Instruction TLB associativity for 4K pages.
+    pub fn itlb_4k_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.ebx, 8, 15) as u8;
+        Associativity::for_l1(assoc_bits)
+    }
+
+    /// Instruction TLB number of entries for 4K pages.
+    pub fn itlb_4k_size(&self) -> u8 {
+        get_bits(self.ebx, 0, 7) as u8
+    }
+
+    /// L1 data cache size in KB
+    pub fn dcache_size(&self) -> u8 {
+        get_bits(self.ecx, 24, 31) as u8
+    }
+
+    /// L1 data cache associativity.
+    pub fn dcache_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.ecx, 16, 23) as u8;
+        Associativity::for_l1(assoc_bits)
+    }
+
+    /// L1 data cache lines per tag.
+    pub fn dcache_lines_per_tag(&self) -> u8 {
+        get_bits(self.ecx, 8, 15) as u8
+    }
+
+    /// L1 data cache line size in bytes.
+    pub fn dcache_line_size(&self) -> u8 {
+        get_bits(self.ecx, 0, 7) as u8
+    }
+
+    /// L1 instruction cache size in KB
+    pub fn icache_size(&self) -> u8 {
+        get_bits(self.edx, 24, 31) as u8
+    }
+
+    /// L1 instruction cache associativity.
+    pub fn icache_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.edx, 16, 23) as u8;
+        Associativity::for_l1(assoc_bits)
+    }
+
+    /// L1 instruction cache lines per tag.
+    pub fn icache_lines_per_tag(&self) -> u8 {
+        get_bits(self.edx, 8, 15) as u8
+    }
+
+    /// L1 instruction cache line size in bytes.
+    pub fn icache_line_size(&self) -> u8 {
+        get_bits(self.edx, 0, 7) as u8
+    }
+}
+
+/// L2 Cache and TLB Information (LEAF=0x8000_0006).
+///
+/// # Availability
+/// ✅ AMD 🟡 Intel
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct L2And3CacheTlbInfo {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    edx: u32,
+}
+
+impl L2And3CacheTlbInfo {
+    /// L2 Data TLB associativity for 2-MB and 4-MB pages.
+    ///
+    /// # Availability
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn dtlb_2m_4m_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.eax, 28, 31) as u8;
+        Associativity::for_l2(assoc_bits)
+    }
+
+    /// L2 Data TLB number of entries for 2-MB and 4-MB pages.
+    ///
+    /// The value returned is for the number of entries available for the 2-MB page size;
+    /// 4-MB pages require two 2-MB entries, so the number of entries available for the
+    /// 4-MB page size is one-half the returned value.
+    ///
+    /// # Availability
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn dtlb_2m_4m_size(&self) -> u16 {
+        get_bits(self.eax, 16, 27) as u16
+    }
+
+    /// L2 Instruction TLB associativity for 2-MB and 4-MB pages.
+    ///
+    /// # Availability
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn itlb_2m_4m_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.eax, 12, 15) as u8;
+        Associativity::for_l2(assoc_bits)
+    }
+
+    /// L2 Instruction TLB number of entries for 2-MB and 4-MB pages.
+    ///
+    /// The value returned is for the number of entries available for the 2-MB page size;
+    /// 4-MB pages require two 2-MB entries, so the number of entries available for the
+    /// 4-MB page size is one-half the returned value.
+    ///
+    /// # Availability
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn itlb_2m_4m_size(&self) -> u16 {
+        get_bits(self.eax, 0, 11) as u16
+    }
+
+    /// L2 Data TLB associativity for 4K pages.
+    ///
+    /// # Availability
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn dtlb_4k_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.ebx, 28, 31) as u8;
+        Associativity::for_l2(assoc_bits)
+    }
+
+    /// L2 Data TLB number of entries for 4K pages.
+    ///
+    /// # Availability
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn dtlb_4k_size(&self) -> u16 {
+        get_bits(self.ebx, 16, 27) as u16
+    }
+
+    /// L2 Instruction TLB associativity for 4K pages.
+    ///
+    /// # Availability
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn itlb_4k_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.ebx, 12, 15) as u8;
+        Associativity::for_l2(assoc_bits)
+    }
+
+    /// L2 Instruction TLB number of entries for 4K pages.
+    ///
+    /// # Availability
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn itlb_4k_size(&self) -> u16 {
+        get_bits(self.ebx, 0, 11) as u16
+    }
+
+    /// L2 Cache Line size in bytes
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn l2cache_line_size(&self) -> u8 {
+        get_bits(self.ecx, 0, 7) as u8
+    }
+
+    /// L2 cache lines per tag.
+    ///
+    /// # Availability
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn l2cache_lines_per_tag(&self) -> u8 {
+        get_bits(self.ecx, 8, 11) as u8
+    }
+
+    /// L2 Associativity field
+    ///
+    /// # Availability
+    /// ✅ AMD ✅ Intel
+    pub fn l2cache_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.ecx, 12, 15) as u8;
+        Associativity::for_l2(assoc_bits)
+    }
+
+    /// Cache size in KB.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn l2cache_size(&self) -> u16 {
+        get_bits(self.ecx, 16, 31) as u16
+    }
+
+    /// L2 Cache Line size in bytes
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn l3cache_line_size(&self) -> u8 {
+        get_bits(self.edx, 0, 7) as u8
+    }
+
+    /// L2 cache lines per tag.
+    ///
+    /// # Availability
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn l3cache_lines_per_tag(&self) -> u8 {
+        get_bits(self.edx, 8, 11) as u8
+    }
+
+    /// L2 Associativity field
+    ///
+    /// # Availability
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn l3cache_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.edx, 12, 15) as u8;
+        Associativity::for_l3(assoc_bits)
+    }
+
+    /// Specifies the L3 cache size range
+    ///
+    /// (L3Size[31:18] * 512KB) <= L3 cache size < ((L3Size[31:18]+1) * 512KB).
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn l3cache_size(&self) -> u16 {
+        get_bits(self.edx, 18, 31) as u16
+    }
+}
+
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub enum Associativity {
+    Disabled,
+    DirectMapped,
+    NWay(u8),
+    FullyAssociative,
+    Unknown,
+}
+
+impl Associativity {
+    /// Constructor for L1 Cache and TLB Associativity Field Encodings
+    fn for_l1(n: u8) -> Associativity {
+        match n {
+            0x0 => Associativity::Disabled, // Intel only, AMD is reserved
+            0x1 => Associativity::DirectMapped,
+            0x2..=0xfe => Associativity::NWay(n),
+            0xff => Associativity::FullyAssociative,
+        }
+    }
+
+    /// Constructor for L2 Cache and TLB Associativity Field Encodings
+    fn for_l2(n: u8) -> Associativity {
+        match n {
+            0x0 => Associativity::Disabled,
+            0x1 => Associativity::DirectMapped,
+            0x2 => Associativity::NWay(2),
+            0x4 => Associativity::NWay(4),
+            0x5 => Associativity::NWay(6), // Reserved on Intel
+            0x6 => Associativity::NWay(8),
+            0x8 => Associativity::NWay(16),
+            0x9 => Associativity::Unknown, // Intel: Reserved, AMD: Value for all fields should be determined from Fn8000_001D
+            0xa => Associativity::NWay(32),
+            0xb => Associativity::NWay(48),
+            0xc => Associativity::NWay(64),
+            0xd => Associativity::NWay(96),
+            0xe => Associativity::NWay(128),
+            0xF => Associativity::FullyAssociative,
+            _ => Associativity::Unknown,
+        }
+    }
+
+    /// Constructor for L2 Cache and TLB Associativity Field Encodings
+    fn for_l3(n: u8) -> Associativity {
+        Associativity::for_l2(n)
+    }
+}
+
+/// Encrypted Memory Capabilities
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct MemoryEncryptionInfo {
+    eax: MemoryEncryptionInfoEax,
+    ebx: u32,
+    ecx: u32,
+    edx: u32,
+}
+
+impl MemoryEncryptionInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            // Safety: We want to preserve not (yet) supported bits from cpuid.
+            eax: unsafe { MemoryEncryptionInfoEax::from_bits_unchecked(data.eax) },
+            ebx: data.ebx,
+            ecx: data.ecx,
+            edx: data.edx,
+        }
+    }
+
+    /// Secure Memory Encryption is supported if set.
+    pub fn has_sme(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::SME)
+    }
+
+    /// Secure Encrypted Virtualization is supported if set.
+    pub fn has_sev(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::SEV)
+    }
+
+    /// The Page Flush MSR is available if set.
+    pub fn has_page_flush_msr(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::PAGE_FLUSH_MSR)
+    }
+
+    /// SEV Encrypted State is supported if set.
+    pub fn has_sev_es(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::SEV_ES)
+    }
+
+    /// SEV Secure Nested Paging supported if set.
+    pub fn has_sev_snp(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::SEV_SNP)
+    }
+
+    /// VM Permission Levels supported if set.
+    pub fn has_vmpl(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::VMPL)
+    }
+
+    /// Hardware cache coherency across encryption domains enforced if set.
+    pub fn has_hw_enforced_cache_coh(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::HWENFCACHECOH)
+    }
+
+    /// SEV guest execution only allowed from a 64-bit host if set.
+    pub fn has_64bit_mode(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::HOST64)
+    }
+
+    /// Restricted Injection supported if set.
+    pub fn has_restricted_injection(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::RESTINJECT)
+    }
+
+    /// Alternate Injection supported if set.
+    pub fn has_alternate_injection(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::ALTINJECT)
+    }
+
+    /// Full debug state swap supported for SEV-ES guests.
+    pub fn has_debug_swap(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::DBGSWP)
+    }
+
+    /// Disallowing IBS use by the host supported if set.
+    pub fn has_prevent_host_ibs(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::PREVHOSTIBS)
+    }
+
+    /// Virtual Transparent Encryption supported if set.
+    pub fn has_vte(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::VTE)
+    }
+
+    /// C-bit location in page table entry
+    pub fn c_bit_position(&self) -> u8 {
+        get_bits(self.ebx, 0, 5) as u8
+    }
+
+    /// Physical Address bit reduction
+    pub fn physical_address_reduction(&self) -> u8 {
+        get_bits(self.ebx, 6, 11) as u8
+    }
+
+    /// Number of encrypted guests supported simultaneouslys
+    pub fn max_encrypted_guests(&self) -> u32 {
+        self.ecx
+    }
+
+    /// Minimum ASID value for an SEV enabled, SEV-ES disabled guest
+    pub fn min_sev_no_es_asid(&self) -> u32 {
+        self.edx
+    }
+}
+
+bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    struct MemoryEncryptionInfoEax: u32 {
+        const SME = 1 << 0;
+        const SEV = 1 << 1;
+        const PAGE_FLUSH_MSR = 1 << 2;
+        const SEV_ES = 1 << 3;
+        const SEV_SNP = 1 << 4;
+        const VMPL = 1 << 5;
+        const HWENFCACHECOH = 1 << 10;
+        const HOST64 = 1 << 11;
+        const RESTINJECT = 1 << 12;
+        const ALTINJECT = 1 << 13;
+        const DBGSWP = 1 << 14;
+        const PREVHOSTIBS = 1 << 15;
+        const VTE = 1 << 16;
     }
 }
