@@ -37,6 +37,10 @@
 //!   for more information.
 //! - ❌: This struct/function is not supported by the vendor. When queried on this
 //!   platform, we will return None/false/0 (or some other sane default).
+//!
+//! Note that the presence of a ✅ does not guarantee that a specific feature will exist
+//! for your CPU -- just that it is potentially supported by the vendor on some of its
+//! chips. You will still have to query it at runtime.
 
 #![no_std]
 #![crate_name = "raw_cpuid"]
@@ -290,6 +294,7 @@ const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x8000_0000;
 const EAX_EXTENDED_PROCESSOR_AND_FEATURE_IDENTIFIERS: u32 = 0x8000_0001;
 const EAX_EXTENDED_BRAND_STRING: u32 = 0x8000_0002;
 const EAX_L1_CACHE_INFO: u32 = 0x8000_0005;
+const EAX_L2_L3_CACHE_INFO: u32 = 0x8000_0006;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 
 impl CpuId {
@@ -328,6 +333,9 @@ impl CpuId {
     /// Return information about vendor.
     /// This is typically a ASCII readable string such as
     /// GenuineIntel for Intel CPUs or AuthenticAMD for AMD CPUs (LEAF=0x00).
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn get_vendor_info(&self) -> Option<VendorInfo> {
         if self.leaf_is_supported(EAX_VENDOR_INFO) {
             let res = self.read.cpuid1(EAX_VENDOR_INFO);
@@ -342,6 +350,9 @@ impl CpuId {
     }
 
     /// Query a set of features that are available on this CPU (LEAF=0x01).
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn get_feature_info(&self) -> Option<FeatureInfo> {
         if self.leaf_is_supported(EAX_FEATURE_INFO) {
             let res = self.read.cpuid1(EAX_FEATURE_INFO);
@@ -360,6 +371,9 @@ impl CpuId {
 
     /// Query basic information about caches. This will just return an index
     /// into a static table of cache descriptions (see `CACHE_INFO_TABLE`) (LEAF=0x02).
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn get_cache_info(&self) -> Option<CacheInfoIter> {
         if self.leaf_is_supported(EAX_CACHE_INFO) {
             let res = self.read.cpuid1(EAX_CACHE_INFO);
@@ -376,6 +390,9 @@ impl CpuId {
     }
 
     /// Retrieve serial number of processor (LEAF=0x03).
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn get_processor_serial(&self) -> Option<ProcessorSerial> {
         if self.leaf_is_supported(EAX_PROCESSOR_SERIAL) {
             let res = self.read.cpuid1(EAX_PROCESSOR_SERIAL);
@@ -391,6 +408,9 @@ impl CpuId {
     /// Retrieve more elaborate information about caches (as opposed
     /// to `get_cache_info`). This will tell us about associativity,
     /// set size, line size etc. for each level of the cache hierarchy (LEAF=0x04).
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn get_cache_parameters(&self) -> Option<CacheParametersIter> {
         if self.leaf_is_supported(EAX_CACHE_PARAMETERS) {
             Some(CacheParametersIter {
@@ -403,6 +423,9 @@ impl CpuId {
     }
 
     /// Information about how monitor/mwait works on this CPU (LEAF=0x05).
+    ///
+    /// # Platforms
+    /// 🟡 AMD ✅ Intel
     pub fn get_monitor_mwait_info(&self) -> Option<MonitorMwaitInfo> {
         if self.leaf_is_supported(EAX_MONITOR_MWAIT_INFO) {
             let res = self.read.cpuid1(EAX_MONITOR_MWAIT_INFO);
@@ -418,6 +441,9 @@ impl CpuId {
     }
 
     /// Query information about thermal and power management features of the CPU (LEAF=0x06).
+    ///
+    /// # Platforms
+    /// 🟡 AMD ✅ Intel
     pub fn get_thermal_power_info(&self) -> Option<ThermalPowerInfo> {
         if self.leaf_is_supported(EAX_THERMAL_POWER_INFO) {
             let res = self.read.cpuid1(EAX_THERMAL_POWER_INFO);
@@ -433,6 +459,9 @@ impl CpuId {
     }
 
     /// Find out about more features supported by this CPU (LEAF=0x07).
+    ///
+    /// # Platforms
+    /// 🟡 AMD ✅ Intel
     pub fn get_extended_feature_info(&self) -> Option<ExtendedFeatures> {
         if self.leaf_is_supported(EAX_STRUCTURED_EXTENDED_FEATURE_INFO) {
             let res = self.read.cpuid1(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
@@ -448,6 +477,9 @@ impl CpuId {
     }
 
     /// Direct cache access info (LEAF=0x09).
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn get_direct_cache_access_info(&self) -> Option<DirectCacheAccessInfo> {
         if self.leaf_is_supported(EAX_DIRECT_CACHE_ACCESS_INFO) {
             let res = self.read.cpuid1(EAX_DIRECT_CACHE_ACCESS_INFO);
@@ -458,6 +490,9 @@ impl CpuId {
     }
 
     /// Info about performance monitoring -- how many counters etc (LEAF=0x0A)
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn get_performance_monitoring_info(&self) -> Option<PerformanceMonitoringInfo> {
         if self.leaf_is_supported(EAX_PERFORMANCE_MONITOR_INFO) {
             let res = self.read.cpuid1(EAX_PERFORMANCE_MONITOR_INFO);
@@ -473,6 +508,9 @@ impl CpuId {
     }
 
     /// Information about topology -- how many cores and what kind of cores (LEAF=0x0B).
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn get_extended_topology_info(&self) -> Option<ExtendedTopologyIter> {
         if self.leaf_is_supported(EAX_EXTENDED_TOPOLOGY_INFO) {
             Some(ExtendedTopologyIter {
@@ -485,6 +523,9 @@ impl CpuId {
     }
 
     /// Information for saving/restoring extended register state (LEAF=0x0D).
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn get_extended_state_info(&self) -> Option<ExtendedStateInfo> {
         if self.leaf_is_supported(EAX_EXTENDED_STATE_INFO) {
             let res = self.read.cpuid2(EAX_EXTENDED_STATE_INFO, 0);
@@ -535,6 +576,9 @@ impl CpuId {
     }
 
     /// Information about secure enclave support (LEAF=0x12).
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn get_sgx_info(&self) -> Option<SgxInfo> {
         // Leaf 12H sub-leaf 0 (ECX = 0) is supported if CPUID.(EAX=07H, ECX=0H):EBX[SGX] = 1.
         self.get_extended_feature_info().and_then(|info| {
@@ -559,6 +603,9 @@ impl CpuId {
     }
 
     /// Intel Processor Trace Enumeration Information (LEAF=0x14).
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn get_processor_trace_info(&self) -> Option<ProcessorTraceInfo> {
         if self.leaf_is_supported(EAX_TRACE_INFO) {
             let res = self.read.cpuid2(EAX_TRACE_INFO, 0);
@@ -581,6 +628,9 @@ impl CpuId {
     }
 
     /// Time Stamp Counter/Core Crystal Clock Information (LEAF=0x15).
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn get_tsc_info(&self) -> Option<TscInfo> {
         if self.leaf_is_supported(EAX_TIME_STAMP_COUNTER_INFO) {
             let res = self.read.cpuid2(EAX_TIME_STAMP_COUNTER_INFO, 0);
@@ -595,6 +645,9 @@ impl CpuId {
     }
 
     /// Processor Frequency Information (LEAF=0x16).
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn get_processor_frequency_info(&self) -> Option<ProcessorFrequencyInfo> {
         if self.leaf_is_supported(EAX_FREQUENCY_INFO) {
             let res = self.read.cpuid1(EAX_FREQUENCY_INFO);
@@ -609,6 +662,9 @@ impl CpuId {
     }
 
     /// Contains SoC vendor specific information (LEAF=0x17).
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn get_soc_vendor_info(&self) -> Option<SoCVendorInfo> {
         if self.leaf_is_supported(EAX_SOC_VENDOR_INFO) {
             let res = self.read.cpuid1(EAX_SOC_VENDOR_INFO);
@@ -625,6 +681,9 @@ impl CpuId {
     }
 
     /// Contains information about the deterministic address translation feature (LEAF=0x18)
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn get_deterministic_address_translation_info(&self) -> Option<DatIter> {
         if self.leaf_is_supported(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO) {
             let res = self
@@ -642,6 +701,9 @@ impl CpuId {
 
     /// Returns information provided by the hypervisor, if running
     /// in a virtual environment (LEAF=0x4000_00xx).
+    ///
+    /// # Platform
+    /// Needs to be a virtual CPU to be supported.
     pub fn get_hypervisor_info(&self) -> Option<HypervisorInfo> {
         // We only fetch HypervisorInfo, if the Hypervisor-Flag is set.
         // See https://github.com/gz/rust-cpuid/issues/52
@@ -663,6 +725,9 @@ impl CpuId {
 
     /// Extended Processor and Processor Feature Identifiers.
     /// (LEAF=0x8000_0001)
+    ///
+    /// # Platforms
+    /// ✅ AMD 🟡 Intel
     pub fn get_extended_processor_and_feature_identifiers(
         &self,
     ) -> Option<ExtendedProcessorFeatureIdentifiers> {
@@ -678,6 +743,9 @@ impl CpuId {
     }
 
     /// Retrieve processor brand string leafs.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn get_processor_brand_string(&self) -> Option<ProcessorBrandString> {
         if self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING)
             && self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING + 1)
@@ -695,8 +763,8 @@ impl CpuId {
 
     /// L1 Instruction Cache Information (LEAF=0x8000_0005)
     ///
-    /// # Intel
-    /// This leaf is not supported on Intel (will return None).
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
     pub fn get_l1_cache_and_tlb_info(&self) -> Option<L1CacheTlbInfo> {
         if self.vendor == Vendor::Amd && self.leaf_is_supported(EAX_L1_CACHE_INFO) {
             Some(L1CacheTlbInfo::new(self.read.cpuid1(EAX_L1_CACHE_INFO)))
@@ -705,7 +773,24 @@ impl CpuId {
         }
     }
 
+    /// L2/L3 Cache and TLB Information (LEAF=0x8000_0006).
+    ///
+    /// # Availability
+    /// ✅ AMD 🟡 Intel
+    pub fn get_l2_l3_cache_and_tlb_info(&self) -> Option<L2And3CacheTlbInfo> {
+        if self.vendor == Vendor::Amd && self.leaf_is_supported(EAX_L2_L3_CACHE_INFO) {
+            Some(L2And3CacheTlbInfo::new(
+                self.read.cpuid1(EAX_L2_L3_CACHE_INFO),
+            ))
+        } else {
+            None
+        }
+    }
+
     /// Informations about memory encryption support (LEAF=0x8000_001F)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
     pub fn get_memory_encryption_info(&self) -> Option<MemoryEncryptionInfo> {
         if self.leaf_is_supported(EAX_MEMORY_ENCRYPTION_INFO) {
             Some(MemoryEncryptionInfo::new(
@@ -714,95 +799,6 @@ impl CpuId {
         } else {
             None
         }
-    }
-
-    #[deprecated(
-        since = "10.0.0",
-        note = "Renamed, use `get_deterministic_address_translation_info` which is consistent with other function names in `CpuId`."
-    )]
-    pub fn deterministic_address_translation_info(&self) -> Option<DatIter> {
-        self.get_deterministic_address_translation_info()
-    }
-
-    /// Extended functionality of CPU described here (including more supported features).
-    /// This also contains a more detailed CPU model identifier.
-    #[deprecated(
-        since = "10.0.0",
-        note = "Removed due to added AMD support. Use functions `TODO1`, `TODO2` ... in `CpuId` to query individual extended function leafs directly instead."
-    )]
-    pub fn get_extended_function_info(&self) -> Option<ExtendedFunctionInfo> {
-        let res = self.read.cpuid1(EAX_EXTENDED_FUNCTION_INFO);
-
-        if res.eax == 0 {
-            return None;
-        }
-
-        let mut ef = ExtendedFunctionInfo {
-            max_eax_value: res.eax - EAX_EXTENDED_FUNCTION_INFO,
-            data: [
-                CpuIdResult {
-                    eax: res.eax,
-                    ebx: res.ebx,
-                    ecx: res.ecx,
-                    edx: res.edx,
-                },
-                CpuIdResult {
-                    eax: 0,
-                    ebx: 0,
-                    ecx: 0,
-                    edx: 0,
-                },
-                CpuIdResult {
-                    eax: 0,
-                    ebx: 0,
-                    ecx: 0,
-                    edx: 0,
-                },
-                CpuIdResult {
-                    eax: 0,
-                    ebx: 0,
-                    ecx: 0,
-                    edx: 0,
-                },
-                CpuIdResult {
-                    eax: 0,
-                    ebx: 0,
-                    ecx: 0,
-                    edx: 0,
-                },
-                CpuIdResult {
-                    eax: 0,
-                    ebx: 0,
-                    ecx: 0,
-                    edx: 0,
-                },
-                CpuIdResult {
-                    eax: 0,
-                    ebx: 0,
-                    ecx: 0,
-                    edx: 0,
-                },
-                CpuIdResult {
-                    eax: 0,
-                    ebx: 0,
-                    ecx: 0,
-                    edx: 0,
-                },
-                CpuIdResult {
-                    eax: 0,
-                    ebx: 0,
-                    ecx: 0,
-                    edx: 0,
-                },
-            ],
-        };
-
-        let max_eax_value = min(ef.max_eax_value + 1, ef.data.len() as u32);
-        for i in 1..max_eax_value {
-            ef.data[i as usize] = self.read.cpuid1(EAX_EXTENDED_FUNCTION_INFO + i);
-        }
-
-        Some(ef)
     }
 }
 
