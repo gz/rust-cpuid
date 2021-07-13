@@ -1,9 +1,6 @@
-//! A library to parse the x86 CPUID instruction, written in rust with no external dependencies.
-//! The implementation closely resembles the Intel CPUID manual description. The library does only
-//! depend on libcore.
-//!
-//! The code should be in sync with the latest March 2018 revision of the Intel Architectures
-//! Software Developer’s Manual.
+//! A library to parse the x86 CPUID instruction, written in rust with no external
+//! dependencies. The implementation closely resembles the Intel CPUID manual description.
+//! The library works with no_std.
 //!
 //! ## Example
 //! ```rust
@@ -28,6 +25,18 @@
 //!     println!("No cache parameter information available")
 //! }
 //! ```
+//!
+//! # Platform support
+//!
+//! CPU vendors may choose to not support certain functions/leafs in cpuid or only support
+//! them partially. We highlight this with the following emojis throughout the
+//! documentation:
+//!
+//! - ✅: This struct/function is fully supported by the vendor.
+//! - 🟡: This struct is partially supported by the vendor, refer to individual functions
+//!   for more information.
+//! - ❌: This struct/function is not supported by the vendor. When queried on this
+//!   platform, we will return None/false/0 (or some other sane default).
 
 #![no_std]
 #![crate_name = "raw_cpuid"]
@@ -699,13 +708,9 @@ impl CpuId {
     /// Informations about memory encryption support (LEAF=0x8000_001F)
     pub fn get_memory_encryption_info(&self) -> Option<MemoryEncryptionInfo> {
         if self.leaf_is_supported(EAX_MEMORY_ENCRYPTION_INFO) {
-            let res = self.read.cpuid1(EAX_MEMORY_ENCRYPTION_INFO);
-            Some(MemoryEncryptionInfo {
-                eax: MemoryEncryptionInfoEax { bits: res.eax },
-                ebx: res.ebx,
-                ecx: res.ecx,
-                edx: res.edx,
-            })
+            Some(MemoryEncryptionInfo::new(
+                self.read.cpuid1(EAX_MEMORY_ENCRYPTION_INFO),
+            ))
         } else {
             None
         }
@@ -5008,76 +5013,6 @@ impl ExtendedFunctionInfo {
             .finish()
     }
 }*/
-
-#[derive(Debug, Default)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-pub struct MemoryEncryptionInfo {
-    eax: MemoryEncryptionInfoEax,
-    ebx: u32,
-    ecx: u32,
-    edx: u32,
-}
-
-impl MemoryEncryptionInfo {
-    check_flag!(
-        doc = "Secure Memory Encryption is supported if set.",
-        has_sme,
-        eax,
-        MemoryEncryptionInfoEax::SME
-    );
-
-    check_flag!(
-        doc = "Secure Encrypted Virtualization is supported if set.",
-        has_sev,
-        eax,
-        MemoryEncryptionInfoEax::SEV
-    );
-
-    check_flag!(
-        doc = "The Page Flush MSR is available if set.",
-        has_page_flush_msr,
-        eax,
-        MemoryEncryptionInfoEax::PAGE_FLUSH_MSR
-    );
-
-    check_flag!(
-        doc = "SEV Encrypted State is supported if set.",
-        has_sev_es,
-        eax,
-        MemoryEncryptionInfoEax::SEV_ES
-    );
-
-    pub fn physical_address_reduction(&self) -> u8 {
-        get_bits(self.ebx, 6, 11) as u8
-    }
-
-    pub fn c_bit_position(&self) -> u8 {
-        get_bits(self.ebx, 0, 5) as u8
-    }
-
-    pub fn max_encrypted_guests(&self) -> u32 {
-        self.ecx
-    }
-
-    pub fn min_sev_no_es_asid(&self) -> u32 {
-        self.edx
-    }
-}
-
-bitflags! {
-    #[derive(Default)]
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-    struct MemoryEncryptionInfoEax: u32 {
-        /// Bit 00: SME supported
-        const SME = 1 << 0;
-        /// Bit 01: SEV supported
-        const SEV = 1 << 1;
-        /// Bit 02: Page Flush MSR available
-        const PAGE_FLUSH_MSR = 1 << 2;
-        /// Bit 03: SEV-ES supported
-        const SEV_ES = 1 << 3;
-    }
-}
 
 #[cfg(doctest)]
 mod test_readme {
