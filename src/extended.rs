@@ -25,10 +25,8 @@ impl ExtendedProcessorFeatureIdentifiers {
             vendor,
             eax: data.eax,
             ebx: data.ebx,
-            // Safety: Preserve bits from cpuid not yet implemented in raw_cpuid abstractions
-            ecx: unsafe { ExtendedFunctionInfoEcx::from_bits_unchecked(data.ecx) },
-            // Safety: Preserve bits from cpuid not yet implemented in raw_cpuid abstractions
-            edx: unsafe { ExtendedFunctionInfoEdx::from_bits_unchecked(data.edx) },
+            ecx: ExtendedFunctionInfoEcx::from_bits_truncate(data.ecx),
+            edx: ExtendedFunctionInfoEdx::from_bits_truncate(data.edx),
         }
     }
 
@@ -825,11 +823,9 @@ impl ApmInfo {
     pub(crate) fn new(data: CpuIdResult) -> Self {
         Self {
             _eax: data.eax,
-            // Safety: Preserve bits from cpuid not yet implemented in raw_cpuid abstractions
-            ebx: unsafe { RasCapabilities::from_bits_unchecked(data.ebx) },
+            ebx: RasCapabilities::from_bits_truncate(data.ebx),
             ecx: data.ecx,
-            // Safety: Preserve bits from cpuid not yet implemented in raw_cpuid abstractions
-            edx: unsafe { ApmInfoEdx::from_bits_unchecked(data.edx) },
+            edx: ApmInfoEdx::from_bits_truncate(data.edx),
         }
     }
 
@@ -1031,7 +1027,7 @@ bitflags! {
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorCapacityAndFeatureInfo {
     eax: u32,
-    ebx: u32,
+    ebx: ProcessorCapacityAndFeatureEbx,
     ecx: u32,
     edx: u32,
 }
@@ -1040,10 +1036,216 @@ impl ProcessorCapacityAndFeatureInfo {
     pub(crate) fn new(data: CpuIdResult) -> Self {
         Self {
             eax: data.eax,
-            ebx: data.ebx,
+            ebx: ProcessorCapacityAndFeatureEbx::from_bits_truncate(data.ebx),
             ecx: data.ecx,
             edx: data.edx,
         }
+    }
+
+    /// Physical Address Bits
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn physical_address_bits(&self) -> u8 {
+        get_bits(self.eax, 0, 7) as u8
+    }
+
+    /// Linear Address Bits
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn linear_address_bits(&self) -> u8 {
+        get_bits(self.eax, 8, 15) as u8
+    }
+
+    /// Guest Physical Address Bits
+    ///
+    /// This number applies only to guests using nested paging. When this field
+    /// is zero, refer to the PhysAddrSize field for the maximum guest physical
+    /// address size.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn guest_physical_address_bits(&self) -> u8 {
+        get_bits(self.eax, 16, 23) as u8
+    }
+
+    /// CLZERO instruction supported if set.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_cl_zero(&self) -> bool {
+        self.ebx.contains(ProcessorCapacityAndFeatureEbx::CLZERO)
+    }
+
+    /// Instruction Retired Counter MSR available if set.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_inst_ret_cntr_msr(&self) -> bool {
+        self.ebx
+            .contains(ProcessorCapacityAndFeatureEbx::INST_RETCNT_MSR)
+    }
+
+    /// FP Error Pointers Restored by XRSTOR if set.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_restore_fp_error_ptrs(&self) -> bool {
+        self.ebx
+            .contains(ProcessorCapacityAndFeatureEbx::RSTR_FP_ERR_PTRS)
+    }
+
+    /// INVLPGB and TLBSYNC instruction supported if set.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_invlpgb(&self) -> bool {
+        self.ebx.contains(ProcessorCapacityAndFeatureEbx::INVLPGB)
+    }
+
+    /// RDPRU instruction supported if set.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_rdpru(&self) -> bool {
+        self.ebx.contains(ProcessorCapacityAndFeatureEbx::RDPRU)
+    }
+
+    /// MCOMMIT instruction supported if set.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_mcommit(&self) -> bool {
+        self.ebx.contains(ProcessorCapacityAndFeatureEbx::MCOMMIT)
+    }
+
+    /// WBNOINVD instruction supported if set.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_wbnoinvd(&self) -> bool {
+        self.ebx.contains(ProcessorCapacityAndFeatureEbx::WBNOINVD)
+    }
+
+    /// WBINVD/WBNOINVD are interruptible if set.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_int_wbinvd(&self) -> bool {
+        self.ebx
+            .contains(ProcessorCapacityAndFeatureEbx::INT_WBINVD)
+    }
+
+    /// EFER.LMSLE is unsupported if set.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_unsupported_efer_lmsle(&self) -> bool {
+        self.ebx
+            .contains(ProcessorCapacityAndFeatureEbx::EFER_LMSLE_UNSUPP)
+    }
+
+    /// INVLPGB support for invalidating guest nested translations if set.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_invlpgb_nested(&self) -> bool {
+        self.ebx
+            .contains(ProcessorCapacityAndFeatureEbx::INVLPGB_NESTED)
+    }
+
+    /// Performance time-stamp counter size (in bits).
+    ///
+    /// Indicates the size of MSRC001_0280[PTSC].  
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn perf_tsc_size(&self) -> usize {
+        let s = get_bits(self.ecx, 16, 17) as u8;
+        match s & 0b11 {
+            0b00 => 40,
+            0b01 => 48,
+            0b10 => 56,
+            0b11 => 64,
+            _ => unreachable!("AND with 0b11 in match"),
+        }
+    }
+
+    /// APIC ID size.
+    ///
+    /// A value of zero indicates that legacy methods must be used to determine
+    /// the maximum number of logical processors, as indicated by CPUID
+    /// Fn8000_0008_ECX[NC].
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn apic_id_size(&self) -> u8 {
+        get_bits(self.ecx, 12, 15) as u8
+    }
+
+    /// The size of the `apic_id_size` field determines the maximum number of
+    /// logical processors (MNLP) that the package could theoretically support,
+    /// and not the actual number of logical processors that are implemented or
+    /// enabled in the package, as indicated by CPUID Fn8000_0008_ECX[NC].
+    ///
+    /// MNLP = (2 raised to the power of ApicIdSize[3:0]) (if not 0)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn maximum_logical_processors(&self) -> usize {
+        usize::pow(2, self.apic_id_size() as u32)
+    }
+
+    /// Number of physical threads.
+    ///
+    /// The number of bits in the initial APIC20[ApicId] value that indicate
+    /// logical processor ID within a package. The size of this field determines
+    /// the maximum number of logical processors (MNLP) that the package could
+    /// theoretically support, and not the actual number of logical processors
+    /// that are implemented or enabled in the package, as indicated by CPUID
+    /// Fn8000_0008_ECX[NC]. A value of zero indicates that legacy methods must
+    /// be used to determine the maximum number of logical processors, as
+    /// indicated by CPUID Fn8000_0008_ECX[NC].
+    ///
+    /// MNLP = (2 raised to the power of ApicIdSize[3:0]) (if not 0)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn num_phys_threads(&self) -> usize {
+        get_bits(self.ecx, 0, 7) as usize + 1
+    }
+
+    /// Maximum page count for INVLPGB instruction.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn invlpgb_max_pages(&self) -> u16 {
+        get_bits(self.edx, 0, 15) as u16
+    }
+
+    /// The maximum ECX value recognized by RDPRU.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn max_rdpru_id(&self) -> u16 {
+        get_bits(self.edx, 16, 31) as u16
+    }
+}
+
+bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    struct ProcessorCapacityAndFeatureEbx: u32 {
+        const CLZERO = 1 << 0;
+        const INST_RETCNT_MSR = 1 << 1;
+        const RSTR_FP_ERR_PTRS = 1 << 2;
+        const INVLPGB = 1 << 3;
+        const RDPRU = 1 << 4;
+        const MCOMMIT = 1 << 8;
+        const WBNOINVD = 1 << 9;
+        const INT_WBINVD = 1 << 13;
+        const EFER_LMSLE_UNSUPP = 1 << 20;
+        const INVLPGB_NESTED = 1 << 21;
     }
 }
 
@@ -1063,8 +1265,7 @@ pub struct MemoryEncryptionInfo {
 impl MemoryEncryptionInfo {
     pub(crate) fn new(data: CpuIdResult) -> Self {
         Self {
-            // Safety: Preserve bits from cpuid not yet implemented in raw_cpuid abstractions
-            eax: unsafe { MemoryEncryptionInfoEax::from_bits_unchecked(data.eax) },
+            eax: MemoryEncryptionInfoEax::from_bits_truncate(data.eax),
             ebx: data.ebx,
             ecx: data.ecx,
             edx: data.edx,
