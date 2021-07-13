@@ -25,9 +25,9 @@ impl ExtendedProcessorFeatureIdentifiers {
             vendor,
             eax: data.eax,
             ebx: data.ebx,
-            // Safety: Ok we don't care/want to preseve extra bits from CpuId that we don't support (yet)
+            // Safety: Preserve bits from cpuid not yet implemented in raw_cpuid abstractions
             ecx: unsafe { ExtendedFunctionInfoEcx::from_bits_unchecked(data.ecx) },
-            // Safety: Ok we don't care/want to preseve extra bits from CpuId that we don't support (yet)
+            // Safety: Preserve bits from cpuid not yet implemented in raw_cpuid abstractions
             edx: unsafe { ExtendedFunctionInfoEdx::from_bits_unchecked(data.edx) },
         }
     }
@@ -807,6 +807,246 @@ impl Associativity {
     }
 }
 
+/// Processor Power Management and RAS Capabilities (LEAF=0x8000_0007).
+///
+/// # Platforms
+/// ✅ AMD 🟡 Intel
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct ApmInfo {
+    /// Reserved on AMD and Intel.
+    _eax: u32,
+    ebx: RasCapabilities,
+    ecx: u32,
+    edx: ApmInfoEdx,
+}
+
+impl ApmInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            _eax: data.eax,
+            // Safety: Preserve bits from cpuid not yet implemented in raw_cpuid abstractions
+            ebx: unsafe { RasCapabilities::from_bits_unchecked(data.ebx) },
+            ecx: data.ecx,
+            // Safety: Preserve bits from cpuid not yet implemented in raw_cpuid abstractions
+            edx: unsafe { ApmInfoEdx::from_bits_unchecked(data.edx) },
+        }
+    }
+
+    /// Is MCA overflow recovery available?
+    ///
+    /// If set, indicates that MCA overflow conditions (MCi_STATUS[Overflow]=1)
+    /// are not fatal; software may safely ignore such conditions. If clear, MCA
+    /// overflow conditions require software to shut down the system.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_mca_overflow_recovery(&self) -> bool {
+        self.ebx.contains(RasCapabilities::MCAOVFLRECOV)
+    }
+
+    /// Has Software uncorrectable error containment and recovery capability?
+    ///
+    /// The processor supports software containment of uncorrectable errors
+    /// through context synchronizing data poisoning and deferred error
+    /// interrupts.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_succor(&self) -> bool {
+        self.ebx.contains(RasCapabilities::SUCCOR)
+    }
+
+    /// Has Hardware assert supported?
+    ///
+    /// Indicates support for MSRC001_10[DF:C0].
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_hwa(&self) -> bool {
+        self.ebx.contains(RasCapabilities::HWA)
+    }
+
+    /// Specifies the ratio of the compute unit power accumulator sample period
+    /// to the TSC counter period.
+    ///
+    /// Returns a value of 0 if not applicable for the system.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=0)
+    pub fn cpu_pwr_sample_time_ratio(&self) -> u32 {
+        self.ecx
+    }
+
+    /// Is Temperature Sensor available?
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_ts(&self) -> bool {
+        self.edx.contains(ApmInfoEdx::TS)
+    }
+
+    /// Frequency ID control.
+    ///
+    /// # Note
+    /// Function replaced by `has_hw_pstate`.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_freq_id_ctrl(&self) -> bool {
+        self.edx.contains(ApmInfoEdx::FID)
+    }
+
+    /// Voltage ID control.
+    ///
+    /// # Note
+    /// Function replaced by `has_hw_pstate`.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_volt_id_ctrl(&self) -> bool {
+        self.edx.contains(ApmInfoEdx::VID)
+    }
+
+    /// Has THERMTRIP?
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_thermtrip(&self) -> bool {
+        self.edx.contains(ApmInfoEdx::TTP)
+    }
+
+    /// Hardware thermal control (HTC)?
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_tm(&self) -> bool {
+        self.edx.contains(ApmInfoEdx::TM)
+    }
+
+    /// Has 100 MHz multiplier Control?
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_100mhz_steps(&self) -> bool {
+        self.edx.contains(ApmInfoEdx::MHZSTEPS100)
+    }
+
+    /// Has Hardware P-state control?
+    ///
+    /// MSRC001_0061 [P-state Current Limit], MSRC001_0062 [P-state Control] and
+    /// MSRC001_0063 [P-state Status] exist
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_hw_pstate(&self) -> bool {
+        self.edx.contains(ApmInfoEdx::HWPSTATE)
+    }
+
+    /// Is Invariant TSC available?
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_invariant_tsc(&self) -> bool {
+        self.edx.contains(ApmInfoEdx::INVTSC)
+    }
+
+    /// Has Core performance boost?
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_cpb(&self) -> bool {
+        self.edx.contains(ApmInfoEdx::CPB)
+    }
+
+    /// Has Read-only effective frequency interface?
+    ///
+    /// Indicates presence of MSRC000_00E7 [Read-Only Max Performance Frequency
+    /// Clock Count (MPerfReadOnly)] and MSRC000_00E8 [Read-Only Actual
+    /// Performance Frequency Clock Count (APerfReadOnly)].
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_ro_effective_freq_iface(&self) -> bool {
+        self.edx.contains(ApmInfoEdx::EFFFREQRO)
+    }
+
+    /// Indicates support for processor feedback interface.
+    ///
+    /// # Note
+    /// This feature is deprecated.
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_feedback_iface(&self) -> bool {
+        self.edx.contains(ApmInfoEdx::PROCFEEDBACKIF)
+    }
+
+    /// Has Processor power reporting interface?
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved=false)
+    pub fn has_power_reporting_iface(&self) -> bool {
+        self.edx.contains(ApmInfoEdx::PROCPWRREPORT)
+    }
+}
+
+bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    struct ApmInfoEdx: u32 {
+        const TS = 1 << 0;
+        const FID = 1 << 1;
+        const VID = 1 << 2;
+        const TTP = 1 << 3;
+        const TM = 1 << 4;
+        const MHZSTEPS100 = 1 << 6;
+        const HWPSTATE = 1 << 7;
+        const INVTSC = 1 << 8;
+        const CPB = 1 << 9;
+        const EFFFREQRO = 1 << 10;
+        const PROCFEEDBACKIF = 1 << 11;
+        const PROCPWRREPORT = 1 << 12;
+    }
+}
+
+bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    struct RasCapabilities: u32 {
+        const MCAOVFLRECOV = 1 << 0;
+        const SUCCOR = 1 << 1;
+        const HWA = 1 << 2;
+    }
+}
+
+/// Processor Capacity Parameters and Extended Feature Identification
+/// (LEAF=0x8000_0008).
+///
+/// This function provides the size or capacity of various architectural
+/// parameters that vary by implementation, as well as an extension to the
+/// 0x8000_0001 feature identifiers.
+///
+/// # Platforms
+/// ✅ AMD 🟡 Intel
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct ProcessorCapacityAndFeatureInfo {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    edx: u32,
+}
+
+impl ProcessorCapacityAndFeatureInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: data.eax,
+            ebx: data.ebx,
+            ecx: data.ecx,
+            edx: data.edx,
+        }
+    }
+}
+
 /// Encrypted Memory Capabilities
 ///
 /// # Platforms
@@ -823,7 +1063,7 @@ pub struct MemoryEncryptionInfo {
 impl MemoryEncryptionInfo {
     pub(crate) fn new(data: CpuIdResult) -> Self {
         Self {
-            // Safety: We want to preserve not (yet) supported bits from cpuid.
+            // Safety: Preserve bits from cpuid not yet implemented in raw_cpuid abstractions
             eax: unsafe { MemoryEncryptionInfoEax::from_bits_unchecked(data.eax) },
             ebx: data.ebx,
             ecx: data.ecx,

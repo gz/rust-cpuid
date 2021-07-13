@@ -26,7 +26,7 @@ fn main() {
         .map_or(false, |finfo| finfo.has_tsc());
 
     let has_invariant_tsc = cpuid
-        .get_extended_function_info()
+        .get_advanced_power_mgmt_info()
         .map_or(false, |efinfo| efinfo.has_invariant_tsc());
 
     let tsc_frequency_hz = cpuid.get_tsc_info().map(|tinfo| {
