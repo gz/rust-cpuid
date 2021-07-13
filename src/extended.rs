@@ -591,7 +591,7 @@ impl L1CacheTlbInfo {
     }
 }
 
-/// L2 Cache and TLB Information (LEAF=0x8000_0006).
+/// L2/L3 Cache and TLB Information (LEAF=0x8000_0006).
 ///
 /// # Availability
 /// ✅ AMD 🟡 Intel
@@ -605,6 +605,15 @@ pub struct L2And3CacheTlbInfo {
 }
 
 impl L2And3CacheTlbInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: data.eax,
+            ebx: data.ebx,
+            ecx: data.ecx,
+            edx: data.edx,
+        }
+    }
+
     /// L2 Data TLB associativity for 2-MB and 4-MB pages.
     ///
     /// # Availability

@@ -7,17 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased v10]
 
- - Removed `get_extended_function_info` with new AMD support: Use `get_processor_brand_string`, `get_extended_processor_and_feature_identifiers`, `xxx` instead. (**breaking change**)
- - Removed `deterministic_address_translation_info`. Use `get_deterministic_address_translation_info` instead. (**breaking change**)
- - Renamed `model_id` and `family_id` to `base_model_id` and `base_family_id` in `FeatureInfo`. Added new `family_id` and `model_id` functions
-   that compute the actual model and family according to the spec by joining base and extended family/model. (**breaking change**)
- - Extend Hypervisor enum with more variants ([#50](https://github.com/gz/rust-cpuid/pull/50)) (**breaking change**)
- - Remove `has_rdseet` function (deprecated since 3.2), clients should use the correctly named `has_rdseed` function instead (**breaking change**).
+- Removed `get_extended_function_info` with new AMD support: Use
+  `get_processor_brand_string`, `get_extended_processor_and_feature_identifiers`,
+  `get_l1_cache_and_tlb_info`, `get_l2_l3_cache_and_tlb_info` instead. (**breaking
+  change**)
+- Removed `deterministic_address_translation_info`. Use
+  `get_deterministic_address_translation_info` instead. (**breaking change**)
+- Renamed `model_id` and `family_id` to `base_model_id` and `base_family_id` in
+  `FeatureInfo`. Added new `family_id` and `model_id` functions that compute the actual
+  model and family according to the spec by joining base and extended family/model.
+  (**breaking change**)
+- Extend Hypervisor enum with more variants
+  ([#50](https://github.com/gz/rust-cpuid/pull/50)) (**breaking change**)
+- Remove `has_rdseet` function (deprecated since 3.2), clients should use the correctly
+  named `has_rdseed` function instead (**breaking change**).
  - Updated Debug trait for SGX iterators.
- - Make CpuId derive Clone and Copy ([#53](https://github.com/gz/rust-cpuid/pull/53))
- - Improved documentation in some places by adding leaf numbers.
- - Added AMD support for leafs 0x8000_0001, 0x8000_0006
- - Updated AMD leaf 0x8000_001f (Encrypted Memory) to latest manual.
+- Make CpuId derive Clone and Copy ([#53](https://github.com/gz/rust-cpuid/pull/53))
+- Improved documentation in some places by adding leaf numbers.
+- Added AMD support for leafs 0x8000_0001, 0x8000_0006
+- Updated AMD leaf 0x8000_001f (Encrypted Memory) to latest manual.
  
 ## [9.1.1] - 2021-07-06
 
