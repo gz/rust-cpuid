@@ -1,6 +1,6 @@
-//! A library to parse the x86 CPUID instruction, written in rust with no external
-//! dependencies. The implementation closely resembles the Intel CPUID manual description.
-//! The library works with no_std.
+//! A library to parse the x86 CPUID instruction, written in rust with no
+//! external dependencies. The implementation closely resembles the Intel CPUID
+//! manual description. The library works with no_std.
 //!
 //! ## Example
 //! ```rust
@@ -28,19 +28,21 @@
 //!
 //! # Platform support
 //!
-//! CPU vendors may choose to not support certain functions/leafs in cpuid or only support
-//! them partially. We highlight this with the following emojis throughout the
-//! documentation:
+//! CPU vendors may choose to not support certain functions/leafs in cpuid or
+//! only support them partially. We highlight this with the following emojis
+//! throughout the documentation:
 //!
 //! - ✅: This struct/function is fully supported by the vendor.
-//! - 🟡: This struct is partially supported by the vendor, refer to individual functions
-//!   for more information.
-//! - ❌: This struct/function is not supported by the vendor. When queried on this
-//!   platform, we will return None/false/0 (or some other sane default).
+//! - 🟡: This struct is partially supported by the vendor, refer to individual
+//!   functions for more information.
+//! - ❌: This struct/function is not supported by the vendor. When queried on
+//!   this platform, we will return None/false/0 (or some other sane default).
+//! - ❓: This struct/function is not supported by the vendor according to the
+//!   manual, but the in practice it still may return valid information.
 //!
-//! Note that the presence of a ✅ does not guarantee that a specific feature will exist
-//! for your CPU -- just that it is potentially supported by the vendor on some of its
-//! chips. You will still have to query it at runtime.
+//! Note that the presence of a ✅ does not guarantee that a specific feature
+//! will exist for your CPU -- just that it is potentially supported by the
+//! vendor on some of its chips. You will still have to query it at runtime.
 
 #![no_std]
 #![crate_name = "raw_cpuid"]

@@ -48,8 +48,8 @@ impl ExtendedProcessorFeatureIdentifiers {
 
     /// Returns package type on AMD.
     ///
-    /// Package type. If (Family[7:0] >= 10h), this field is valid. If (Family[7:0]<10h),
-    /// this field is reserved
+    /// Package type. If `(Family[7:0] >= 10h)`, this field is valid. If
+    /// `(Family[7:0]<10h)`, this field is reserved
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved)
@@ -59,7 +59,7 @@ impl ExtendedProcessorFeatureIdentifiers {
 
     /// Returns brand ID on AMD.
     ///
-    /// This field, in conjunction with CPUID LEAF=0x0000_0001_EBX[8BitBrandId], and used
+    /// This field, in conjunction with CPUID `LEAF=0x0000_0001_EBX[8BitBrandId]`, and used
     /// by firmware to generate the processor name string.
     ///
     /// # Platforms
@@ -180,7 +180,7 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// SKINIT and STGI are supported.
     ///
     /// Indicates support for SKINIT and STGI, independent of the value of
-    /// MSRC000_0080[SVME].
+    /// `MSRC000_0080[SVME]`.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
@@ -224,7 +224,7 @@ impl ExtendedProcessorFeatureIdentifiers {
 
     /// Topology extensions support.
     ///
-    /// Indicates support for CPUID Fn8000_001D_EAX_x[N:0]-CPUID Fn8000_001E_EDX.
+    /// Indicates support for CPUID `Fn8000_001D_EAX_x[N:0]-CPUID Fn8000_001E_EDX`.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
@@ -234,7 +234,7 @@ impl ExtendedProcessorFeatureIdentifiers {
 
     /// Processor performance counter extensions support.
     ///
-    /// Indicates support for MSRC001_020[A,8,6,4,2,0] and MSRC001_020[B,9,7,5,3,1].
+    /// Indicates support for `MSRC001_020[A,8,6,4,2,0]` and `MSRC001_020[B,9,7,5,3,1]`.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
@@ -244,7 +244,7 @@ impl ExtendedProcessorFeatureIdentifiers {
 
     /// NB performance counter extensions support.
     ///
-    /// Indicates support for MSRC001_024[6,4,2,0] and MSRC001_024[7,5,3,1].
+    /// Indicates support for `MSRC001_024[6,4,2,0]` and `MSRC001_024[7,5,3,1]`.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
@@ -254,7 +254,7 @@ impl ExtendedProcessorFeatureIdentifiers {
 
     /// Data access breakpoint extension.
     ///
-    /// Indicates support for MSRC001_1027 and MSRC001_101[B:9].
+    /// Indicates support for `MSRC001_1027` and `MSRC001_101[B:9]`.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
@@ -264,7 +264,7 @@ impl ExtendedProcessorFeatureIdentifiers {
 
     /// Performance time-stamp counter.
     ///
-    /// Indicates support for MSRC001_0280 [Performance Time Stamp Counter].
+    /// Indicates support for `MSRC001_0280` `[Performance Time Stamp Counter]`.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
@@ -752,7 +752,7 @@ impl L2And3CacheTlbInfo {
 
     /// Specifies the L3 cache size range
     ///
-    /// (L3Size[31:18] * 512KB) <= L3 cache size < ((L3Size[31:18]+1) * 512KB).
+    /// `(L3Size[31:18] * 512KB) <= L3 cache size < ((L3Size[31:18]+1) * 512KB)`.
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=0)
@@ -835,7 +835,7 @@ impl ApmInfo {
 
     /// Is MCA overflow recovery available?
     ///
-    /// If set, indicates that MCA overflow conditions (MCi_STATUS[Overflow]=1)
+    /// If set, indicates that MCA overflow conditions (`MCi_STATUS[Overflow]=1`)
     /// are not fatal; software may safely ignore such conditions. If clear, MCA
     /// overflow conditions require software to shut down the system.
     ///
@@ -859,7 +859,7 @@ impl ApmInfo {
 
     /// Has Hardware assert supported?
     ///
-    /// Indicates support for MSRC001_10[DF:C0].
+    /// Indicates support for `MSRC001_10[DF:C0]`.
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=false)
@@ -1161,7 +1161,7 @@ impl ProcessorCapacityAndFeatureInfo {
 
     /// Performance time-stamp counter size (in bits).
     ///
-    /// Indicates the size of MSRC001_0280[PTSC].  
+    /// Indicates the size of `MSRC001_0280[PTSC]`.  
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=false)
@@ -1180,7 +1180,7 @@ impl ProcessorCapacityAndFeatureInfo {
     ///
     /// A value of zero indicates that legacy methods must be used to determine
     /// the maximum number of logical processors, as indicated by CPUID
-    /// Fn8000_0008_ECX[NC].
+    /// `Fn8000_0008_ECX[NC]`.
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=0)
@@ -1191,9 +1191,9 @@ impl ProcessorCapacityAndFeatureInfo {
     /// The size of the `apic_id_size` field determines the maximum number of
     /// logical processors (MNLP) that the package could theoretically support,
     /// and not the actual number of logical processors that are implemented or
-    /// enabled in the package, as indicated by CPUID Fn8000_0008_ECX[NC].
+    /// enabled in the package, as indicated by CPUID `Fn8000_0008_ECX[NC]`.
     ///
-    /// MNLP = (2 raised to the power of ApicIdSize[3:0]) (if not 0)
+    /// `MNLP = (2 raised to the power of ApicIdSize[3:0])` (if not 0)
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=0)
@@ -1203,16 +1203,16 @@ impl ProcessorCapacityAndFeatureInfo {
 
     /// Number of physical threads.
     ///
-    /// The number of bits in the initial APIC20[ApicId] value that indicate
+    /// The number of bits in the initial `APIC20[ApicId]` value that indicate
     /// logical processor ID within a package. The size of this field determines
     /// the maximum number of logical processors (MNLP) that the package could
     /// theoretically support, and not the actual number of logical processors
     /// that are implemented or enabled in the package, as indicated by CPUID
-    /// Fn8000_0008_ECX[NC]. A value of zero indicates that legacy methods must
+    /// `Fn8000_0008_ECX[NC]`. A value of zero indicates that legacy methods must
     /// be used to determine the maximum number of logical processors, as
-    /// indicated by CPUID Fn8000_0008_ECX[NC].
+    /// indicated by CPUID `Fn8000_0008_ECX[NC]`.
     ///
-    /// MNLP = (2 raised to the power of ApicIdSize[3:0]) (if not 0)
+    /// `MNLP = (2 raised to the power of ApicIdSize[3:0])` (if not 0)
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=0)
