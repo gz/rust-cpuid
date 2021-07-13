@@ -8,9 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased v10]
 
 - Removed `get_extended_function_info` with new AMD support: Use
-  `get_processor_brand_string`, `get_extended_processor_and_feature_identifiers`,
-  `get_l1_cache_and_tlb_info`, `get_l2_l3_cache_and_tlb_info` instead. (**breaking
-  change**)
+  `get_processor_brand_string`,
+  `get_extended_processor_and_feature_identifiers`, `get_l1_cache_and_tlb_info`,
+  `get_l2_l3_cache_and_tlb_info`, `get_advanced_power_mgmt_info`,
+  `get_processor_capacity_feature_info` instead. (**breaking change**)
 - Removed `deterministic_address_translation_info`. Use
   `get_deterministic_address_translation_info` instead. (**breaking change**)
 - Renamed `model_id` and `family_id` to `base_model_id` and `base_family_id` in

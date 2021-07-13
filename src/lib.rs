@@ -86,7 +86,6 @@ pub mod native_cpuid {
     }
 }
 
-use core::cmp::min;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
 use core::mem::size_of;
@@ -295,6 +294,8 @@ const EAX_EXTENDED_PROCESSOR_AND_FEATURE_IDENTIFIERS: u32 = 0x8000_0001;
 const EAX_EXTENDED_BRAND_STRING: u32 = 0x8000_0002;
 const EAX_L1_CACHE_INFO: u32 = 0x8000_0005;
 const EAX_L2_L3_CACHE_INFO: u32 = 0x8000_0006;
+const EAX_ADVANCED_POWER_MGMT_INFO: u32 = 0x8000_0007;
+const EAX_PROCESSOR_CAPACITY_INFO: u32 = 0x8000_0008;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 
 impl CpuId {
@@ -766,7 +767,7 @@ impl CpuId {
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved)
     pub fn get_l1_cache_and_tlb_info(&self) -> Option<L1CacheTlbInfo> {
-        if self.vendor == Vendor::Amd && self.leaf_is_supported(EAX_L1_CACHE_INFO) {
+        if self.leaf_is_supported(EAX_L1_CACHE_INFO) {
             Some(L1CacheTlbInfo::new(self.read.cpuid1(EAX_L1_CACHE_INFO)))
         } else {
             None
@@ -778,9 +779,35 @@ impl CpuId {
     /// # Availability
     /// ✅ AMD 🟡 Intel
     pub fn get_l2_l3_cache_and_tlb_info(&self) -> Option<L2And3CacheTlbInfo> {
-        if self.vendor == Vendor::Amd && self.leaf_is_supported(EAX_L2_L3_CACHE_INFO) {
+        if self.leaf_is_supported(EAX_L2_L3_CACHE_INFO) {
             Some(L2And3CacheTlbInfo::new(
                 self.read.cpuid1(EAX_L2_L3_CACHE_INFO),
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Advanced Power Management Information (LEAF=0x8000_0007).
+    ///
+    /// # Availability
+    /// ✅ AMD 🟡 Intel
+    pub fn get_advanced_power_mgmt_info(&self) -> Option<ApmInfo> {
+        if self.leaf_is_supported(EAX_ADVANCED_POWER_MGMT_INFO) {
+            Some(ApmInfo::new(self.read.cpuid1(EAX_ADVANCED_POWER_MGMT_INFO)))
+        } else {
+            None
+        }
+    }
+
+    /// Processor Capacity Parameters and Extended Feature Identification (LEAF=0x8000_0008).
+    ///
+    /// # Availability
+    /// ✅ AMD 🟡 Intel
+    pub fn get_processor_capacity_feature_info(&self) -> Option<ProcessorCapacityAndFeatureInfo> {
+        if self.leaf_is_supported(EAX_PROCESSOR_CAPACITY_INFO) {
+            Some(ProcessorCapacityAndFeatureInfo::new(
+                self.read.cpuid1(EAX_PROCESSOR_CAPACITY_INFO),
             ))
         } else {
             None
