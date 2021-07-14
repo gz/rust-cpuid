@@ -432,8 +432,9 @@ bitflags! {
     }
 }
 
+/// Processor name (LEAF=0x8000_0002..=0x8000_0004).
+///
 /// ASCII string up to 48 characters in length corresponding to the processor name.
-/// (LEAF = 0x8000_0002..=0x8000_0004)
 ///
 /// # Platforms
 /// ✅ AMD ✅ Intel
@@ -763,6 +764,7 @@ impl L2And3CacheTlbInfo {
     }
 }
 
+/// Info about cache Associativity.
 #[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum Associativity {

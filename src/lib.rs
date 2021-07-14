@@ -500,7 +500,7 @@ impl CpuId {
         }
     }
 
-    /// Info about performance monitoring -- how many counters etc (LEAF=0x0A)
+    /// Info about performance monitoring (LEAF=0x0A).
     ///
     /// # Platforms
     /// ❌ AMD ✅ Intel
@@ -518,7 +518,7 @@ impl CpuId {
         }
     }
 
-    /// Information about topology -- how many cores and what kind of cores (LEAF=0x0B).
+    /// Information about topology (LEAF=0x0B).
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
@@ -558,6 +558,9 @@ impl CpuId {
     }
 
     /// Quality of service monitoring information (LEAF=0x0F).
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn get_rdt_monitoring_info(&self) -> Option<RdtMonitoringInfo> {
         let res = self.read.cpuid1(EAX_RDT_MONITORING);
 
@@ -573,6 +576,9 @@ impl CpuId {
     }
 
     /// Quality of service enforcement information (LEAF=0x10).
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn get_rdt_allocation_info(&self) -> Option<RdtAllocationInfo> {
         let res = self.read.cpuid1(EAX_RDT_ALLOCATION);
 
@@ -691,7 +697,7 @@ impl CpuId {
         }
     }
 
-    /// Contains information about the deterministic address translation feature (LEAF=0x18)
+    /// Query deterministic address translation feature (LEAF=0x18).
     ///
     /// # Platforms
     /// ❌ AMD ✅ Intel
@@ -734,8 +740,7 @@ impl CpuId {
             .flatten()
     }
 
-    /// Extended Processor and Processor Feature Identifiers.
-    /// (LEAF=0x8000_0001)
+    /// Extended Processor and Processor Feature Identifiers (LEAF=0x8000_0001).
     ///
     /// # Platforms
     /// ✅ AMD 🟡 Intel
@@ -753,7 +758,7 @@ impl CpuId {
         }
     }
 
-    /// Retrieve processor brand string leafs.
+    /// Retrieve processor brand string (LEAF=0x8000_000{2..4}).
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
@@ -2474,6 +2479,7 @@ pub struct CacheParameter {
     edx: u32,
 }
 
+/// Info about a what a given cache caches (instructions, data, etc.)
 #[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum CacheType {
@@ -3027,7 +3033,10 @@ bitflags! {
     }
 }
 
-#[derive(Default)]
+/// Structured Extended Feature Identifiers (LEAF=0x07).
+///
+/// # Platforms
+/// 🟡 AMD ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedFeatures {
     _eax: u32,
@@ -3037,234 +3046,315 @@ pub struct ExtendedFeatures {
 }
 
 impl ExtendedFeatures {
-    check_flag!(
-        doc = "FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1.",
-        has_fsgsbase,
-        ebx,
-        ExtendedFeaturesEbx::FSGSBASE
-    );
+    /// FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_fsgsbase(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::FSGSBASE)
+    }
 
-    check_flag!(
-        doc = "IA32_TSC_ADJUST MSR is supported if 1.",
-        has_tsc_adjust_msr,
-        ebx,
-        ExtendedFeaturesEbx::ADJUST_MSR
-    );
+    /// IA32_TSC_ADJUST MSR is supported if 1.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_tsc_adjust_msr(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::ADJUST_MSR)
+    }
 
-    check_flag!(doc = "BMI1", has_bmi1, ebx, ExtendedFeaturesEbx::BMI1);
+    /// BMI1
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_bmi1(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::BMI1)
+    }
 
-    check_flag!(doc = "HLE", has_hle, ebx, ExtendedFeaturesEbx::HLE);
+    /// HLE
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_hle(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::HLE)
+    }
 
-    check_flag!(doc = "AVX2", has_avx2, ebx, ExtendedFeaturesEbx::AVX2);
+    /// AVX2
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_avx2(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::AVX2)
+    }
 
-    check_flag!(
-        doc = "FDP_EXCPTN_ONLY. x87 FPU Data Pointer updated only on x87 exceptions if 1.",
-        has_fdp,
-        ebx,
-        ExtendedFeaturesEbx::FDP
-    );
+    /// FDP_EXCPTN_ONLY. x87 FPU Data Pointer updated only on x87 exceptions if
+    /// 1.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_fdp(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::FDP)
+    }
 
-    check_flag!(
-        doc = "SMEP. Supports Supervisor-Mode Execution Prevention if 1.",
-        has_smep,
-        ebx,
-        ExtendedFeaturesEbx::SMEP
-    );
+    /// SMEP. Supports Supervisor-Mode Execution Prevention if 1.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_smep(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::SMEP)
+    }
 
-    check_flag!(doc = "BMI2", has_bmi2, ebx, ExtendedFeaturesEbx::BMI2);
+    /// BMI2
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_bmi2(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::BMI2)
+    }
 
-    check_flag!(
-        doc = "Supports Enhanced REP MOVSB/STOSB if 1.",
-        has_rep_movsb_stosb,
-        ebx,
-        ExtendedFeaturesEbx::REP_MOVSB_STOSB
-    );
+    /// Supports Enhanced REP MOVSB/STOSB if 1.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_rep_movsb_stosb(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::REP_MOVSB_STOSB)
+    }
 
-    check_flag!(
-        doc = "INVPCID. If 1, supports INVPCID instruction for system software that \
-               manages process-context identifiers.",
-        has_invpcid,
-        ebx,
-        ExtendedFeaturesEbx::INVPCID
-    );
+    /// INVPCID. If 1, supports INVPCID instruction for system software that
+    /// manages process-context identifiers.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_invpcid(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::INVPCID)
+    }
 
-    check_flag!(doc = "RTM", has_rtm, ebx, ExtendedFeaturesEbx::RTM);
+    /// RTM
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_rtm(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::RTM)
+    }
 
-    check_flag!(
-        doc = "Supports Intel Resource Director Technology (RDT) Monitoring capability.",
-        has_rdtm,
-        ebx,
-        ExtendedFeaturesEbx::RDTM
-    );
+    /// Supports Intel Resource Director Technology (RDT) Monitoring capability.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_rdtm(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::RDTM)
+    }
 
-    check_flag!(
-        doc = "Deprecates FPU CS and FPU DS values if 1.",
-        has_fpu_cs_ds_deprecated,
-        ebx,
-        ExtendedFeaturesEbx::DEPRECATE_FPU_CS_DS
-    );
+    /// Deprecates FPU CS and FPU DS values if 1.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_fpu_cs_ds_deprecated(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::DEPRECATE_FPU_CS_DS)
+    }
 
-    check_flag!(
-        doc = "MPX. Supports Intel Memory Protection Extensions if 1.",
-        has_mpx,
-        ebx,
-        ExtendedFeaturesEbx::MPX
-    );
+    /// MPX. Supports Intel Memory Protection Extensions if 1.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_mpx(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::MPX)
+    }
 
-    check_flag!(
-        doc = "Supports Intel Resource Director Technology (RDT) Allocation capability.",
-        has_rdta,
-        ebx,
-        ExtendedFeaturesEbx::RDTA
-    );
+    /// Supports Intel Resource Director Technology (RDT) Allocation capability.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_rdta(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::RDTA)
+    }
 
-    check_flag!(
-        doc = "Supports RDSEED.",
-        has_rdseed,
-        ebx,
-        ExtendedFeaturesEbx::RDSEED
-    );
+    /// Supports RDSEED.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_rdseed(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::RDSEED)
+    }
 
-    check_flag!(
-        doc = "Supports ADX.",
-        has_adx,
-        ebx,
-        ExtendedFeaturesEbx::ADX
-    );
+    /// Supports ADX.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_adx(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::ADX)
+    }
 
-    check_flag!(doc = "SMAP. Supports Supervisor-Mode Access Prevention (and the CLAC/STAC instructions) if 1.",
-                has_smap,
-                ebx,
-                ExtendedFeaturesEbx::SMAP);
+    /// SMAP. Supports Supervisor-Mode Access Prevention (and the CLAC/STAC
+    /// instructions) if 1.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_smap(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::SMAP)
+    }
 
-    check_flag!(
-        doc = "Supports CLFLUSHOPT.",
-        has_clflushopt,
-        ebx,
-        ExtendedFeaturesEbx::CLFLUSHOPT
-    );
+    /// Supports CLFLUSHOPT.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_clflushopt(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::CLFLUSHOPT)
+    }
 
-    check_flag!(
-        doc = "Supports Intel Processor Trace.",
-        has_processor_trace,
-        ebx,
-        ExtendedFeaturesEbx::PROCESSOR_TRACE
-    );
+    /// Supports Intel Processor Trace.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_processor_trace(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::PROCESSOR_TRACE)
+    }
 
-    check_flag!(
-        doc = "Supports SHA Instructions.",
-        has_sha,
-        ebx,
-        ExtendedFeaturesEbx::SHA
-    );
+    /// Supports SHA Instructions.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_sha(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::SHA)
+    }
 
-    check_flag!(
-        doc = "Supports Intel® Software Guard Extensions (Intel® SGX Extensions).",
-        has_sgx,
-        ebx,
-        ExtendedFeaturesEbx::SGX
-    );
+    /// Supports Intel® Software Guard Extensions (Intel® SGX Extensions).
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_sgx(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::SGX)
+    }
 
-    check_flag!(
-        doc = "Supports AVX512F.",
-        has_avx512f,
-        ebx,
-        ExtendedFeaturesEbx::AVX512F
-    );
+    /// Supports AVX512F.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_avx512f(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::AVX512F)
+    }
 
-    check_flag!(
-        doc = "Supports AVX512DQ.",
-        has_avx512dq,
-        ebx,
-        ExtendedFeaturesEbx::AVX512DQ
-    );
+    /// Supports AVX512DQ.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_avx512dq(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::AVX512DQ)
+    }
 
-    check_flag!(
-        doc = "AVX512_IFMA",
-        has_avx512_ifma,
-        ebx,
-        ExtendedFeaturesEbx::AVX512_IFMA
-    );
+    /// AVX512_IFMA
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_avx512_ifma(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::AVX512_IFMA)
+    }
 
-    check_flag!(
-        doc = "AVX512PF",
-        has_avx512pf,
-        ebx,
-        ExtendedFeaturesEbx::AVX512PF
-    );
-    check_flag!(
-        doc = "AVX512ER",
-        has_avx512er,
-        ebx,
-        ExtendedFeaturesEbx::AVX512ER
-    );
+    /// AVX512PF
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_avx512pf(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::AVX512PF)
+    }
 
-    check_flag!(
-        doc = "AVX512CD",
-        has_avx512cd,
-        ebx,
-        ExtendedFeaturesEbx::AVX512CD
-    );
+    /// AVX512ER
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_avx512er(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::AVX512ER)
+    }
 
-    check_flag!(
-        doc = "AVX512BW",
-        has_avx512bw,
-        ebx,
-        ExtendedFeaturesEbx::AVX512BW
-    );
+    /// AVX512CD
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_avx512cd(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::AVX512CD)
+    }
 
-    check_flag!(
-        doc = "AVX512VL",
-        has_avx512vl,
-        ebx,
-        ExtendedFeaturesEbx::AVX512VL
-    );
+    /// AVX512BW
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_avx512bw(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::AVX512BW)
+    }
 
-    check_flag!(doc = "CLWB", has_clwb, ebx, ExtendedFeaturesEbx::CLWB);
+    /// AVX512VL
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_avx512vl(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::AVX512VL)
+    }
 
-    check_flag!(
-        doc = "Has PREFETCHWT1 (Intel® Xeon Phi™ only).",
-        has_prefetchwt1,
-        ecx,
-        ExtendedFeaturesEcx::PREFETCHWT1
-    );
+    /// CLWB
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_clwb(&self) -> bool {
+        self.ebx.contains(ExtendedFeaturesEbx::CLWB)
+    }
 
-    check_flag!(
-        doc = "Supports user-mode instruction prevention if 1.",
-        has_umip,
-        ecx,
-        ExtendedFeaturesEcx::UMIP
-    );
+    /// Has PREFETCHWT1 (Intel® Xeon Phi™ only).
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_prefetchwt1(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::PREFETCHWT1)
+    }
 
-    check_flag!(
-        doc = "Supports protection keys for user-mode pages.",
-        has_pku,
-        ecx,
-        ExtendedFeaturesEcx::PKU
-    );
+    /// Supports user-mode instruction prevention if 1.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_umip(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::UMIP)
+    }
 
-    check_flag!(
-        doc = "OS has set CR4.PKE to enable protection keys (and the RDPKRU/WRPKRU instructions.",
-        has_ospke,
-        ecx,
-        ExtendedFeaturesEcx::OSPKE
-    );
+    /// Supports protection keys for user-mode pages.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_pku(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::PKU)
+    }
 
-    check_flag!(
-        doc = "RDPID and IA32_TSC_AUX are available.",
-        has_rdpid,
-        ecx,
-        ExtendedFeaturesEcx::RDPID
-    );
+    /// OS has set CR4.PKE to enable protection keys (and the RDPKRU/WRPKRU
+    /// instructions.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_ospke(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::OSPKE)
+    }
 
-    check_flag!(
-        doc = "Supports SGX Launch Configuration.",
-        has_sgx_lc,
-        ecx,
-        ExtendedFeaturesEcx::SGX_LC
-    );
+    /// RDPID and IA32_TSC_AUX are available.
+    ///
+    /// # Bug
+    /// The Intel manual lists RDPID as bit 22 in the ECX register, but AMD
+    /// lists it as bit 22 in the ebx register. We assumed that the AMD manual
+    /// was wrong and query ecx, let's see what happens.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_rdpid(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::RDPID)
+    }
+
+    /// Supports SGX Launch Configuration.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_sgx_lc(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::SGX_LC)
+    }
 
     /// The value of MAWAU used by the BNDLDX and BNDSTX instructions in 64-bit mode.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
     pub fn mawau_value(&self) -> u8 {
         get_bits(self.ecx.bits(), 17, 21) as u8
     }
@@ -3383,7 +3473,10 @@ bitflags! {
     }
 }
 
-#[derive(Default)]
+/// Direct cache access info (LEAF=0x09).
+///
+/// # Platforms
+/// ❌ AMD (reserved) ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DirectCacheAccessInfo {
     eax: u32,
@@ -3404,7 +3497,10 @@ impl Debug for DirectCacheAccessInfo {
     }
 }
 
-#[derive(Default)]
+/// Info about performance monitoring -- how many counters etc. (LEAF=0x0A)
+///
+/// # Platforms
+/// ❌ AMD ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct PerformanceMonitoringInfo {
     eax: u32,
@@ -3538,9 +3634,15 @@ bitflags! {
     }
 }
 
-/// Iterates over the system topology in order to retrieve more
-/// system information at each level of the topology.
-#[derive(Default, Clone)]
+/// Information about topology (LEAF=0x0B).
+///
+/// Iterates over the system topology in order to retrieve more system
+/// information at each level of the topology: how many cores and what kind of
+/// cores
+///
+/// # Platforms
+/// ✅ AMD ✅ Intel
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedTopologyIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -3548,9 +3650,10 @@ pub struct ExtendedTopologyIter {
     level: u32,
 }
 
-/// Gives detailed information about the current level in the topology
-/// (how many cores, what type etc.).
-#[derive(Default)]
+/// Gives information about the current level in the topology.
+///
+/// How many cores, what type etc.
+#[derive(PartialEq, Eq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedTopologyLevel {
     eax: u32,
@@ -3700,7 +3803,10 @@ bitflags! {
     }
 }
 
-#[derive(Default)]
+/// Information for saving/restoring extended register state (LEAF=0x0D).
+///
+/// # Platforms
+/// ✅ AMD ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedStateInfo {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -3866,7 +3972,8 @@ impl Debug for ExtendedStateInfo {
     }
 }
 
-#[derive(Default, Clone)]
+/// Yields [ExtendedState] structs.
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedStateIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -3876,17 +3983,12 @@ pub struct ExtendedStateIter {
     supported_xss: u32,
 }
 
-/// When CPUID executes with EAX set to 0DH and ECX = n (n > 1,
-/// and is a valid sub-leaf index), the processor returns information
-/// about the size and offset of each processor extended state save area
-/// within the XSAVE/XRSTOR area. Software can use the forward-extendable
-/// technique depicted below to query the valid sub-leaves and obtain size
-/// and offset information for each processor extended state save area:///
+/// When CPUID executes with EAX set to 0DH and ECX = n (n > 1, and is a valid
+/// sub-leaf index), the processor returns information about the size and offset
+/// of each processor extended state save area within the XSAVE/XRSTOR area.
 ///
-/// For i = 2 to 62 // sub-leaf 1 is reserved
-///   IF (CPUID.(EAX=0DH, ECX=0):VECTOR\[i\] = 1 ) // VECTOR is the 64-bit value of EDX:EAX
-///     Execute CPUID.(EAX=0DH, ECX = i) to examine size and offset for sub-leaf i;
-/// FI;
+/// The iterator goes over the valid sub-leaves and obtain size and offset
+/// information for each processor extended state save area:
 impl Iterator for ExtendedStateIter {
     type Item = ExtendedState;
 
@@ -3921,7 +4023,7 @@ impl Debug for ExtendedStateIter {
     }
 }
 
-#[derive(Default)]
+/// ExtendedState subleaf structure for things that need to be restored.
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedState {
     pub subleaf: u32,
@@ -3976,7 +4078,11 @@ impl Debug for ExtendedState {
     }
 }
 
-#[derive(Default)]
+/// Intel Resource Director Technology RDT (LEAF=0x0F).
+///
+/// Monitoring Enumeration Sub-leaf (EAX = 0FH, ECX = 0 and ECX = 1)
+/// # Platforms
+/// ❌ AMD ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct RdtMonitoringInfo {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -3985,7 +4091,6 @@ pub struct RdtMonitoringInfo {
     edx: u32,
 }
 
-/// Intel Resource Director Technology (Intel RDT) Monitoring Enumeration Sub-leaf (EAX = 0FH, ECX = 0 and ECX = 1)
 impl RdtMonitoringInfo {
     /// Maximum range (zero-based) of RMID within this physical processor of all types.
     pub fn rmid_range(&self) -> u32 {
@@ -4023,7 +4128,7 @@ impl Debug for RdtMonitoringInfo {
     }
 }
 
-#[derive(Default)]
+/// Information about L3 cache monitoring.
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L3MonitoringInfo {
     ebx: u32,
@@ -4073,7 +4178,10 @@ impl Debug for L3MonitoringInfo {
     }
 }
 
-#[derive(Default)]
+/// Quality of service enforcement information (LEAF=0x10).
+///
+/// # Platforms
+/// ❌ AMD ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct RdtAllocationInfo {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -4150,7 +4258,7 @@ impl Debug for RdtAllocationInfo {
     }
 }
 
-/// L3 Cache Allocation Technology Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 1).
+/// L3 Cache Allocation Technology Enumeration Sub-leaf (LEAF=0x10, SUBLEAF=1).
 #[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L3CatInfo {
@@ -4194,7 +4302,7 @@ impl Debug for L3CatInfo {
     }
 }
 
-/// L2 Cache Allocation Technology Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 2).
+/// L2 Cache Allocation Technology Enumeration Sub-leaf (LEAF=0x10, SUBLEAF=2).
 #[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L2CatInfo {
@@ -4230,7 +4338,7 @@ impl Debug for L2CatInfo {
     }
 }
 
-/// Memory Bandwidth Allocation Enumeration Sub-leaf (EAX = 10H, ECX = ResID = 3).
+/// Memory Bandwidth Allocation Enumeration Sub-leaf (LEAF=0x10, SUBLEAF=3).
 #[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct MemBwAllocationInfo {
@@ -4271,8 +4379,12 @@ impl Debug for MemBwAllocationInfo {
     }
 }
 
-/// Intel SGX Capability Enumeration Leaf, sub-leaf 0 (EAX = 12H, ECX = 0 and ECX = 1)
-#[derive(Default)]
+/// Intel SGX Capability Enumeration Leaf (LEAF=0x12).
+///
+/// Two sub-leafs: (EAX = 12H, ECX = 0 and ECX = 1)
+///
+/// # Platforms
+/// ❌ AMD ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SgxInfo {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -4396,7 +4508,9 @@ impl Debug for SgxSectionIter {
     }
 }
 
-/// Intel SGX EPC Enumeration Leaf, sub-leaves (EAX = 12H, ECX = 2 or higher)
+/// Intel SGX EPC Enumeration Leaf
+///
+/// Sub-leaves 2 or higher.
 #[derive(Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum SgxSectionInfo {
@@ -4436,7 +4550,10 @@ impl EpcSection {
     }
 }
 
-#[derive(Default)]
+/// Intel Processor Trace Information (LEAF=0x14).
+///
+/// # Platforms
+/// ❌ AMD ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorTraceInfo {
     _eax: u32,
@@ -4573,8 +4690,10 @@ impl Debug for ProcessorTraceInfo {
     }
 }
 
-/// Time Stamp Counter and Nominal Core Crystal Clock Information Leaf.
-#[derive(Default)]
+/// Time Stamp Counter/Core Crystal Clock Information (LEAF=0x15).
+///
+/// # Platforms
+/// ❌ AMD ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct TscInfo {
     eax: u32,
@@ -4625,8 +4744,10 @@ impl TscInfo {
     }
 }
 
-/// Processor Frequency Information
-#[derive(Default)]
+/// Processor Frequency Information (LEAF=0x16).
+///
+/// # Platforms
+/// ❌ AMD ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorFrequencyInfo {
     eax: u32,
@@ -4661,8 +4782,11 @@ impl fmt::Debug for ProcessorFrequencyInfo {
     }
 }
 
-/// Deterministic Address Translation Structure Iterator
-#[derive(Default, Clone)]
+/// Deterministic Address Translation Structure Iterator (LEAF=0x18).
+///
+/// # Platforms
+/// ❌ AMD ✅ Intel
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DatIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -4674,7 +4798,7 @@ pub struct DatIter {
 impl Iterator for DatIter {
     type Item = DatInfo;
 
-    /// Iterate over each sub-leaf with an  address translation structure.
+    /// Iterate over each sub-leaf with an address translation structure.
     fn next(&mut self) -> Option<DatInfo> {
         loop {
             // Sub-leaf index n is invalid if n exceeds the value that sub-leaf 0 returns in EAX
@@ -4834,7 +4958,10 @@ impl Default for DatType {
     }
 }
 
-#[derive(Default)]
+/// SoC vendor specific information (LEAF=0x17).
+///
+/// # Platforms
+/// ❌ AMD ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorInfo {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -4896,7 +5023,8 @@ impl fmt::Debug for SoCVendorInfo {
     }
 }
 
-#[derive(Debug, Default)]
+/// Iterator for SoC vendor attributes.
+#[derive(Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SoCVendorAttributesIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -4918,7 +5046,8 @@ impl Iterator for SoCVendorAttributesIter {
     }
 }
 
-#[derive(Debug, Default)]
+/// A vendor brand string as queried from the cpuid leaf.
+#[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[repr(C)]
 pub struct SoCVendorBrand {
@@ -4926,7 +5055,8 @@ pub struct SoCVendorBrand {
 }
 
 impl SoCVendorBrand {
-    pub fn as_string(&self) -> &str {
+    /// Return the SocVendorBrand as a string.
+    pub fn as_str(&self) -> &str {
         let brand_string_start = self as *const SoCVendorBrand as *const u8;
         let slice = unsafe {
             // Safety: SoCVendorBrand is laid out with repr(C).
@@ -4934,15 +5064,23 @@ impl SoCVendorBrand {
         };
         str::from_utf8(slice).unwrap_or("InvalidSoCVendorString")
     }
+
+    #[deprecated(
+        since = "10.0.0",
+        note = "Use idiomatic function name `as_str` instead"
+    )]
+    pub fn as_string(&self) -> &str {
+        self.as_str()
+    }
 }
 
 impl fmt::Display for SoCVendorBrand {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_string())
+        write!(f, "{}", self.as_str())
     }
 }
 
-/// Information about Hypervisor
+/// Information about Hypervisor (LEAF=0x4000_0001)
 ///
 /// More information about this semi-official leaf can be found here
 /// <https://lwn.net/Articles/301888/>
