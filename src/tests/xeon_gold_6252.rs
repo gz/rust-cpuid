@@ -810,47 +810,61 @@ fn extended_features() {
     assert_eq!(e.mawau_value(), 0x0);
 }
 
-/*
-To be ported to this CPU:
-
 #[test]
 fn direct_cache_access() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
-    assert!(
-        cpuid.get_direct_cache_access_info().is_none(),
-        "Not supported by AMD"
-    );
+    let dca = cpuid.get_direct_cache_access_info().expect("Leaf exists");
+    assert_eq!(dca.get_dca_cap_value(), 0x0);
 }
 
 #[test]
 fn perfmon_info() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
-    assert!(
-        cpuid.get_performance_monitoring_info().is_none(),
-        "Not supported by AMD"
-    );
+    let pm = cpuid
+        .get_performance_monitoring_info()
+        .expect("Leaf exists");
+
+    assert_eq!(pm.version_id(), 0x4);
+
+    assert_eq!(pm.number_of_counters(), 0x4);
+    assert_eq!(pm.counter_bit_width(), 0x30);
+    assert_eq!(pm.ebx_length(), 0x7);
+
+    assert!(!pm.is_core_cyc_ev_unavailable());
+    assert!(!pm.is_inst_ret_ev_unavailable());
+    assert!(!pm.is_ref_cycle_ev_unavailable());
+    assert!(!pm.is_cache_ref_ev_unavailable());
+    assert!(!pm.is_ll_cache_miss_ev_unavailable());
+    assert!(!pm.is_branch_inst_ret_ev_unavailable());
+    assert!(!pm.is_branch_midpred_ev_unavailable());
+
+    assert_eq!(pm.fixed_function_counters(), 0x3);
+    assert_eq!(pm.fixed_function_counters_bit_width(), 0x30);
+    assert!(!pm.has_any_thread_deprecation());
 }
 
 #[test]
 fn extended_topology_info() {
+    use crate::TopologyType;
+
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
     let mut e = cpuid
         .get_extended_topology_info()
         .expect("Leaf is supported");
 
     let t = e.next().expect("Have level 0");
-    assert_eq!(t.processors(), 2);
+    assert_eq!(t.x2apic_id(), 199); // different from doc, unpinned execution
     assert_eq!(t.level_number(), 0);
     assert_eq!(t.level_type(), TopologyType::SMT);
-    assert_eq!(t.x2apic_id(), 0x0);
     assert_eq!(t.shift_right_for_next_apic_id(), 0x1);
+    assert_eq!(t.processors(), 2);
 
     let t = e.next().expect("Have level 1");
-    assert_eq!(t.processors(), 12);
     assert_eq!(t.level_number(), 1);
     assert_eq!(t.level_type(), TopologyType::Core);
-    assert_eq!(t.x2apic_id(), 0x0);
-    assert_eq!(t.shift_right_for_next_apic_id(), 0x7);
+    assert_eq!(t.shift_right_for_next_apic_id(), 0x6);
+    assert_eq!(t.processors(), 48);
+    assert_eq!(t.x2apic_id(), 199); // different from doc, unpinned execution
 }
 
 #[test]
@@ -861,21 +875,27 @@ fn extended_state_info() {
     assert!(e.xcr0_supports_legacy_x87());
     assert!(e.xcr0_supports_sse_128());
     assert!(e.xcr0_supports_avx_256());
-    assert!(!e.xcr0_supports_mpx_bndregs());
-    assert!(!e.xcr0_supports_mpx_bndcsr());
-    assert!(!e.xcr0_supports_avx512_opmask());
-    assert!(!e.xcr0_supports_avx512_zmm_hi256());
-    assert!(!e.xcr0_supports_avx512_zmm_hi16());
+    assert!(e.xcr0_supports_mpx_bndregs());
+    assert!(e.xcr0_supports_mpx_bndcsr());
+    assert!(e.xcr0_supports_avx512_opmask());
+    assert!(e.xcr0_supports_avx512_zmm_hi256());
+    assert!(e.xcr0_supports_avx512_zmm_hi16());
+    // cpuid binary says this isn't supported, I think it's a bug there and it's
+    // supposed to read from ecx1 like we do:
+    assert!(e.ia32_xss_supports_pt());
     assert!(e.xcr0_supports_pkru());
-    assert!(!e.ia32_xss_supports_pt());
+    // ...
     assert!(!e.ia32_xss_supports_hdc());
-    assert_eq!(e.xsave_area_size_enabled_features(), 0x00000340);
-    assert_eq!(e.xsave_area_size_supported_features(), 0x00000380);
+
+    assert_eq!(e.xsave_area_size_enabled_features(), 2696);
+    assert_eq!(e.xsave_area_size_supported_features(), 2696);
     assert!(e.has_xsaveopt());
     assert!(e.has_xsavec());
     assert!(e.has_xgetbv());
     assert!(e.has_xsaves_xrstors());
-    assert_eq!(e.xsave_size(), 0x00000340);
+    // ...
+    assert_eq!(e.xsave_size(), 2568);
+    // ...
 
     let mut e = e.iter();
     let ee = e.next().expect("Has level 2");
@@ -884,9 +904,45 @@ fn extended_state_info() {
     assert!(ee.is_in_xcr0());
     assert!(!ee.is_compacted_format());
 
-    let ee = e.next().expect("Has level 9");
+    let ee = e.next().expect("Has level 3");
     assert_eq!(ee.size(), 64);
-    assert_eq!(ee.offset(), 832);
+    assert_eq!(ee.offset(), 960);
+    assert!(ee.is_in_xcr0());
+    assert!(!ee.is_compacted_format());
+
+    let ee = e.next().expect("Has level 4");
+    assert_eq!(ee.size(), 64);
+    assert_eq!(ee.offset(), 1024);
+    assert!(ee.is_in_xcr0());
+    assert!(!ee.is_compacted_format());
+
+    let ee = e.next().expect("Has level 5");
+    assert_eq!(ee.size(), 64);
+    assert_eq!(ee.offset(), 1088);
+    assert!(ee.is_in_xcr0());
+    assert!(!ee.is_compacted_format());
+
+    let ee = e.next().expect("Has level 6");
+    assert_eq!(ee.size(), 512);
+    assert_eq!(ee.offset(), 1152);
+    assert!(ee.is_in_xcr0());
+    assert!(!ee.is_compacted_format());
+
+    let ee = e.next().expect("Has level 7");
+    assert_eq!(ee.size(), 1024);
+    assert_eq!(ee.offset(), 1664);
+    assert!(ee.is_in_xcr0());
+    assert!(!ee.is_compacted_format());
+
+    let ee = e.next().expect("Has level 8");
+    assert_eq!(ee.size(), 128);
+    assert_eq!(ee.offset(), 0);
+    assert!(!ee.is_in_xcr0());
+    assert!(!ee.is_compacted_format());
+
+    let ee = e.next().expect("Has level 9");
+    assert_eq!(ee.size(), 8);
+    assert_eq!(ee.offset(), 2688);
     assert!(ee.is_in_xcr0());
     assert!(!ee.is_compacted_format());
 }
@@ -896,12 +952,12 @@ fn rdt_monitoring_info() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
     let e = cpuid.get_rdt_monitoring_info().expect("Leaf is supported");
 
+    assert_eq!(e.rmid_range(), 207);
     assert!(e.has_l3_monitoring());
-    assert_eq!(e.rmid_range(), 255);
 
     let l3m = e.l3_monitoring().expect("Leaf is available");
-    assert_eq!(l3m.conversion_factor(), 64);
-    assert_eq!(l3m.maximum_rmid_range(), 255);
+    assert_eq!(l3m.conversion_factor(), 106496);
+    assert_eq!(l3m.maximum_rmid_range(), 207);
     assert!(l3m.has_occupancy_monitoring());
     assert!(l3m.has_total_bandwidth_monitoring());
     assert!(l3m.has_local_bandwidth_monitoring());
@@ -914,16 +970,25 @@ fn rdt_allocation_info() {
 
     assert!(e.has_l3_cat());
     assert!(!e.has_l2_cat());
-    assert!(!e.has_memory_bandwidth_allocation());
+    assert!(e.has_memory_bandwidth_allocation());
+
     assert!(e.l2_cat().is_none());
-    assert!(e.memory_bandwidth_allocation().is_none());
 
     let l3c = e.l3_cat().expect("Leaf is available");
-    assert_eq!(l3c.capacity_mask_length(), 0x10);
-    assert_eq!(l3c.isolation_bitmap(), 0x0);
+    assert_eq!(l3c.capacity_mask_length(), 0xb);
+    assert_eq!(l3c.isolation_bitmap(), 0x00000600);
     assert_eq!(l3c.highest_cos(), 15);
     assert!(l3c.has_code_data_prioritization());
+    // infrequent updates of COS missing
+
+    let mba = e.memory_bandwidth_allocation().expect("Leaf is available");
+    assert_eq!(mba.max_hba_throttling(), 90);
+    assert!(mba.has_linear_response_delay());
+    assert_eq!(mba.highest_cos(), 0x7);
 }
+
+/*
+To be ported to this CPU:
 
 #[test]
 fn extended_processor_and_feature_identifiers() {

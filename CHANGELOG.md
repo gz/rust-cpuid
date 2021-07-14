@@ -60,6 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved documentation in some places by adding leaf numbers.
 - Updated AMD leaf 0x8000_001f (Encrypted Memory) to latest manual.
 - `ProcessorBrandString.as_str()` now trims the returned string.
+- Fix `RdtAllocationInfo.memory_bandwidth_allocation()` which was using l2cat
+  availability to determine if it exists.
 
 ### Added
 

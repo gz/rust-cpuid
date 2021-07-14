@@ -4206,7 +4206,7 @@ impl RdtAllocationInfo {
 
     /// Memory Bandwidth Allocation Information.
     pub fn memory_bandwidth_allocation(&self) -> Option<MemBwAllocationInfo> {
-        if self.has_l2_cat() {
+        if self.has_memory_bandwidth_allocation() {
             let res = self.read.cpuid2(EAX_RDT_ALLOCATION, 3);
             Some(MemBwAllocationInfo {
                 eax: res.eax,
