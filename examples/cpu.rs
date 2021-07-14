@@ -9,7 +9,7 @@ fn main() {
         cpuid
             .get_vendor_info()
             .as_ref()
-            .map_or_else(|| "unknown", |vf| vf.as_string(),)
+            .map_or_else(|| "unknown", |vf| vf.as_str(),)
     );
 
     println!(

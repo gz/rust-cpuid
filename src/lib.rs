@@ -200,7 +200,7 @@ impl Vendor {
             edx: res.edx,
         };
 
-        match vi.as_string() {
+        match vi.as_str() {
             "GenuineIntel" => Vendor::Intel,
             "AuthenticAMD" => Vendor::Amd,
             _ => Vendor::Unknown(res.ebx, res.ecx, res.edx),
@@ -301,11 +301,15 @@ const EAX_PROCESSOR_CAPACITY_INFO: u32 = 0x8000_0008;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 
 impl CpuId {
-    /// Return new CPUID struct.
+    /// Return new CpuId struct.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Return new CpuId struct with custom reader function.
+    ///
+    /// This is useful for example when testing code or if we want to interpose
+    /// on the CPUID calls this library makes.
     pub fn with_cpuid_fn(cpuid_fn: fn(u32, u32) -> CpuIdResult) -> Self {
         let read = CpuIdReader::new(cpuid_fn);
         let vendor_leaf = read.cpuid1(EAX_VENDOR_INFO);
@@ -333,9 +337,10 @@ impl CpuId {
         }
     }
 
-    /// Return information about vendor.
-    /// This is typically a ASCII readable string such as
-    /// GenuineIntel for Intel CPUs or AuthenticAMD for AMD CPUs (LEAF=0x00).
+    /// Return information about the vendor (LEAF=0x00).
+    ///
+    /// This leaf will contain a ASCII readable string such as "GenuineIntel"
+    /// for Intel CPUs or "AuthenticAMD" for AMD CPUs.
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
@@ -831,11 +836,6 @@ impl CpuId {
     }
 }
 
-/// Vendor Info String, that can be for example "AuthenticAMD" or "GenuineIntel".
-///
-/// ## Technical Background
-/// The vendor info is a 12-byte (96 bit) long string stored in `ebx`, `edx` and `ecx` by
-/// the corresponding `cpuid` instruction.
 impl Debug for CpuId {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("CpuId")
@@ -885,7 +885,18 @@ impl Debug for CpuId {
     }
 }
 
-#[derive(Default)]
+/// Vendor Info String (LEAF=0x0)
+///
+/// A string that can be for example "AuthenticAMD" or "GenuineIntel".
+///
+/// # Technical Background
+///
+/// The vendor info is a 12-byte (96 bit) long string stored in `ebx`, `edx` and
+/// `ecx` by the corresponding `cpuid` instruction.
+///
+/// # Platforms
+/// ✅ AMD ✅ Intel
+#[derive(PartialEq, Eq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[repr(C)]
 pub struct VendorInfo {
@@ -896,7 +907,7 @@ pub struct VendorInfo {
 
 impl VendorInfo {
     /// Return vendor identification as human readable string.
-    pub fn as_string(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         let brand_string_start = self as *const VendorInfo as *const u8;
         let slice = unsafe {
             // Safety: VendorInfo is laid out with repr(C) and exactly
@@ -906,13 +917,27 @@ impl VendorInfo {
 
         str::from_utf8(slice).unwrap_or("InvalidVendorString")
     }
+
+    #[deprecated(
+        since = "10.0.0",
+        note = "Use idiomatic function name `as_str` instead"
+    )]
+    pub fn as_string(&self) -> &str {
+        self.as_str()
+    }
 }
 
 impl Debug for VendorInfo {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("VendorInfo")
-            .field("brand_string", &self.as_string())
+            .field("brand_string", &self.as_str())
             .finish()
+    }
+}
+
+impl fmt::Display for VendorInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -1592,12 +1617,6 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 108] = [
         typ: CacheInfoType::General,
     },
 ];
-
-impl fmt::Display for VendorInfo {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_string())
-    }
-}
 
 #[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]

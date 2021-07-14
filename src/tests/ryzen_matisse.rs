@@ -685,7 +685,7 @@ fn cpuid_reader(eax: u32, ecx: u32) -> CpuIdResult {
 fn vendor_check() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
     let v = cpuid.get_vendor_info().expect("Need to find vendor info");
-    assert_eq!(v.as_string(), "AuthenticAMD");
+    assert_eq!(v.as_str(), "AuthenticAMD");
 }
 
 /// Check feature info gives correct values for CPU

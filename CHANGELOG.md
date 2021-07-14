@@ -67,6 +67,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added AMD support for leaf 0x8000_0007
 - Added AMD support for leaf 0x8000_0008
 
+### Deprecated
+
+- VendorInfo.as_string() is deprecated in favor of VendorInfo.as_str()
+
 ## [9.1.1] - 2021-07-06
 
 ### Changed

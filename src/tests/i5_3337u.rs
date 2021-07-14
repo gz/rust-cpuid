@@ -7,7 +7,7 @@ fn genuine_intel() {
         edx: 1231384169,
         ecx: 1818588270,
     };
-    assert!(vf.as_string() == "GenuineIntel");
+    assert!(vf.as_str() == "GenuineIntel");
 }
 
 #[test]
