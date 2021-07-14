@@ -231,7 +231,7 @@ impl Default for CpuId {
 }
 
 /// Low-level data-structure to store result of cpuid instruction.
-#[derive(Copy, Clone, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[repr(C)]
 pub struct CpuIdResult {
@@ -1034,14 +1034,8 @@ pub enum CacheInfoType {
     Prefetch,
 }
 
-impl Default for CacheInfoType {
-    fn default() -> CacheInfoType {
-        CacheInfoType::General
-    }
-}
-
 /// Describes any kind of cache (TLB, Data and Instruction caches plus prefetchers).
-#[derive(Copy, Clone, Default)]
+#[derive(Copy, Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheInfo {
     /// Number as retrieved from cpuid
@@ -2285,7 +2279,6 @@ impl Debug for FeatureInfo {
 }
 
 bitflags! {
-    #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct FeatureInfoFlags: u64 {
 
@@ -2470,7 +2463,7 @@ impl Debug for CacheParametersIter {
 ///
 /// # Platforms
 /// ❌ AMD ✅ Intel
-#[derive(Copy, Clone, Default)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParameter {
     eax: u32,
@@ -2493,12 +2486,6 @@ pub enum CacheType {
     Unified,
     /// 4-31 = Reserved
     Reserved,
-}
-
-impl Default for CacheType {
-    fn default() -> CacheType {
-        CacheType::Null
-    }
 }
 
 impl CacheParameter {
@@ -2605,7 +2592,7 @@ impl Debug for CacheParameter {
 ///
 /// # Platforms
 /// 🟡 AMD ✅ Intel
-#[derive(Default)]
+#[derive(Eq, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct MonitorMwaitInfo {
     eax: u32,
@@ -2973,7 +2960,6 @@ impl Debug for ThermalPowerInfo {
 }
 
 bitflags! {
-    #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ThermalPowerFeaturesEax: u32 {
         /// Digital temperature sensor is supported if set. (Bit 00)
@@ -3023,7 +3009,6 @@ bitflags! {
 }
 
 bitflags! {
-    #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ThermalPowerFeaturesEcx: u32 {
         const HW_COORD_FEEDBACK = 1 << 0;
@@ -3371,7 +3356,6 @@ impl Debug for ExtendedFeatures {
 }
 
 bitflags! {
-    #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFeaturesEbx: u32 {
         /// FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1. (Bit 00)
@@ -3441,7 +3425,6 @@ bitflags! {
 }
 
 bitflags! {
-    #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFeaturesEcx: u32 {
         /// Bit 0: Prefetch WT1. (Intel® Xeon Phi™ only).
@@ -3614,7 +3597,6 @@ impl Debug for PerformanceMonitoringInfo {
 }
 
 bitflags! {
-    #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct PerformanceMonitoringFeaturesEbx: u32 {
         /// Core cycle event not available if 1. (Bit 0)
@@ -3718,12 +3700,6 @@ pub enum TopologyType {
     Core = 2,
 }
 
-impl Default for TopologyType {
-    fn default() -> TopologyType {
-        TopologyType::Invalid
-    }
-}
-
 impl Iterator for ExtendedTopologyIter {
     type Item = ExtendedTopologyLevel;
 
@@ -3756,7 +3732,6 @@ impl Debug for ExtendedTopologyIter {
 }
 
 bitflags! {
-    #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedStateInfoXCR0Flags: u32 {
         /// legacy x87 (Bit 00).
@@ -3792,7 +3767,6 @@ bitflags! {
 }
 
 bitflags! {
-    #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedStateInfoXSSFlags: u32 {
         /// IA32_XSS PT (Trace Packet) State (Bit 08).
@@ -4259,7 +4233,6 @@ impl Debug for RdtAllocationInfo {
 }
 
 /// L3 Cache Allocation Technology Enumeration Sub-leaf (LEAF=0x10, SUBLEAF=1).
-#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L3CatInfo {
     eax: u32,
@@ -4303,7 +4276,7 @@ impl Debug for L3CatInfo {
 }
 
 /// L2 Cache Allocation Technology Enumeration Sub-leaf (LEAF=0x10, SUBLEAF=2).
-#[derive(Default)]
+#[derive(Eq, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L2CatInfo {
     eax: u32,
@@ -4339,7 +4312,7 @@ impl Debug for L2CatInfo {
 }
 
 /// Memory Bandwidth Allocation Enumeration Sub-leaf (LEAF=0x10, SUBLEAF=3).
-#[derive(Default)]
+#[derive(Eq, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct MemBwAllocationInfo {
     eax: u32,
@@ -4472,7 +4445,7 @@ impl Debug for SgxInfo {
 }
 
 /// Iterator over the SGX sub-leafs (ECX >= 2).
-#[derive(Default, Clone)]
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SgxSectionIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -4518,14 +4491,8 @@ pub enum SgxSectionInfo {
     Epc(EpcSection),
 }
 
-impl Default for SgxSectionInfo {
-    fn default() -> SgxSectionInfo {
-        SgxSectionInfo::Epc(Default::default())
-    }
-}
-
 /// EBX:EAX and EDX:ECX provide information on the Enclave Page Cache (EPC) section
-#[derive(Debug, Default)]
+#[derive(Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct EpcSection {
     eax: u32,
@@ -4840,7 +4807,6 @@ impl Debug for DatIter {
 }
 
 /// Deterministic Address Translation Structure
-#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DatInfo {
     _eax: u32,
@@ -4936,7 +4902,7 @@ impl Debug for DatInfo {
 }
 
 /// Deterministic Address Translation cache type (EDX bits 04 -- 00)
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum DatType {
     /// Null (indicates this sub-leaf is not valid).
@@ -4950,12 +4916,6 @@ pub enum DatType {
     /// for details of a particular product.
     UnifiedTLB = 0b00011,
     Unknown,
-}
-
-impl Default for DatType {
-    fn default() -> DatType {
-        DatType::Null
-    }
 }
 
 /// SoC vendor specific information (LEAF=0x17).
@@ -5084,7 +5044,6 @@ impl fmt::Display for SoCVendorBrand {
 ///
 /// More information about this semi-official leaf can be found here
 /// <https://lwn.net/Articles/301888/>
-#[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct HypervisorInfo {
     #[cfg_attr(feature = "serialize", serde(skip))]

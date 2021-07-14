@@ -51,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   | -----------     | -----------     |
   | `has_rdseet()`  | `has_rdseed()`  |
 
+- Removed `Default` traits for most structs. `default()` should not be used anymore.
+
 ### Changes
 
 - Updated Debug trait for SGX iterators.

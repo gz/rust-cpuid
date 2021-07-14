@@ -385,7 +385,6 @@ impl Debug for ExtendedProcessorFeatureIdentifiers {
 }
 
 bitflags! {
-    #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFunctionInfoEcx: u32 {
         const LAHF_SAHF = 1 << 0;
@@ -417,7 +416,6 @@ bitflags! {
 }
 
 bitflags! {
-    #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFunctionInfoEdx: u32 {
         const SYSCALL_SYSRET = 1 << 11;
