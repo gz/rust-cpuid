@@ -987,6 +987,12 @@ fn rdt_allocation_info() {
     assert_eq!(mba.highest_cos(), 0x7);
 }
 
+#[test]
+fn sgx_test() {
+    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
+    assert!(cpuid.get_sgx_info().is_none());
+}
+
 /*
 To be ported to this CPU:
 
