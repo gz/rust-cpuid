@@ -12,7 +12,6 @@ documentation = "https://docs.rs/raw-cpuid/"
 readme = "README.md"
 keywords = ["cpuid", "x86", "amd64", "os", "libcore"]
 license = "MIT"
-exclude = ["/ci"]
 
 [[bin]]
 name = "cpuid"
