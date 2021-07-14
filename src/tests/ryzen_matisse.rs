@@ -1131,6 +1131,39 @@ fn apm() {
 }
 
 #[test]
+fn processor_capcity_features() {
+    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
+    let e = cpuid
+        .get_processor_capacity_feature_info()
+        .expect("Leaf is supported");
+
+    assert_eq!(e.physical_address_bits(), 48);
+    assert_eq!(e.linear_address_bits(), 48);
+    assert_eq!(e.guest_physical_address_bits(), 0);
+
+    // These are hard to test if they are correct. I think the cpuid CLI tool
+    // displays bogus values here (see above) -- or I can't tell how they
+    // correspond to the AMD manual...
+    assert!(e.has_cl_zero());
+    assert!(e.has_inst_ret_cntr_msr());
+    assert!(e.has_restore_fp_error_ptrs());
+    assert!(!e.has_invlpgb());
+    assert!(e.has_rdpru());
+    assert!(e.has_mcommit());
+    assert!(e.has_wbnoinvd());
+    assert!(e.has_int_wbinvd());
+    assert!(!e.has_unsupported_efer_lmsle());
+    assert!(!e.has_invlpgb_nested());
+
+    assert_eq!(e.invlpgb_max_pages(), 0x0);
+    assert_eq!(e.maximum_logical_processors(), 128);
+    assert_eq!(e.num_phys_threads(), 12);
+    assert_eq!(e.apic_id_size(), 7);
+    assert_eq!(e.perf_tsc_size(), 40);
+    assert_eq!(e.max_rdpru_id(), 0x1);
+}
+
+#[test]
 fn secure_encryption() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
     let e = cpuid
