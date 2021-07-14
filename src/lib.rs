@@ -208,7 +208,9 @@ impl Vendor {
     }
 }
 
-/// Main type used to query for information about the CPU we're running on.
+/// The main type used to query information about the CPU we're running on.
+///
+/// Other structs can be accessed by going through this type.
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy)]
 pub struct CpuId {
@@ -377,8 +379,7 @@ impl CpuId {
         }
     }
 
-    /// Query basic information about caches. This will just return an index
-    /// into a static table of cache descriptions (see `CACHE_INFO_TABLE`) (LEAF=0x02).
+    /// Query basic information about caches (LEAF=0x02).
     ///
     /// # Platforms
     /// ❌ AMD ✅ Intel
@@ -413,9 +414,11 @@ impl CpuId {
         }
     }
 
-    /// Retrieve more elaborate information about caches (as opposed
-    /// to `get_cache_info`). This will tell us about associativity,
-    /// set size, line size etc. for each level of the cache hierarchy (LEAF=0x04).
+    /// Retrieve more elaborate information about caches (LEAF=0x04).
+    ///
+    /// As opposed to [get_cache_info](CpuId::get_cache_info), this will tell us
+    /// about associativity, set size, line size of each level in the cache
+    /// hierarchy.
     ///
     /// # Platforms
     /// ❌ AMD ✅ Intel
@@ -941,8 +944,14 @@ impl fmt::Display for VendorInfo {
     }
 }
 
-/// Used to iterate over cache information contained in cpuid instruction.
-#[derive(Default, Clone)]
+/// Iterates over cache information (LEAF=0x02).
+///
+/// This will just return an index into a static table of cache descriptions
+/// (see [CACHE_INFO_TABLE](crate::CACHE_INFO_TABLE)).
+///
+/// # Platforms
+/// ❌ AMD ✅ Intel
+#[derive(PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheInfoIter {
     current: u32,
@@ -1618,7 +1627,17 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 108] = [
     },
 ];
 
-#[derive(Default)]
+/// Processor Serial Number (LEAF=0x3).
+///
+/// # Deprecated
+///
+/// Processor serial number (PSN) is not supported in the Pentium 4 processor or
+/// later. On all models, use the PSN flag (returned using CPUID) to check for
+/// PSN support before accessing the feature.
+///
+/// # Platforms
+/// ❌ AMD ✅ Intel
+#[derive(PartialEq, Eq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorSerial {
     ecx: u32,
@@ -1638,6 +1657,10 @@ impl ProcessorSerial {
         self.edx
     }
 
+    /// Combination of bits 00-31 and 32-63 of 96 bit processor serial number.
+    ///
+    /// It's not clear where the remaining bits come from as they are not in eax
+    /// or ebx.
     pub fn serial(&self) -> u64 {
         (self.serial_lower() as u64) | (self.serial_middle() as u64) << 32
     }
@@ -1648,11 +1671,14 @@ impl Debug for ProcessorSerial {
         f.debug_struct("ProcessorSerial")
             .field("serial_lower", &self.serial_lower())
             .field("serial_middle", &self.serial_middle())
-            .field("serial_middle", &self.serial_middle())
             .finish()
     }
 }
 
+/// Processor and Processor Feature Identifiers (LEAF=0x01).
+///
+/// # Platforms
+/// ✅ AMD ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct FeatureInfo {
     vendor: Vendor,
@@ -2383,7 +2409,13 @@ bitflags! {
     }
 }
 
-#[derive(Default, Clone)]
+/// Iterator over caches (LEAF=0x04).
+///
+/// Yields a [CacheParameter] for each cache.
+///
+/// # Platforms
+/// ❌ AMD ✅ Intel
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParametersIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
@@ -2394,9 +2426,11 @@ pub struct CacheParametersIter {
 impl Iterator for CacheParametersIter {
     type Item = CacheParameter;
 
-    /// Iterate over all caches for this CPU.
-    /// Note: cpuid is called every-time we this function to get information
-    /// about next cache.
+    /// Iterate over all cache info subleafs for this CPU.
+    ///
+    /// # Note
+    /// cpuid is called every-time we advance the iterator to get information
+    /// about the next cache.
     fn next(&mut self) -> Option<CacheParameter> {
         let res = self.read.cpuid2(EAX_CACHE_PARAMETERS, self.current);
         let cp = CacheParameter {
@@ -2427,6 +2461,10 @@ impl Debug for CacheParametersIter {
     }
 }
 
+/// Information about an individual cache in the hierarchy.
+///
+/// # Platforms
+/// ❌ AMD ✅ Intel
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParameter {
@@ -2557,6 +2595,10 @@ impl Debug for CacheParameter {
     }
 }
 
+/// Information about how monitor/mwait works on this CPU (LEAF=0x05).
+///
+/// # Platforms
+/// 🟡 AMD ✅ Intel
 #[derive(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct MonitorMwaitInfo {
@@ -2568,61 +2610,97 @@ pub struct MonitorMwaitInfo {
 
 impl MonitorMwaitInfo {
     /// Smallest monitor-line size in bytes (default is processor's monitor granularity)
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn smallest_monitor_line(&self) -> u16 {
         get_bits(self.eax, 0, 15) as u16
     }
 
     /// Largest monitor-line size in bytes (default is processor's monitor granularity
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn largest_monitor_line(&self) -> u16 {
         get_bits(self.ebx, 0, 15) as u16
     }
 
     ///  Enumeration of Monitor-Mwait extensions (beyond EAX and EBX registers) supported
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn extensions_supported(&self) -> bool {
         get_bits(self.ecx, 0, 0) == 1
     }
 
     ///  Supports treating interrupts as break-event for MWAIT, even when interrupts disabled
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn interrupts_as_break_event(&self) -> bool {
         get_bits(self.ecx, 1, 1) == 1
     }
 
     /// Number of C0 sub C-states supported using MWAIT (Bits 03 - 00)
+    ///
+    /// # Platforms
+    /// ❌ AMD (undefined/reserved) ✅ Intel
     pub fn supported_c0_states(&self) -> u16 {
         get_bits(self.edx, 0, 3) as u16
     }
 
     /// Number of C1 sub C-states supported using MWAIT (Bits 07 - 04)
+    ///
+    /// # Platforms
+    /// ❌ AMD (undefined/reserved) ✅ Intel
     pub fn supported_c1_states(&self) -> u16 {
         get_bits(self.edx, 4, 7) as u16
     }
 
     /// Number of C2 sub C-states supported using MWAIT (Bits 11 - 08)
+    ///
+    /// # Platforms
+    /// ❌ AMD (undefined/reserved) ✅ Intel
     pub fn supported_c2_states(&self) -> u16 {
         get_bits(self.edx, 8, 11) as u16
     }
 
     /// Number of C3 sub C-states supported using MWAIT (Bits 15 - 12)
+    ///
+    /// # Platforms
+    /// ❌ AMD (undefined/reserved) ✅ Intel
     pub fn supported_c3_states(&self) -> u16 {
         get_bits(self.edx, 12, 15) as u16
     }
 
     /// Number of C4 sub C-states supported using MWAIT (Bits 19 - 16)
+    ///
+    /// # Platforms
+    /// ❌ AMD (undefined/reserved) ✅ Intel
     pub fn supported_c4_states(&self) -> u16 {
         get_bits(self.edx, 16, 19) as u16
     }
 
     /// Number of C5 sub C-states supported using MWAIT (Bits 23 - 20)
+    ///
+    /// # Platforms
+    /// ❌ AMD (undefined/reserved) ✅ Intel
     pub fn supported_c5_states(&self) -> u16 {
         get_bits(self.edx, 20, 23) as u16
     }
 
     /// Number of C6 sub C-states supported using MWAIT (Bits 27 - 24)
+    ///
+    /// # Platforms
+    /// ❌ AMD (undefined/reserved) ✅ Intel
     pub fn supported_c6_states(&self) -> u16 {
         get_bits(self.edx, 24, 27) as u16
     }
 
     /// Number of C7 sub C-states supported using MWAIT (Bits 31 - 28)
+    ///
+    /// # Platforms
+    /// ❌ AMD (undefined/reserved) ✅ Intel
     pub fn supported_c7_states(&self) -> u16 {
         get_bits(self.edx, 28, 31) as u16
     }
@@ -2650,7 +2728,10 @@ impl Debug for MonitorMwaitInfo {
     }
 }
 
-#[derive(Default)]
+/// Query information about thermal and power management features of the CPU (LEAF=0x06).
+///
+/// # Platforms
+/// 🟡 AMD ✅ Intel
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ThermalPowerInfo {
     eax: ThermalPowerFeaturesEax,
@@ -2661,159 +2742,192 @@ pub struct ThermalPowerInfo {
 
 impl ThermalPowerInfo {
     /// Number of Interrupt Thresholds in Digital Thermal Sensor
+    ///
+    /// # Platforms
+    /// ❌ AMD (undefined/reserved) ✅ Intel
     pub fn dts_irq_threshold(&self) -> u8 {
         get_bits(self.ebx, 0, 3) as u8
     }
 
-    check_flag!(
-        doc = "Digital temperature sensor is supported if set.",
-        has_dts,
-        eax,
-        ThermalPowerFeaturesEax::DTS
-    );
+    /// Digital temperature sensor is supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_dts(&self) -> bool {
+        self.eax.contains(ThermalPowerFeaturesEax::DTS)
+    }
 
-    check_flag!(
-        doc = "Intel Turbo Boost Technology Available (see description of \
-               IA32_MISC_ENABLE\\[38\\]).",
-        has_turbo_boost,
-        eax,
-        ThermalPowerFeaturesEax::TURBO_BOOST
-    );
+    /// Intel Turbo Boost Technology Available (see description of
+    /// IA32_MISC_ENABLE\[38\]).
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_turbo_boost(&self) -> bool {
+        self.eax.contains(ThermalPowerFeaturesEax::TURBO_BOOST)
+    }
 
-    check_flag!(
-        doc = "ARAT. APIC-Timer-always-running feature is supported if set.",
-        has_arat,
-        eax,
-        ThermalPowerFeaturesEax::ARAT
-    );
+    /// ARAT. APIC-Timer-always-running feature is supported if set.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_arat(&self) -> bool {
+        self.eax.contains(ThermalPowerFeaturesEax::ARAT)
+    }
 
-    check_flag!(
-        doc = "PLN. Power limit notification controls are supported if set.",
-        has_pln,
-        eax,
-        ThermalPowerFeaturesEax::PLN
-    );
+    /// PLN. Power limit notification controls are supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_pln(&self) -> bool {
+        self.eax.contains(ThermalPowerFeaturesEax::PLN)
+    }
 
-    check_flag!(
-        doc = "ECMD. Clock modulation duty cycle extension is supported if set.",
-        has_ecmd,
-        eax,
-        ThermalPowerFeaturesEax::ECMD
-    );
+    /// ECMD. Clock modulation duty cycle extension is supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_ecmd(&self) -> bool {
+        self.eax.contains(ThermalPowerFeaturesEax::ECMD)
+    }
 
-    check_flag!(
-        doc = "PTM. Package thermal management is supported if set.",
-        has_ptm,
-        eax,
-        ThermalPowerFeaturesEax::PTM
-    );
+    /// PTM. Package thermal management is supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_ptm(&self) -> bool {
+        self.eax.contains(ThermalPowerFeaturesEax::PTM)
+    }
 
-    check_flag!(
-        doc = "HWP. HWP base registers (IA32_PM_ENABLE[bit 0], IA32_HWP_CAPABILITIES, \
-               IA32_HWP_REQUEST, IA32_HWP_STATUS) are supported if set.",
-        has_hwp,
-        eax,
-        ThermalPowerFeaturesEax::HWP
-    );
+    /// HWP. HWP base registers (IA32_PM_ENABLE[bit 0], IA32_HWP_CAPABILITIES,
+    /// IA32_HWP_REQUEST, IA32_HWP_STATUS) are supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_hwp(&self) -> bool {
+        self.eax.contains(ThermalPowerFeaturesEax::HWP)
+    }
 
-    check_flag!(
-        doc = "HWP Notification. IA32_HWP_INTERRUPT MSR is supported if set.",
-        has_hwp_notification,
-        eax,
-        ThermalPowerFeaturesEax::HWP_NOTIFICATION
-    );
+    /// HWP Notification. IA32_HWP_INTERRUPT MSR is supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_hwp_notification(&self) -> bool {
+        self.eax.contains(ThermalPowerFeaturesEax::HWP_NOTIFICATION)
+    }
 
-    check_flag!(
-        doc = "HWP Activity Window. IA32_HWP_REQUEST[bits 41:32] is supported if set.",
-        has_hwp_activity_window,
-        eax,
-        ThermalPowerFeaturesEax::HWP_ACTIVITY_WINDOW
-    );
+    /// HWP Activity Window. IA32_HWP_REQUEST[bits 41:32] is supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_hwp_activity_window(&self) -> bool {
+        self.eax
+            .contains(ThermalPowerFeaturesEax::HWP_ACTIVITY_WINDOW)
+    }
 
-    check_flag!(
-        doc =
-            "HWP Energy Performance Preference. IA32_HWP_REQUEST[bits 31:24] is supported if set.",
-        has_hwp_energy_performance_preference,
-        eax,
-        ThermalPowerFeaturesEax::HWP_ENERGY_PERFORMANCE_PREFERENCE
-    );
+    /// HWP Energy Performance Preference. IA32_HWP_REQUEST[bits 31:24] is
+    /// supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_hwp_energy_performance_preference(&self) -> bool {
+        self.eax
+            .contains(ThermalPowerFeaturesEax::HWP_ENERGY_PERFORMANCE_PREFERENCE)
+    }
 
-    check_flag!(
-        doc = "HWP Package Level Request. IA32_HWP_REQUEST_PKG MSR is supported if set.",
-        has_hwp_package_level_request,
-        eax,
-        ThermalPowerFeaturesEax::HWP_PACKAGE_LEVEL_REQUEST
-    );
+    /// HWP Package Level Request. IA32_HWP_REQUEST_PKG MSR is supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_hwp_package_level_request(&self) -> bool {
+        self.eax
+            .contains(ThermalPowerFeaturesEax::HWP_PACKAGE_LEVEL_REQUEST)
+    }
 
-    check_flag!(
-        doc = "HDC. HDC base registers IA32_PKG_HDC_CTL, IA32_PM_CTL1, IA32_THREAD_STALL \
-               MSRs are supported if set.",
-        has_hdc,
-        eax,
-        ThermalPowerFeaturesEax::HDC
-    );
+    /// HDC. HDC base registers IA32_PKG_HDC_CTL, IA32_PM_CTL1,
+    /// IA32_THREAD_STALL MSRs are supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_hdc(&self) -> bool {
+        self.eax.contains(ThermalPowerFeaturesEax::HDC)
+    }
 
-    check_flag!(
-        doc = "Intel® Turbo Boost Max Technology 3.0 available.",
-        has_turbo_boost3,
-        eax,
-        ThermalPowerFeaturesEax::TURBO_BOOST_3
-    );
+    /// Intel® Turbo Boost Max Technology 3.0 available.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_turbo_boost3(&self) -> bool {
+        self.eax.contains(ThermalPowerFeaturesEax::TURBO_BOOST_3)
+    }
 
-    check_flag!(
-        doc = "HWP Capabilities. Highest Performance change is supported if set.",
-        has_hwp_capabilities,
-        eax,
-        ThermalPowerFeaturesEax::HWP_CAPABILITIES
-    );
+    /// HWP Capabilities. Highest Performance change is supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_hwp_capabilities(&self) -> bool {
+        self.eax.contains(ThermalPowerFeaturesEax::HWP_CAPABILITIES)
+    }
 
-    check_flag!(
-        doc = "HWP PECI override is supported if set.",
-        has_hwp_peci_override,
-        eax,
-        ThermalPowerFeaturesEax::HWP_PECI_OVERRIDE
-    );
+    /// HWP PECI override is supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_hwp_peci_override(&self) -> bool {
+        self.eax
+            .contains(ThermalPowerFeaturesEax::HWP_PECI_OVERRIDE)
+    }
 
-    check_flag!(
-        doc = "Flexible HWP is supported if set.",
-        has_flexible_hwp,
-        eax,
-        ThermalPowerFeaturesEax::FLEXIBLE_HWP
-    );
+    /// Flexible HWP is supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_flexible_hwp(&self) -> bool {
+        self.eax.contains(ThermalPowerFeaturesEax::FLEXIBLE_HWP)
+    }
 
-    check_flag!(
-        doc = "Fast access mode for the IA32_HWP_REQUEST MSR is supported if set.",
-        has_hwp_fast_access_mode,
-        eax,
-        ThermalPowerFeaturesEax::HWP_REQUEST_MSR_FAST_ACCESS
-    );
+    /// Fast access mode for the IA32_HWP_REQUEST MSR is supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_hwp_fast_access_mode(&self) -> bool {
+        self.eax
+            .contains(ThermalPowerFeaturesEax::HWP_REQUEST_MSR_FAST_ACCESS)
+    }
 
-    check_flag!(
-        doc = "Ignoring Idle Logical Processor HWP request is supported if set.",
-        has_ignore_idle_processor_hwp_request,
-        eax,
-        ThermalPowerFeaturesEax::IGNORE_IDLE_PROCESSOR_HWP_REQUEST
-    );
+    /// Ignoring Idle Logical Processor HWP request is supported if set.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_ignore_idle_processor_hwp_request(&self) -> bool {
+        self.eax
+            .contains(ThermalPowerFeaturesEax::IGNORE_IDLE_PROCESSOR_HWP_REQUEST)
+    }
 
-    check_flag!(
-        doc = "Hardware Coordination Feedback Capability (Presence of IA32_MPERF and \
-               IA32_APERF). The capability to provide a measure of delivered processor \
-               performance (since last reset of the counters), as a percentage of \
-               expected processor performance at frequency specified in CPUID Brand \
-               String Bits 02 - 01",
-        has_hw_coord_feedback,
-        ecx,
-        ThermalPowerFeaturesEcx::HW_COORD_FEEDBACK
-    );
+    /// Hardware Coordination Feedback Capability
+    ///
+    /// Presence of IA32_MPERF and IA32_APERF.
+    ///
+    /// The capability to provide a measure of delivered processor performance
+    /// (since last reset of the counters), as a percentage of expected
+    /// processor performance at frequency specified in CPUID Brand String Bits
+    /// 02 - 01
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn has_hw_coord_feedback(&self) -> bool {
+        self.ecx
+            .contains(ThermalPowerFeaturesEcx::HW_COORD_FEEDBACK)
+    }
 
-    check_flag!(
-        doc = "The processor supports performance-energy bias preference if \
-               CPUID.06H:ECX.SETBH[bit 3] is set and it also implies the presence of a \
-               new architectural MSR called IA32_ENERGY_PERF_BIAS (1B0H)",
-        has_energy_bias_pref,
-        ecx,
-        ThermalPowerFeaturesEcx::ENERGY_BIAS_PREF
-    );
+    /// The processor supports performance-energy bias preference if
+    /// CPUID.06H:ECX.SETBH[bit 3] is set and it also implies the presence of a
+    /// new architectural MSR called IA32_ENERGY_PERF_BIAS (1B0H)
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_energy_bias_pref(&self) -> bool {
+        self.ecx.contains(ThermalPowerFeaturesEcx::ENERGY_BIAS_PREF)
+    }
 }
 
 impl Debug for ThermalPowerInfo {
@@ -2906,7 +3020,6 @@ bitflags! {
     #[derive(Default)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ThermalPowerFeaturesEcx: u32 {
-        /// Hardware Coordination Feedback Capability (Presence of IA32_MPERF and IA32_APERF). The capability to provide a measure of delivered processor performance (since last reset of the counters), as a percentage of expected processor performance at frequency specified in CPUID Brand String Bits 02 - 01
         const HW_COORD_FEEDBACK = 1 << 0;
 
         /// The processor supports performance-energy bias preference if CPUID.06H:ECX.SETBH[bit 3] is set and it also implies the presence of a new architectural MSR called IA32_ENERGY_PERF_BIAS (1B0H)
