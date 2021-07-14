@@ -69,8 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Deprecated
 
-- VendorInfo.as_string() is deprecated in favor of VendorInfo.as_str()
-- SoCVendorBrand.as_string() is deprecated in favor of SoCVendorBrand.as_str()
+- `VendorInfo.as_string()` is deprecated in favor of `VendorInfo.as_str()`
+- `SoCVendorBrand.as_string()` is deprecated in favor of `SoCVendorBrand.as_str()`
 
 ## [9.1.1] - 2021-07-06
 
