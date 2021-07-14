@@ -1032,10 +1032,7 @@ fn brand_string() {
         .get_processor_brand_string()
         .expect("Leaf is supported");
 
-    assert_eq!(
-        e.as_str(),
-        "AMD Ryzen 5 3600X 6-Core Processor             "
-    );
+    assert_eq!(e.as_str(), "AMD Ryzen 5 3600X 6-Core Processor");
 }
 
 #[test]

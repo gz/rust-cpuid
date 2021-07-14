@@ -463,7 +463,9 @@ impl ProcessorBrandString {
 
         // Brand terminated at nul byte or end, whichever comes first.
         let slice = slice.split(|&x| x == 0).next().unwrap();
-        str::from_utf8(slice).unwrap_or("Invalid Processor Brand String")
+        str::from_utf8(slice)
+            .unwrap_or("Invalid Processor Brand String")
+            .trim()
     }
 }
 

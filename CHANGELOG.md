@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Make CpuId derive Clone and Copy ([#53](https://github.com/gz/rust-cpuid/pull/53))
 - Improved documentation in some places by adding leaf numbers.
 - Updated AMD leaf 0x8000_001f (Encrypted Memory) to latest manual.
+- `ProcessorBrandString.as_str()` now trims the returned string.
 
 ### Added
 

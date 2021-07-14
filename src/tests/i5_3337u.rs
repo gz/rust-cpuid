@@ -687,10 +687,7 @@ fn processor_brand_string() {
         },
     ]);
 
-    assert_eq!(
-        pbs.as_str(),
-        "       Intel(R) Core(TM) i5-3337U CPU @ 1.80GHz"
-    );
+    assert_eq!(pbs.as_str(), "Intel(R) Core(TM) i5-3337U CPU @ 1.80GHz");
 }
 
 #[cfg(test)]
