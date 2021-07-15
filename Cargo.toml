@@ -16,14 +16,19 @@ license = "MIT"
 [[bin]]
 name = "cpuid"
 path = "src/bin/cpuid.rs"
+required-features = ["build-cpuid-binary"]
 
 [features]
 serialize = ["serde", "serde_derive"]
+# This is not a public feature and should never be used other than by the cpuid binary:
+build-cpuid-binary = ["prettytable-rs", "term"]
 
 [dependencies]
 bitflags = "1.2"
 serde = { version = "1.0", default-features = false, optional = true }
-serde_derive = {version = "1.0", optional = true }
+serde_derive = { version = "1.0", optional = true }
+prettytable-rs = { version = "^0.8", optional  = true }
+term = { version = "0.6", optional = true }
 
 [target.'cfg(unix)'.dev-dependencies]
 libc = { version = "0.2", default-features = false }
