@@ -993,8 +993,50 @@ fn sgx_test() {
     assert!(cpuid.get_sgx_info().is_none());
 }
 
-/*
-To be ported to this CPU:
+#[test]
+fn processor_trace() {
+    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
+    let pt = cpuid.get_processor_trace_info().expect("Leaf is available");
+
+    assert!(pt.has_rtit_cr3_match());
+    assert!(pt.has_configurable_psb_and_cycle_accurate_mode());
+    assert!(pt.has_ip_tracestop_filtering());
+    assert!(pt.has_mtc_timing_packet_coefi_suppression());
+    assert!(!pt.has_ptwrite());
+    assert!(!pt.has_power_event_trace());
+    assert!(pt.has_topa());
+    assert!(pt.has_topa_maximum_entries());
+    assert!(pt.has_single_range_output_scheme());
+    assert!(!pt.has_trace_transport_subsystem());
+    assert!(!pt.has_lip_with_cs_base());
+
+    assert_eq!(pt.configurable_address_ranges(), 2);
+    assert_eq!(pt.supported_mtc_period_encodings(), 585);
+    assert_eq!(pt.supported_cycle_threshold_value_encodings(), 16383);
+    assert_eq!(pt.supported_psb_frequency_encodings(), 63);
+}
+
+#[test]
+fn tsc() {
+    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
+    let e = cpuid.get_tsc_info().expect("Leaf is available");
+    assert_eq!(e.denominator(), 2);
+    assert_eq!(e.numerator(), 168);
+    assert_eq!(e.nominal_frequency(), 0x0);
+    assert_eq!(e.tsc_frequency(), None);
+}
+
+#[test]
+fn processor_frequency() {
+    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
+    let e = cpuid
+        .get_processor_frequency_info()
+        .expect("Leaf is supported");
+
+    assert_eq!(e.processor_base_frequency(), 2100);
+    assert_eq!(e.processor_max_frequency(), 3700);
+    assert_eq!(e.bus_frequency(), 100);
+}
 
 #[test]
 fn extended_processor_and_feature_identifiers() {
@@ -1003,38 +1045,38 @@ fn extended_processor_and_feature_identifiers() {
         .get_extended_processor_and_feature_identifiers()
         .expect("Leaf is supported");
 
-    assert_eq!(e.pkg_type(), 0x2);
-    assert_eq!(e.brand_id(), 0x0);
+    assert_eq!(e.pkg_type(), 0x0); // reserved on Intel
+    assert_eq!(e.brand_id(), 0x0); // reserved on Intel
 
     assert!(e.has_lahf_sahf());
-    assert!(e.has_cmp_legacy());
-    assert!(e.has_svm());
-    assert!(e.has_ext_apic_space());
-    assert!(e.has_alt_mov_cr8());
+    assert!(!e.has_cmp_legacy());
+    assert!(!e.has_svm());
+    assert!(!e.has_ext_apic_space());
+    assert!(!e.has_alt_mov_cr8());
     assert!(e.has_lzcnt());
-    assert!(e.has_sse4a());
-    assert!(e.has_misaligned_sse_mode());
+    assert!(!e.has_sse4a());
+    assert!(!e.has_misaligned_sse_mode());
     assert!(e.has_prefetchw());
-    assert!(e.has_osvw());
-    assert!(e.has_ibs());
+    assert!(!e.has_osvw());
+    assert!(!e.has_ibs());
     assert!(!e.has_xop());
-    assert!(e.has_skinit());
-    assert!(e.has_wdt());
+    assert!(!e.has_skinit());
+    assert!(!e.has_wdt());
     assert!(!e.has_lwp());
     assert!(!e.has_fma4());
     assert!(!e.has_tbm());
-    assert!(e.has_topology_extensions());
-    assert!(e.has_perf_cntr_extensions());
-    assert!(e.has_nb_perf_cntr_extensions());
-    assert!(e.has_data_access_bkpt_extension());
+    assert!(!e.has_topology_extensions());
+    assert!(!e.has_perf_cntr_extensions());
+    assert!(!e.has_nb_perf_cntr_extensions());
+    assert!(!e.has_data_access_bkpt_extension());
     assert!(!e.has_perf_tsc());
-    assert!(e.has_perf_cntr_llc_extensions());
-    assert!(e.has_monitorx_mwaitx());
-    assert!(e.has_addr_mask_extension());
+    assert!(!e.has_perf_cntr_llc_extensions());
+    assert!(!e.has_monitorx_mwaitx());
+    assert!(!e.has_addr_mask_extension());
     assert!(e.has_syscall_sysret());
     assert!(e.has_execute_disable());
-    assert!(e.has_mmx_extensions());
-    assert!(e.has_fast_fxsave_fxstor());
+    assert!(!e.has_mmx_extensions());
+    assert!(!e.has_fast_fxsave_fxstor());
     assert!(e.has_1gib_pages());
     assert!(e.has_rdtscp());
     assert!(e.has_64bit_mode());
@@ -1049,72 +1091,45 @@ fn brand_string() {
         .get_processor_brand_string()
         .expect("Leaf is supported");
 
-    assert_eq!(e.as_str(), "AMD Ryzen 5 3600X 6-Core Processor");
+    assert_eq!(e.as_str(), "Intel(R) Xeon(R) Gold 6252 CPU @ 2.10GHz");
 }
 
 #[test]
 fn l1_tlb_cache() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
-    let e = cpuid
-        .get_l1_cache_and_tlb_info()
-        .expect("Leaf is supported");
-
-    assert_eq!(
-        e.dtlb_2m_4m_associativity(),
-        Associativity::FullyAssociative
-    );
-    assert_eq!(e.dtlb_2m_4m_size(), 64);
-
-    assert_eq!(
-        e.itlb_2m_4m_associativity(),
-        Associativity::FullyAssociative
-    );
-    assert_eq!(e.itlb_2m_4m_size(), 64);
-
-    assert_eq!(e.dtlb_4k_associativity(), Associativity::FullyAssociative);
-    assert_eq!(e.dtlb_4k_size(), 64);
-    assert_eq!(e.itlb_4k_associativity(), Associativity::FullyAssociative);
-    assert_eq!(e.itlb_4k_size(), 64);
-
-    assert_eq!(e.dcache_line_size(), 64);
-    assert_eq!(e.dcache_lines_per_tag(), 1);
-    assert_eq!(e.dcache_associativity(), Associativity::NWay(8));
-    assert_eq!(e.dcache_size(), 32);
-
-    assert_eq!(e.icache_line_size(), 64);
-    assert_eq!(e.icache_lines_per_tag(), 1);
-    assert_eq!(e.icache_associativity(), Associativity::NWay(8));
-    assert_eq!(e.icache_size(), 32);
+    assert!(cpuid.get_l1_cache_and_tlb_info().is_none());
 }
 
 #[test]
 fn l2_l3_tlb_cache() {
+    use crate::Associativity;
+
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
     let e = cpuid
         .get_l2_l3_cache_and_tlb_info()
         .expect("Leaf is supported");
 
-    assert_eq!(e.itlb_2m_4m_associativity(), Associativity::NWay(8));
-    assert_eq!(e.itlb_2m_4m_size(), 1024);
+    // Unsupported on Intel
+    assert_eq!(e.itlb_2m_4m_associativity(), Associativity::Disabled);
+    assert_eq!(e.itlb_2m_4m_size(), 0);
+    assert_eq!(e.dtlb_2m_4m_associativity(), Associativity::Disabled);
+    assert_eq!(e.dtlb_2m_4m_size(), 0);
+    assert_eq!(e.itlb_4k_size(), 0);
+    assert_eq!(e.itlb_4k_associativity(), Associativity::Disabled);
+    assert_eq!(e.dtlb_4k_size(), 0);
+    assert_eq!(e.dtlb_4k_associativity(), Associativity::Disabled);
 
-    assert_eq!(e.dtlb_2m_4m_associativity(), Associativity::NWay(4));
-    assert_eq!(e.dtlb_2m_4m_size(), 2048);
-
-    assert_eq!(e.itlb_4k_size(), 1024);
-    assert_eq!(e.itlb_4k_associativity(), Associativity::NWay(8));
-
-    assert_eq!(e.dtlb_4k_size(), 2048);
-    assert_eq!(e.dtlb_4k_associativity(), Associativity::NWay(8));
-
+    // Supported on Intel
     assert_eq!(e.l2cache_line_size(), 64);
-    assert_eq!(e.l2cache_lines_per_tag(), 1);
+    assert_eq!(e.l2cache_lines_per_tag(), 0);
     assert_eq!(e.l2cache_associativity(), Associativity::NWay(8));
-    assert_eq!(e.l2cache_size(), 0x200);
+    assert_eq!(e.l2cache_size(), 256);
 
-    assert_eq!(e.l3cache_line_size(), 64);
-    assert_eq!(e.l3cache_lines_per_tag(), 1);
-    assert_eq!(e.l3cache_associativity(), Associativity::Unknown);
-    assert_eq!(e.l3cache_size(), 64);
+    // Unsupported on Intel
+    assert_eq!(e.l3cache_line_size(), 0);
+    assert_eq!(e.l3cache_lines_per_tag(), 0);
+    assert_eq!(e.l3cache_associativity(), Associativity::Disabled);
+    assert_eq!(e.l3cache_size(), 0);
 }
 
 #[test]
@@ -1124,22 +1139,22 @@ fn apm() {
         .get_advanced_power_mgmt_info()
         .expect("Leaf is supported");
 
+    assert!(!e.has_mca_overflow_recovery());
+    assert!(!e.has_succor());
+    assert!(!e.has_hwa());
+    // ...
     assert_eq!(e.cpu_pwr_sample_time_ratio(), 0x0);
 
-    assert!(e.has_mca_overflow_recovery());
-    assert!(e.has_succor());
-    assert!(!e.has_hwa());
-
-    assert!(e.has_ts());
+    assert!(!e.has_ts());
     assert!(!e.has_freq_id_ctrl());
     assert!(!e.has_volt_id_ctrl());
-    assert!(e.has_thermtrip());
-    assert!(e.has_tm());
+    assert!(!e.has_thermtrip());
+    assert!(!e.has_tm());
     assert!(!e.has_100mhz_steps());
-    assert!(e.has_hw_pstate());
-    assert!(e.has_invariant_tsc());
-    assert!(e.has_cpb());
-    assert!(e.has_ro_effective_freq_iface());
+    assert!(!e.has_hw_pstate());
+    assert!(e.has_invariant_tsc()); // The only Intel supported feature here
+    assert!(!e.has_cpb());
+    assert!(!e.has_ro_effective_freq_iface());
     assert!(!e.has_feedback_iface());
     assert!(!e.has_power_reporting_iface());
 }
@@ -1151,42 +1166,34 @@ fn processor_capcity_features() {
         .get_processor_capacity_feature_info()
         .expect("Leaf is supported");
 
-    assert_eq!(e.physical_address_bits(), 48);
+    assert_eq!(e.physical_address_bits(), 46);
     assert_eq!(e.linear_address_bits(), 48);
     assert_eq!(e.guest_physical_address_bits(), 0);
 
-    // These are hard to test if they are correct. I think the cpuid CLI tool
-    // displays bogus values here (see above) -- or I can't tell how they
-    // correspond to the AMD manual...
-    assert!(e.has_cl_zero());
-    assert!(e.has_inst_ret_cntr_msr());
-    assert!(e.has_restore_fp_error_ptrs());
+    assert!(!e.has_cl_zero());
+    assert!(!e.has_inst_ret_cntr_msr());
+    assert!(!e.has_restore_fp_error_ptrs());
     assert!(!e.has_invlpgb());
-    assert!(e.has_rdpru());
-    assert!(e.has_mcommit());
-    assert!(e.has_wbnoinvd());
-    assert!(e.has_int_wbinvd());
+    assert!(!e.has_rdpru());
+    assert!(!e.has_mcommit());
+    assert!(!e.has_wbnoinvd());
+    assert!(!e.has_int_wbinvd());
     assert!(!e.has_unsupported_efer_lmsle());
     assert!(!e.has_invlpgb_nested());
 
     assert_eq!(e.invlpgb_max_pages(), 0x0);
-    assert_eq!(e.maximum_logical_processors(), 128);
-    assert_eq!(e.num_phys_threads(), 12);
-    assert_eq!(e.apic_id_size(), 7);
-    assert_eq!(e.perf_tsc_size(), 40);
-    assert_eq!(e.max_rdpru_id(), 0x1);
+
+    assert_eq!(e.maximum_logical_processors(), 1); // Not sure why this is set, it's reserved :(
+    assert_eq!(e.num_phys_threads(), 1); // Not sure why this is set, it's reserved :(
+    assert_eq!(e.apic_id_size(), 0);
+    assert_eq!(e.perf_tsc_size(), 40); // Not sure why this is set, it's reserved :(
+    assert_eq!(e.max_rdpru_id(), 0);
 }
 
 #[test]
 fn remaining_unsupported_leafs() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
 
-    assert!(cpuid.get_sgx_info().is_none());
-    assert!(cpuid.get_processor_trace_info().is_none());
-    assert!(cpuid.get_tsc_info().is_none());
-    assert!(cpuid.get_processor_frequency_info().is_none());
     assert!(cpuid.get_deterministic_address_translation_info().is_none());
     assert!(cpuid.get_soc_vendor_info().is_none());
 }
-
-*/

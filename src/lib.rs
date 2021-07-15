@@ -782,7 +782,7 @@ impl CpuId {
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved)
     pub fn get_l1_cache_and_tlb_info(&self) -> Option<L1CacheTlbInfo> {
-        if self.leaf_is_supported(EAX_L1_CACHE_INFO) {
+        if self.vendor == Vendor::Amd && self.leaf_is_supported(EAX_L1_CACHE_INFO) {
             Some(L1CacheTlbInfo::new(self.read.cpuid1(EAX_L1_CACHE_INFO)))
         } else {
             None
