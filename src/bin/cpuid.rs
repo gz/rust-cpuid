@@ -1,65 +1,49 @@
-use prettytable::{color, format, Attr, Cell, Row, Table};
 use raw_cpuid::CpuId;
+use termimad::{minimad::TextTemplate, minimad::TextTemplateExpander, MadSkin};
 
-fn table_format() -> format::TableFormat {
-    format::FormatBuilder::new()
-        .column_separator('|')
-        .borders('|')
-        .separators(
-            &[format::LinePosition::Top],
-            format::LineSeparator::new('─', '┬', '┌', '┐'),
-        )
-        /*.separators(
-            &[format::LinePosition::Intern],
-            format::LineSeparator::new('─', '┼', '├', '┤'),
-        ) */
-        .separators(
-            &[format::LinePosition::Bottom],
-            format::LineSeparator::new('─', '┴', '└', '┘'),
-        )
-        .padding(1, 1)
-        .indent(2)
-        .build()
+fn string_to_static_str(s: String) -> &'static str {
+    Box::leak(s.into_boxed_str())
 }
 
-fn make_table(attrs: &[(&str, u64)]) -> Table {
-    let mut table = Table::new();
+fn make_table<'a, 'b>(
+    text_template: &'a TextTemplate<'b>,
+    attrs: &[(&'b str, u64)],
+) -> TextTemplateExpander<'a, 'b> {
+    let mut expander = text_template.expander();
+    expander.set("app-version", "2");
+
     for &(attr, desc) in attrs {
-        table.add_row(Row::new(vec![
-            Cell::new(attr).with_style(Attr::ForegroundColor(color::GREEN)),
-            Cell::new(format!("{}", desc).as_str()).style_spec("br"),
-        ]));
+        let sdesc = string_to_static_str(format!("{}", desc));
+        expander
+            .sub("feature-rows")
+            .set("attr-name", attr)
+            .set("attr-avail", sdesc);
     }
-    table.set_format(table_format());
-    table
+
+    expander
 }
 
-fn make_feature_table(attrs: &[(&str, bool)]) -> Table {
-    let mut table = Table::new();
+fn make_feature_table<'a, 'b>(
+    text_template: &'a TextTemplate<'b>,
+    attrs: &[(&'b str, bool)],
+) -> TextTemplateExpander<'a, 'b> {
+    let mut expander = text_template.expander();
+    expander.set("app-version", "2");
 
     for &(attr, desc) in attrs {
         let desc = if desc { "✅" } else { "❌" };
-
-        table.add_row(Row::new(vec![
-            Cell::new(attr).with_style(Attr::ForegroundColor(color::GREEN)),
-            Cell::new(format!("{}", desc).as_str()).style_spec("br"),
-        ]));
+        expander
+            .sub("feature-rows")
+            .set("attr-name", attr)
+            .set("attr-avail", desc);
     }
-    table.set_format(table_format());
-    table
+
+    expander
 }
 
 fn print_title_line(title: &str, attr: Option<&str>) {
-    let mut t = term::stdout().unwrap();
-    t.attr(term::Attr::Bold).unwrap();
-    print!("{}", title);
-    t.reset().unwrap();
-    if let Some(attr) = attr {
-        println!(" = \"{}\"", attr);
-    } else {
-        println!("");
-    }
-    t.reset().unwrap();
+    let mut skin = MadSkin::default();
+    skin.print_text(format!("## {}\n", title).as_str());
 }
 
 fn print_title_attr(title: &str, attr: &str) {
@@ -72,6 +56,19 @@ fn print_title(title: &str) {
 
 fn main() {
     let cpuid = CpuId::new();
+    let mut skin = MadSkin::default();
+
+    skin.print_text("# CpuId\n");
+
+    let table_template = TextTemplate::from(
+        r#"
+    |-:|-:|
+    ${feature-rows
+    |**${attr-name}**|${attr-avail}|
+    }
+    |-|-|
+    "#,
+    );
 
     if let Some(info) = cpuid.get_vendor_info() {
         print_title_attr("vendor_id (0x00)", info.as_str());
@@ -79,97 +76,109 @@ fn main() {
 
     if let Some(info) = cpuid.get_feature_info() {
         print_title("version information (1/eax):");
-        let table = make_table(&[
-            ("base family", info.base_family_id().into()),
-            ("base model", info.base_model_id().into()),
-            ("stepping", info.stepping_id().into()),
-            ("extended family", info.extended_family_id().into()),
-            ("extended model", info.extended_model_id().into()),
-            ("family", info.family_id().into()),
-            ("model", info.model_id().into()),
-        ]);
-        table.printstd();
+        let table = make_table(
+            &table_template,
+            &[
+                ("base family", info.base_family_id().into()),
+                ("base model", info.base_model_id().into()),
+                ("stepping", info.stepping_id().into()),
+                ("extended family", info.extended_family_id().into()),
+                ("extended model", info.extended_model_id().into()),
+                ("family", info.family_id().into()),
+                ("model", info.model_id().into()),
+            ],
+        );
+        skin.print_expander(table);
 
         print_title("miscellaneous (1/ebx):");
-        let table = make_table(&[
-            (
-                "processor APIC physical id",
-                info.initial_local_apic_id().into(),
-            ),
-            ("max. cpus", info.max_logical_processor_ids().into()),
-            ("CLFLUSH line size", info.cflush_cache_line_size().into()),
-            ("brand index", info.brand_index().into()),
-        ]);
-        table.printstd();
+        let table = make_table(
+            &table_template,
+            &[
+                (
+                    "processor APIC physical id",
+                    info.initial_local_apic_id().into(),
+                ),
+                ("max. cpus", info.max_logical_processor_ids().into()),
+                ("CLFLUSH line size", info.cflush_cache_line_size().into()),
+                ("brand index", info.brand_index().into()),
+            ],
+        );
+        skin.print_expander(table);
 
         print_title("feature information (1/edx):");
-        let table = make_feature_table(&[
-            ("fpu", info.has_fpu()),
-            ("vme", info.has_vme()),
-            ("de", info.has_de()),
-            ("pse", info.has_pse()),
-            ("tsc", info.has_tsc()),
-            ("msr", info.has_msr()),
-            ("pae", info.has_pae()),
-            ("mce", info.has_mce()),
-            ("cmpxchg8b", info.has_cmpxchg8b()),
-            ("apic", info.has_apic()),
-            ("sysenter_sysexit", info.has_sysenter_sysexit()),
-            ("mtrr", info.has_mtrr()),
-            ("pge", info.has_pge()),
-            ("mca", info.has_mca()),
-            ("cmov", info.has_cmov()),
-            ("pat", info.has_pat()),
-            ("pse36", info.has_pse36()),
-            ("psn", info.has_psn()),
-            ("clflush", info.has_clflush()),
-            ("ds", info.has_ds()),
-            ("acpi", info.has_acpi()),
-            ("mmx", info.has_mmx()),
-            ("fxsave_fxstor", info.has_fxsave_fxstor()),
-            ("sse", info.has_sse()),
-            ("sse2", info.has_sse2()),
-            ("ss", info.has_ss()),
-            ("htt", info.has_htt()),
-            ("tm", info.has_tm()),
-            ("pbe", info.has_pbe()),
-        ]);
-        table.printstd();
+        let table = make_feature_table(
+            &table_template,
+            &[
+                ("fpu", info.has_fpu()),
+                ("vme", info.has_vme()),
+                ("de", info.has_de()),
+                ("pse", info.has_pse()),
+                ("tsc", info.has_tsc()),
+                ("msr", info.has_msr()),
+                ("pae", info.has_pae()),
+                ("mce", info.has_mce()),
+                ("cmpxchg8b", info.has_cmpxchg8b()),
+                ("apic", info.has_apic()),
+                ("sysenter_sysexit", info.has_sysenter_sysexit()),
+                ("mtrr", info.has_mtrr()),
+                ("pge", info.has_pge()),
+                ("mca", info.has_mca()),
+                ("cmov", info.has_cmov()),
+                ("pat", info.has_pat()),
+                ("pse36", info.has_pse36()),
+                ("psn", info.has_psn()),
+                ("clflush", info.has_clflush()),
+                ("ds", info.has_ds()),
+                ("acpi", info.has_acpi()),
+                ("mmx", info.has_mmx()),
+                ("fxsave_fxstor", info.has_fxsave_fxstor()),
+                ("sse", info.has_sse()),
+                ("sse2", info.has_sse2()),
+                ("ss", info.has_ss()),
+                ("htt", info.has_htt()),
+                ("tm", info.has_tm()),
+                ("pbe", info.has_pbe()),
+            ],
+        );
+        skin.print_expander(table);
 
         print_title("feature information (1/ecx):");
 
-        let table = make_feature_table(&[
-            ("sse3", info.has_sse3()),
-            ("pclmulqdq", info.has_pclmulqdq()),
-            ("ds_area", info.has_ds_area()),
-            ("monitor_mwait", info.has_monitor_mwait()),
-            ("cpl", info.has_cpl()),
-            ("vmx", info.has_vmx()),
-            ("smx", info.has_smx()),
-            ("eist", info.has_eist()),
-            ("tm2", info.has_tm2()),
-            ("ssse3", info.has_ssse3()),
-            ("cnxtid", info.has_cnxtid()),
-            ("fma", info.has_fma()),
-            ("cmpxchg16b", info.has_cmpxchg16b()),
-            ("pdcm", info.has_pdcm()),
-            ("pcid", info.has_pcid()),
-            ("dca", info.has_dca()),
-            ("sse41", info.has_sse41()),
-            ("sse42", info.has_sse42()),
-            ("x2apic", info.has_x2apic()),
-            ("movbe", info.has_movbe()),
-            ("popcnt", info.has_popcnt()),
-            ("tsc_deadline", info.has_tsc_deadline()),
-            ("aesni", info.has_aesni()),
-            ("xsave", info.has_xsave()),
-            ("oxsave", info.has_oxsave()),
-            ("avx", info.has_avx()),
-            ("f16c", info.has_f16c()),
-            ("rdrand", info.has_rdrand()),
-            ("hypervisor", info.has_hypervisor()),
-        ]);
-        table.printstd();
+        let table = make_feature_table(
+            &table_template,
+            &[
+                ("sse3", info.has_sse3()),
+                ("pclmulqdq", info.has_pclmulqdq()),
+                ("ds_area", info.has_ds_area()),
+                ("monitor_mwait", info.has_monitor_mwait()),
+                ("cpl", info.has_cpl()),
+                ("vmx", info.has_vmx()),
+                ("smx", info.has_smx()),
+                ("eist", info.has_eist()),
+                ("tm2", info.has_tm2()),
+                ("ssse3", info.has_ssse3()),
+                ("cnxtid", info.has_cnxtid()),
+                ("fma", info.has_fma()),
+                ("cmpxchg16b", info.has_cmpxchg16b()),
+                ("pdcm", info.has_pdcm()),
+                ("pcid", info.has_pcid()),
+                ("dca", info.has_dca()),
+                ("sse41", info.has_sse41()),
+                ("sse42", info.has_sse42()),
+                ("x2apic", info.has_x2apic()),
+                ("movbe", info.has_movbe()),
+                ("popcnt", info.has_popcnt()),
+                ("tsc_deadline", info.has_tsc_deadline()),
+                ("aesni", info.has_aesni()),
+                ("xsave", info.has_xsave()),
+                ("oxsave", info.has_oxsave()),
+                ("avx", info.has_avx()),
+                ("f16c", info.has_f16c()),
+                ("rdrand", info.has_rdrand()),
+                ("hypervisor", info.has_hypervisor()),
+            ],
+        );
+        skin.print_expander(table);
     }
 
     if let Some(info) = cpuid.get_cache_info() {

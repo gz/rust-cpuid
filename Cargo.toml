@@ -1,17 +1,17 @@
 [package]
-name = "raw-cpuid"
-version = "10.0.0"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 edition = "2018"
+name = "raw-cpuid"
+version = "10.0.0"
 
 description = "A library to parse the x86 CPUID instruction, written in rust with no external dependencies. The implementation closely resembles the Intel CPUID manual description. The library does only depend on libcore."
+documentation = "https://docs.rs/raw-cpuid/"
 homepage = "https://github.com/gz/rust-cpuid"
 repository = "https://github.com/gz/rust-cpuid"
-documentation = "https://docs.rs/raw-cpuid/"
 
-readme = "README.md"
 keywords = ["cpuid", "x86", "amd64", "os", "libcore"]
 license = "MIT"
+readme = "README.md"
 
 [[bin]]
 name = "cpuid"
@@ -21,17 +21,16 @@ required-features = ["build-cpuid-binary"]
 [features]
 serialize = ["serde", "serde_derive"]
 # This is not a public feature and should never be used other than by the cpuid binary:
-build-cpuid-binary = ["prettytable-rs", "term"]
+build-cpuid-binary = ["termimad"]
 
 [dependencies]
 bitflags = "1.2"
-serde = { version = "1.0", default-features = false, optional = true }
-serde_derive = { version = "1.0", optional = true }
-prettytable-rs = { version = "^0.8", optional  = true }
-term = { version = "0.6", optional = true }
+serde = {version = "1.0", default-features = false, optional = true}
+serde_derive = {version = "1.0", optional = true}
+termimad = {version = "0.14", optional = true}
 
 [target.'cfg(unix)'.dev-dependencies]
-libc = { version = "0.2", default-features = false }
 core_affinity = "0.5.10"
+libc = {version = "0.2", default-features = false}
+phf = {version = "0.9", features = ["macros"]}
 rustversion = "1.0"
-phf = { version = "0.9", features = ["macros"] }
