@@ -301,6 +301,7 @@ const EAX_L2_L3_CACHE_INFO: u32 = 0x8000_0006;
 const EAX_ADVANCED_POWER_MGMT_INFO: u32 = 0x8000_0007;
 const EAX_PROCESSOR_CAPACITY_INFO: u32 = 0x8000_0008;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
+const EAX_SVM_FEATURES: u32 = 0x8000_000A;
 
 impl CpuId {
     /// Return new CpuId struct.
@@ -824,6 +825,25 @@ impl CpuId {
             Some(ProcessorCapacityAndFeatureInfo::new(
                 self.read.cpuid1(EAX_PROCESSOR_CAPACITY_INFO),
             ))
+        } else {
+            None
+        }
+    }
+
+    /// This function provides information about the SVM features that the processory
+    /// supports.
+    ///
+    /// If SVM is not supported if [ExtendedProcessorFeatureIdentifiers::has_svm] is
+    /// false, this function is reserved then.
+    ///
+    /// # Availability
+    /// ✅ AMD ❌ Intel
+    pub fn get_svm_info(&self) -> Option<SvmFeatures> {
+        let has_svm = self
+            .get_extended_processor_and_feature_identifiers()
+            .map_or(false, |f| f.has_svm());
+        if has_svm && self.leaf_is_supported(EAX_SVM_FEATURES) {
+            Some(SvmFeatures::new(self.read.cpuid1(EAX_SVM_FEATURES)))
         } else {
             None
         }

@@ -1188,6 +1188,33 @@ fn secure_encryption() {
 }
 
 #[test]
+fn svm() {
+    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
+    let e = cpuid.get_svm_info().expect("Leaf is supported");
+
+    assert_eq!(e.revision(), 0x1);
+    assert_eq!(e.supported_asids(), 0x8000);
+
+    assert!(e.has_nested_paging());
+    assert!(e.has_lbr_virtualization());
+    assert!(e.has_svm_lock());
+    assert!(e.has_nrip());
+    assert!(e.has_tsc_rate_msr());
+    assert!(e.has_vmcb_clean_bits());
+    assert!(e.has_flush_by_asid());
+    assert!(e.has_decode_assists());
+    assert!(e.has_pause_filter());
+    assert!(e.has_pause_filter_threshold());
+    assert!(e.has_avic());
+    assert!(e.has_vmsave_virtualization());
+    assert!(e.has_gmet());
+    assert!(!e.has_sss_check());
+    assert!(e.has_spec_ctrl());
+    assert!(!e.has_host_mce_overrwide());
+    assert!(!e.has_tlb_ctrl());
+}
+
+#[test]
 fn remaining_unsupported_leafs() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
 

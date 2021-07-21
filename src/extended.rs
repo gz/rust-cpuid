@@ -1382,3 +1382,156 @@ bitflags! {
         const VTE = 1 << 16;
     }
 }
+
+/// Information about the SVM features that the processory supports (LEAF=0x8000_000A).
+///
+/// # Note
+/// If SVM is not supported ([ExtendedProcessorFeatureIdentifiers::has_svm] is false),
+/// this leaf is reserved ([crate::CpuId] will return None in this case).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct SvmFeatures {
+    eax: u32,
+    ebx: u32,
+    /// Reserved
+    _ecx: u32,
+    edx: SvmFeaturesEdx,
+}
+
+impl SvmFeatures {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: data.eax,
+            ebx: data.ebx,
+            _ecx: data.ecx,
+            edx: SvmFeaturesEdx::from_bits_truncate(data.edx),
+        }
+    }
+
+    /// SVM revision number.
+    pub fn revision(&self) -> u8 {
+        get_bits(self.eax, 0, 7) as u8
+    }
+
+    /// Number of available address space identifiers (ASID).
+    pub fn supported_asids(&self) -> u32 {
+        self.ebx
+    }
+
+    /// Nested paging supported if set.
+    pub fn has_nested_paging(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::NP)
+    }
+
+    /// Indicates support for LBR Virtualization.
+    pub fn has_lbr_virtualization(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::LBR_VIRT)
+    }
+
+    /// Indicates support for SVM-Lock if set.
+    pub fn has_svm_lock(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::SVML)
+    }
+
+    /// Indicates support for NRIP save on #VMEXIT if set.
+    pub fn has_nrip(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::NRIPS)
+    }
+
+    /// Indicates support for MSR TSC ratio (MSR `0xC000_0104`) if set.
+    pub fn has_tsc_rate_msr(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::TSC_RATE_MSR)
+    }
+
+    /// Indicates support for VMCB clean bits if set.
+    pub fn has_vmcb_clean_bits(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::VMCB_CLEAN)
+    }
+
+    /// Indicates that TLB flush events, including CR3 writes and CR4.PGE toggles, flush
+    /// only the current ASID's TLB entries.
+    ///
+    /// Also indicates support for the extended VMCB TLB_Control.
+    pub fn has_flush_by_asid(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::FLUSH_BY_ASID)
+    }
+
+    /// Indicates support for the decode assists if set.
+    pub fn has_decode_assists(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::DECODE_ASSISTS)
+    }
+
+    /// Indicates support for the pause intercept filter if set.
+    pub fn has_pause_filter(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::PAUSE_FILTER)
+    }
+
+    /// Indicates support for the PAUSE filter cycle count threshold if set.
+    pub fn has_pause_filter_threshold(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::PAUSE_FILTER_THRESHOLD)
+    }
+
+    /// Support for the AMD advanced virtual interrupt controller if set.
+    pub fn has_avic(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::AVIC)
+    }
+
+    /// VMSAVE and VMLOAD virtualization supported if set.
+    pub fn has_vmsave_virtualization(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::VMSAVE_VIRT)
+    }
+
+    /// Guest Mode Execution Trap supported if set.
+    pub fn has_gmet(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::GMET)
+    }
+
+    /// SVM supervisor shadow stack restrictions if set.
+    pub fn has_sss_check(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::SSS_CHECK)
+    }
+
+    /// SPEC_CTRL virtualization supported if set.
+    pub fn has_spec_ctrl(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::SPEC_CTRL)
+    }
+
+    /// When host `CR4.MCE=1` and guest `CR4.MCE=0`, machine check exceptions (`#MC`) in a
+    /// guest do not cause shutdown and are always intercepted if set.
+    pub fn has_host_mce_overrwide(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::HOST_MCE_OVERRIDE)
+    }
+
+    /// Support for INVLPGB/TLBSYNC hypervisor enable in VMCB and TLBSYNC intercept if
+    /// set.
+    pub fn has_tlb_ctrl(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::TLB_CTL)
+    }
+}
+
+bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    struct SvmFeaturesEdx: u32 {
+        const NP = 1 << 0;
+        const LBR_VIRT = 1 << 1;
+        const SVML = 1 << 2;
+        const NRIPS = 1 << 3;
+        const TSC_RATE_MSR = 1 << 4;
+        const VMCB_CLEAN = 1 << 5;
+        const FLUSH_BY_ASID = 1 << 6;
+        const DECODE_ASSISTS = 1 << 7;
+        const PAUSE_FILTER = 1 << 10;
+        const PAUSE_FILTER_THRESHOLD = 1 << 12;
+        const AVIC = 1 << 13;
+        const VMSAVE_VIRT = 1 << 15;
+        const VGIF = 1 << 16;
+        const GMET = 1 << 17;
+        const SSS_CHECK = 1 << 19;
+        const SPEC_CTRL = 1 << 20;
+        const HOST_MCE_OVERRIDE = 1 << 23;
+        const TLB_CTL = 1 << 24;
+    }
+}
