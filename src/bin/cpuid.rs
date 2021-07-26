@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use raw_cpuid::CpuId;
 use termimad::{minimad::TextTemplate, minimad::TextTemplateExpander, MadSkin};
 
@@ -13,6 +15,24 @@ fn make_table<'a, 'b>(
     expander.set("app-version", "2");
 
     for &(attr, desc) in attrs {
+        let sdesc = string_to_static_str(format!("{}", desc));
+        expander
+            .sub("feature-rows")
+            .set("attr-name", attr)
+            .set("attr-avail", sdesc);
+    }
+
+    expander
+}
+
+fn make_table_display<'a, 'b, D: Display>(
+    text_template: &'a TextTemplate<'b>,
+    attrs: &[(&'b str, D)],
+) -> TextTemplateExpander<'a, 'b> {
+    let mut expander = text_template.expander();
+    expander.set("app-version", "2");
+
+    for (attr, desc) in attrs {
         let sdesc = string_to_static_str(format!("{}", desc));
         expander
             .sub("feature-rows")
@@ -42,8 +62,12 @@ fn make_feature_table<'a, 'b>(
 }
 
 fn print_title_line(title: &str, attr: Option<&str>) {
-    let mut skin = MadSkin::default();
-    skin.print_text(format!("## {}\n", title).as_str());
+    let skin = MadSkin::default();
+    if let Some(opt) = attr {
+        skin.print_text(format!("## {} = \"{}\"\n", title, opt).as_str());
+    } else {
+        skin.print_text(format!("## {}\n", title).as_str());
+    }
 }
 
 fn print_title_attr(title: &str, attr: &str) {
@@ -54,9 +78,14 @@ fn print_title(title: &str) {
     print_title_line(title, None)
 }
 
+fn print_subtitle(title: &str) {
+    let skin = MadSkin::default();
+    skin.print_text(format!("### {}\n", title).as_str());
+}
+
 fn main() {
     let cpuid = CpuId::new();
-    let mut skin = MadSkin::default();
+    let skin = MadSkin::default();
 
     skin.print_text("# CpuId\n");
 
@@ -185,18 +214,148 @@ fn main() {
         println!("Cache");
         println!("{:?}", info);
     }
+
     if let Some(info) = cpuid.get_processor_serial() {
-        println!("Processor Serial");
-        println!("{:?}", info);
+        print_title_attr(
+            "processor serial number (0x03)",
+            format!(
+                "{:0>8x}-{:0>8x}-{:0>8x}",
+                info.serial_upper(),
+                info.serial_middle(),
+                info.serial_lower()
+            )
+            .as_str(),
+        );
     }
-    if let Some(info) = cpuid.get_cache_parameters() {
-        println!("Cache Parameters");
-        println!("{:?}", info);
+
+    if let Some(iter) = cpuid.get_cache_parameters() {
+        print_title("deterministic cache parameters (0x04):");
+        for cache in iter {
+            print_subtitle(format!("L{} Cache:", cache.level()).as_str());
+
+            let size = (cache.associativity()
+                * cache.physical_line_partitions()
+                * cache.coherency_line_size()
+                * cache.sets()) as u64;
+
+            let mut attrs = vec![
+                ("cache type", format!("{:?}", cache.cache_type())),
+                ("cache level", format!("{}", cache.level())),
+                (
+                    "self-initializing cache level",
+                    if cache.is_self_initializing() {
+                        "✅".to_string()
+                    } else {
+                        "❌".to_string()
+                    },
+                ),
+                (
+                    "fully associative cache",
+                    if cache.is_fully_associative() {
+                        "✅".to_string()
+                    } else {
+                        "❌".to_string()
+                    },
+                ),
+                (
+                    "threads sharing this cache",
+                    format!("{}", cache.max_cores_for_cache()),
+                ),
+                (
+                    "processor cores on this die",
+                    format!("{}", cache.max_cores_for_package()),
+                ),
+                (
+                    "system coherency line size",
+                    format!("{}", cache.coherency_line_size()),
+                ),
+                (
+                    "physical line partitions",
+                    format!("{}", cache.physical_line_partitions()),
+                ),
+                (
+                    "ways of associativity",
+                    format!("{}", cache.associativity()),
+                ),
+                (
+                    "WBINVD/INVD acts on lower caches",
+                    if cache.is_write_back_invalidate() {
+                        "✅".to_string()
+                    } else {
+                        "❌".to_string()
+                    },
+                ),
+                (
+                    "inclusive to lower caches",
+                    if cache.is_inclusive() {
+                        "✅".to_string()
+                    } else {
+                        "❌".to_string()
+                    },
+                ),
+                (
+                    "complex cache indexing",
+                    if cache.has_complex_indexing() {
+                        "✅".to_string()
+                    } else {
+                        "❌".to_string()
+                    },
+                ),
+                ("number of sets", format!("{}", cache.sets())),
+                ("(size synth.)", format!("{}", size)),
+            ];
+
+            let table = make_table_display(&table_template, &*attrs);
+            skin.print_expander(table);
+        }
     }
+
     if let Some(info) = cpuid.get_monitor_mwait_info() {
-        println!("Monitor/MWait");
+        print_title("MONITOR/MWAIT (0x05):");
+
+        let mut attrs = vec![
+            (
+                "smallest monitor-line size",
+                format!("{:?}", info.smallest_monitor_line()),
+            ),
+            (
+                "largest monitor-line size",
+                format!("{}", info.largest_monitor_line()),
+            ),
+            (
+                "MONITOR/MWAIT exts supported",
+                if info.extensions_supported() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+        ];
+
+        let table = make_table_display(&table_template, &*attrs);
+        skin.print_expander(table);
+
         println!("{:?}", info);
     }
+
+    /*
+    ///   MONITOR/MWAIT (5):
+    ///      smallest monitor-line size (bytes)       = 0x40 (64)
+    ///      largest monitor-line size (bytes)        = 0x40 (64)
+    ///      enum of Monitor-MWAIT exts supported     = true
+    ///      supports intrs as break-event for MWAIT  = true
+    ///      number of C0 sub C-states using MWAIT    = 0x1 (1)
+    ///      number of C1 sub C-states using MWAIT    = 0x1 (1)
+    ///      number of C2 sub C-states using MWAIT    = 0x0 (0)
+    ///      number of C3 sub C-states using MWAIT    = 0x0 (0)
+    ///      number of C4 sub C-states using MWAIT    = 0x0 (0)
+    ///      number of C5 sub C-states using MWAIT    = 0x0 (0)
+    ///      number of C6 sub C-states using MWAIT    = 0x0 (0)
+    ///      number of C7 sub C-states using MWAIT    = 0x0 (0)
+
+        */
+
+    /*
     if let Some(info) = cpuid.get_thermal_power_info() {
         println!("Thermal Power");
         println!("{:?}", info);
@@ -263,4 +422,5 @@ fn main() {
         println!("Memory Encryption Info");
         println!("{:?}", info);
     }
+    */
 }
