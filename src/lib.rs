@@ -405,10 +405,13 @@ impl CpuId {
     /// ❌ AMD ✅ Intel
     pub fn get_processor_serial(&self) -> Option<ProcessorSerial> {
         if self.leaf_is_supported(EAX_PROCESSOR_SERIAL) {
+            // upper 64-96 bits are in res1.eax:
+            let res1 = self.read.cpuid1(EAX_FEATURE_INFO);
             let res = self.read.cpuid1(EAX_PROCESSOR_SERIAL);
             Some(ProcessorSerial {
                 ecx: res.ecx,
                 edx: res.edx,
+                eax: res1.eax,
             })
         } else {
             None
@@ -1659,29 +1662,44 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 108] = [
 #[derive(PartialEq, Eq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorSerial {
+    /// Lower bits
     ecx: u32,
+    /// Middle bits
     edx: u32,
+    /// Upper bits (come from leaf 0x1)
+    eax: u32,
 }
 
 impl ProcessorSerial {
     /// Bits 00-31 of 96 bit processor serial number.
+    ///
     /// (Available in Pentium III processor only; otherwise, the value in this register is reserved.)
     pub fn serial_lower(&self) -> u32 {
         self.ecx
     }
 
     /// Bits 32-63 of 96 bit processor serial number.
+    ///
     /// (Available in Pentium III processor only; otherwise, the value in this register is reserved.)
     pub fn serial_middle(&self) -> u32 {
         self.edx
     }
 
+    /// Bits 64-96 of 96 bit processor serial number.
+    pub fn serial_upper(&self) -> u32 {
+        self.eax
+    }
+
     /// Combination of bits 00-31 and 32-63 of 96 bit processor serial number.
-    ///
-    /// It's not clear where the remaining bits come from as they are not in eax
-    /// or ebx.
     pub fn serial(&self) -> u64 {
         (self.serial_lower() as u64) | (self.serial_middle() as u64) << 32
+    }
+
+    /// 96 bit processor serial number.
+    pub fn serial_all(&self) -> u128 {
+        (self.serial_lower() as u128)
+            | ((self.serial_middle() as u128) << 32)
+            | ((self.serial_upper() as u128) << 64)
     }
 }
 
@@ -2506,6 +2524,20 @@ pub enum CacheType {
     Unified,
     /// 4-31 = Reserved
     Reserved,
+}
+
+impl fmt::Display for CacheType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let typ = match self {
+            CacheType::Null => "Null",
+            CacheType::Data => "Data",
+            CacheType::Instruction => "Instruction",
+            CacheType::Unified => "Unified",
+            CacheType::Reserved => "Reserved",
+        };
+
+        write!(f, "{}", typ)
+    }
 }
 
 impl CacheParameter {
