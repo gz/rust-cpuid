@@ -30,7 +30,6 @@ fn make_table_display<'a, 'b, D: Display>(
     attrs: &[(&'b str, D)],
 ) -> TextTemplateExpander<'a, 'b> {
     let mut expander = text_template.expander();
-    expander.set("app-version", "2");
 
     for (attr, desc) in attrs {
         let sdesc = string_to_static_str(format!("{}", desc));
@@ -48,7 +47,6 @@ fn make_feature_table<'a, 'b>(
     attrs: &[(&'b str, bool)],
 ) -> TextTemplateExpander<'a, 'b> {
     let mut expander = text_template.expander();
-    expander.set("app-version", "2");
 
     for &(attr, desc) in attrs {
         let desc = if desc { "✅" } else { "❌" };
@@ -330,12 +328,47 @@ fn main() {
                     "❌".to_string()
                 },
             ),
+            (
+                "Interrupts as break-event for MWAIT",
+                if info.interrupts_as_break_event() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
         ];
 
         let table = make_table_display(&table_template, &*attrs);
         skin.print_expander(table);
 
-        println!("{:?}", info);
+        skin.print_text("number of CX sub C-states using MWAIT:\n");
+        let cstate_table = TextTemplate::from(
+            r#"
+        |:-|-:|
+        |**C0**|**C1**|**C2**|**C3**|**C4**|**C5**|**C6**|**C7**|
+        |${c0}|${c1}|${c2}|${c3}|${c4}|${c5}|${c6}|${c7}|
+        |-|-|
+        "#,
+        );
+        let c0 = format!("{}", info.supported_c0_states());
+        let c1 = format!("{}", info.supported_c1_states());
+        let c2 = format!("{}", info.supported_c2_states());
+        let c3 = format!("{}", info.supported_c3_states());
+        let c4 = format!("{}", info.supported_c4_states());
+        let c5 = format!("{}", info.supported_c5_states());
+        let c6 = format!("{}", info.supported_c6_states());
+        let c7 = format!("{}", info.supported_c7_states());
+
+        let mut ctbl = cstate_table.expander();
+        ctbl.set("c0", c0.as_str());
+        ctbl.set("c1", c1.as_str());
+        ctbl.set("c2", c2.as_str());
+        ctbl.set("c3", c3.as_str());
+        ctbl.set("c4", c4.as_str());
+        ctbl.set("c5", c5.as_str());
+        ctbl.set("c6", c6.as_str());
+        ctbl.set("c7", c7.as_str());
+        skin.print_expander(ctbl);
     }
 
     /*
