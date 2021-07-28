@@ -236,7 +236,7 @@ fn main() {
                 * cache.coherency_line_size()
                 * cache.sets()) as u64;
 
-            let mut attrs = vec![
+            let attrs = vec![
                 ("cache type", format!("{:?}", cache.cache_type())),
                 ("cache level", format!("{}", cache.level())),
                 (
@@ -311,7 +311,7 @@ fn main() {
     if let Some(info) = cpuid.get_monitor_mwait_info() {
         print_title("MONITOR/MWAIT (0x05):");
 
-        let mut attrs = vec![
+        let attrs = vec![
             (
                 "smallest monitor-line size",
                 format!("{:?}", info.smallest_monitor_line()),
@@ -344,10 +344,11 @@ fn main() {
         skin.print_text("number of CX sub C-states using MWAIT:\n");
         let cstate_table = TextTemplate::from(
             r#"
-        |:-|-:|
+        | :-: |  :-: | :-: | :-: | :-: | :-: | :-: | :-: |
         |**C0**|**C1**|**C2**|**C3**|**C4**|**C5**|**C6**|**C7**|
+        | :-: |  :-: | :-: | :-: | :-: | :-: | :-: | :-: |
         |${c0}|${c1}|${c2}|${c3}|${c4}|${c5}|${c6}|${c7}|
-        |-|-|
+        | :-: |  :-: | :-: | :-: | :-: | :-: | :-: | :-: |
         "#,
         );
         let c0 = format!("{}", info.supported_c0_states());
@@ -371,28 +372,179 @@ fn main() {
         skin.print_expander(ctbl);
     }
 
-    /*
-    ///   MONITOR/MWAIT (5):
-    ///      smallest monitor-line size (bytes)       = 0x40 (64)
-    ///      largest monitor-line size (bytes)        = 0x40 (64)
-    ///      enum of Monitor-MWAIT exts supported     = true
-    ///      supports intrs as break-event for MWAIT  = true
-    ///      number of C0 sub C-states using MWAIT    = 0x1 (1)
-    ///      number of C1 sub C-states using MWAIT    = 0x1 (1)
-    ///      number of C2 sub C-states using MWAIT    = 0x0 (0)
-    ///      number of C3 sub C-states using MWAIT    = 0x0 (0)
-    ///      number of C4 sub C-states using MWAIT    = 0x0 (0)
-    ///      number of C5 sub C-states using MWAIT    = 0x0 (0)
-    ///      number of C6 sub C-states using MWAIT    = 0x0 (0)
-    ///      number of C7 sub C-states using MWAIT    = 0x0 (0)
-
-        */
-
-    /*
     if let Some(info) = cpuid.get_thermal_power_info() {
-        println!("Thermal Power");
-        println!("{:?}", info);
+        print_title("Thermal and Power Management Features (0x06):");
+        let attrs = vec![
+            (
+                "digital thermometer",
+                if info.has_dts() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "Intel Turbo Boost Technology",
+                if info.has_turbo_boost() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "ARAT always running APIC timer",
+                if info.has_arat() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "PLN power limit notification",
+                if info.has_pln() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "ECMD extended clock modulation duty",
+                if info.has_ecmd() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "PTM package thermal management",
+                if info.has_ptm() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "HWP base registers",
+                if info.has_hwp() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "HWP notification",
+                if info.has_hwp_notification() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "HWP activity window",
+                if info.has_hwp_activity_window() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "HWP energy performance preference",
+                if info.has_hwp_energy_performance_preference() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "HWP package level request",
+                if info.has_hwp_package_level_request() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "HDC base registers",
+                if info.has_hdc() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "Intel Turbo Boost Max Technology 3.0",
+                if info.has_turbo_boost3() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "HWP capabilities",
+                if info.has_hwp_capabilities() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "HWP PECI override",
+                if info.has_hwp_peci_override() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "flexible HWP",
+                if info.has_flexible_hwp() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "IA32_HWP_REQUEST MSR fast access mode",
+                if info.has_hwp_fast_access_mode() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "ignoring idle logical processor HWP req",
+                if info.has_ignore_idle_processor_hwp_request() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "digital thermometer threshold",
+                format!("{}", info.dts_irq_threshold()),
+            ),
+            (
+                "hardware coordination feedback",
+                if info.has_hw_coord_feedback() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+            (
+                "performance-energy bias capability",
+                if info.has_energy_bias_pref() {
+                    "✅".to_string()
+                } else {
+                    "❌".to_string()
+                },
+            ),
+        ];
+
+        let table = make_table_display(&table_template, &*attrs);
+        skin.print_expander(table);
     }
+    /*
     if let Some(info) = cpuid.get_extended_feature_info() {
         println!("Extended Features");
         println!("{:?}", info);
