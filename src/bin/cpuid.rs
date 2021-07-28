@@ -81,6 +81,14 @@ fn print_subtitle(title: &str) {
     skin.print_text(format!("### {}\n", title).as_str());
 }
 
+fn bool_repr(x: bool) -> String {
+    if x {
+        "✅".to_string()
+    } else {
+        "❌".to_string()
+    }
+}
+
 fn main() {
     let cpuid = CpuId::new();
     let skin = MadSkin::default();
@@ -241,19 +249,11 @@ fn main() {
                 ("cache level", format!("{}", cache.level())),
                 (
                     "self-initializing cache level",
-                    if cache.is_self_initializing() {
-                        "✅".to_string()
-                    } else {
-                        "❌".to_string()
-                    },
+                    bool_repr(cache.is_self_initializing()),
                 ),
                 (
                     "fully associative cache",
-                    if cache.is_fully_associative() {
-                        "✅".to_string()
-                    } else {
-                        "❌".to_string()
-                    },
+                    bool_repr(cache.is_fully_associative()),
                 ),
                 (
                     "threads sharing this cache",
@@ -277,27 +277,12 @@ fn main() {
                 ),
                 (
                     "WBINVD/INVD acts on lower caches",
-                    if cache.is_write_back_invalidate() {
-                        "✅".to_string()
-                    } else {
-                        "❌".to_string()
-                    },
+                    bool_repr(cache.is_write_back_invalidate()),
                 ),
-                (
-                    "inclusive to lower caches",
-                    if cache.is_inclusive() {
-                        "✅".to_string()
-                    } else {
-                        "❌".to_string()
-                    },
-                ),
+                ("inclusive to lower caches", bool_repr(cache.is_inclusive())),
                 (
                     "complex cache indexing",
-                    if cache.has_complex_indexing() {
-                        "✅".to_string()
-                    } else {
-                        "❌".to_string()
-                    },
+                    bool_repr(cache.has_complex_indexing()),
                 ),
                 ("number of sets", format!("{}", cache.sets())),
                 ("(size synth.)", format!("{}", size)),
@@ -322,19 +307,11 @@ fn main() {
             ),
             (
                 "MONITOR/MWAIT exts supported",
-                if info.extensions_supported() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
+                bool_repr(info.extensions_supported()),
             ),
             (
                 "Interrupts as break-event for MWAIT",
-                if info.interrupts_as_break_event() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
+                bool_repr(info.interrupts_as_break_event()),
             ),
         ];
 
@@ -375,149 +352,47 @@ fn main() {
     if let Some(info) = cpuid.get_thermal_power_info() {
         print_title("Thermal and Power Management Features (0x06):");
         let attrs = vec![
-            (
-                "digital thermometer",
-                if info.has_dts() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
-            ),
+            ("digital thermometer", bool_repr(info.has_dts())),
             (
                 "Intel Turbo Boost Technology",
-                if info.has_turbo_boost() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
+                bool_repr(info.has_turbo_boost()),
             ),
-            (
-                "ARAT always running APIC timer",
-                if info.has_arat() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
-            ),
-            (
-                "PLN power limit notification",
-                if info.has_pln() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
-            ),
+            ("ARAT always running APIC timer", bool_repr(info.has_arat())),
+            ("PLN power limit notification", bool_repr(info.has_pln())),
             (
                 "ECMD extended clock modulation duty",
-                if info.has_ecmd() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
+                bool_repr(info.has_ecmd()),
             ),
-            (
-                "PTM package thermal management",
-                if info.has_ptm() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
-            ),
-            (
-                "HWP base registers",
-                if info.has_hwp() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
-            ),
-            (
-                "HWP notification",
-                if info.has_hwp_notification() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
-            ),
+            ("PTM package thermal management", bool_repr(info.has_ptm())),
+            ("HWP base registers", bool_repr(info.has_hwp())),
+            ("HWP notification", bool_repr(info.has_hwp_notification())),
             (
                 "HWP activity window",
-                if info.has_hwp_activity_window() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
+                bool_repr(info.has_hwp_activity_window()),
             ),
             (
                 "HWP energy performance preference",
-                if info.has_hwp_energy_performance_preference() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
+                bool_repr(info.has_hwp_energy_performance_preference()),
             ),
             (
                 "HWP package level request",
-                if info.has_hwp_package_level_request() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
+                bool_repr(info.has_hwp_package_level_request()),
             ),
-            (
-                "HDC base registers",
-                if info.has_hdc() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
-            ),
+            ("HDC base registers", bool_repr(info.has_hdc())),
             (
                 "Intel Turbo Boost Max Technology 3.0",
-                if info.has_turbo_boost3() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
+                bool_repr(info.has_turbo_boost3()),
             ),
-            (
-                "HWP capabilities",
-                if info.has_hwp_capabilities() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
-            ),
-            (
-                "HWP PECI override",
-                if info.has_hwp_peci_override() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
-            ),
-            (
-                "flexible HWP",
-                if info.has_flexible_hwp() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
-            ),
+            ("HWP capabilities", bool_repr(info.has_hwp_capabilities())),
+            ("HWP PECI override", bool_repr(info.has_hwp_peci_override())),
+            ("flexible HWP", bool_repr(info.has_flexible_hwp())),
             (
                 "IA32_HWP_REQUEST MSR fast access mode",
-                if info.has_hwp_fast_access_mode() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
+                bool_repr(info.has_hwp_fast_access_mode()),
             ),
             (
                 "ignoring idle logical processor HWP req",
-                if info.has_ignore_idle_processor_hwp_request() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
+                bool_repr(info.has_ignore_idle_processor_hwp_request()),
             ),
             (
                 "digital thermometer threshold",
@@ -525,30 +400,133 @@ fn main() {
             ),
             (
                 "hardware coordination feedback",
-                if info.has_hw_coord_feedback() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
+                bool_repr(info.has_hw_coord_feedback()),
             ),
             (
                 "performance-energy bias capability",
-                if info.has_energy_bias_pref() {
-                    "✅".to_string()
-                } else {
-                    "❌".to_string()
-                },
+                bool_repr(info.has_energy_bias_pref()),
             ),
         ];
 
         let table = make_table_display(&table_template, &*attrs);
         skin.print_expander(table);
     }
-    /*
     if let Some(info) = cpuid.get_extended_feature_info() {
-        println!("Extended Features");
-        println!("{:?}", info);
+        print_title("Extended feature flags (0x07):");
+
+        let attrs = [
+            ("FSGSBASE instructions", bool_repr(info.has_fsgsbase())),
+            (
+                "IA32_TSC_ADJUST MSR supported",
+                bool_repr(info.has_tsc_adjust_msr()),
+            ),
+            (
+                "SGX: Software Guard Extensions supported",
+                bool_repr(info.has_sgx()),
+            ),
+            ("BMI1 instructions", bool_repr(info.has_bmi1())),
+            ("HLE hardware lock elision", bool_repr(info.has_hle())),
+            (
+                "AVX2: advanced vector extensions 2",
+                bool_repr(info.has_avx2()),
+            ),
+            ("FDP_EXCPTN_ONLY", bool_repr(info.has_fdp())),
+            (
+                "SMEP supervisor mode exec protection",
+                bool_repr(info.has_smep()),
+            ),
+            ("BMI2 instructions", bool_repr(info.has_bmi2())),
+            (
+                "enhanced REP MOVSB/STOSB",
+                bool_repr(info.has_rep_movsb_stosb()),
+            ),
+            ("INVPCID instruction", bool_repr(info.has_invpcid())),
+            (
+                "RTM: restricted transactional memory",
+                bool_repr(info.has_rtm()),
+            ),
+            ("RDT-CMT/PQoS cache monitoring", bool_repr(info.has_rdtm())),
+            (
+                "deprecated FPU CS/DS",
+                bool_repr(info.has_fpu_cs_ds_deprecated()),
+            ),
+            (
+                "MPX: intel memory protection extensions",
+                bool_repr(info.has_mpx()),
+            ),
+            ("RDT-CAT/PQE cache allocation", bool_repr(info.has_rdta())),
+            (
+                "AVX512F: AVX-512 foundation instructions",
+                bool_repr(info.has_avx512f()),
+            ),
+            (
+                "AVX512DQ: double & quadword instructions",
+                bool_repr(info.has_avx512dq()),
+            ),
+            ("RDSEED instruction", bool_repr(info.has_rdseed())),
+            ("ADX instructions", bool_repr(info.has_adx())),
+            (
+                "SMAP: supervisor mode access prevention",
+                bool_repr(info.has_smap()),
+            ),
+            (
+                "AVX512IFMA: fused multiply add",
+                bool_repr(info.has_avx512_ifma()),
+            ),
+            ("CLFLUSHOPT instruction", bool_repr(info.has_clflushopt())),
+            ("CLWB instruction", bool_repr(info.has_clwb())),
+            (
+                "Intel processor trace",
+                bool_repr(info.has_processor_trace()),
+            ),
+            (
+                "AVX512PF: prefetch instructions",
+                bool_repr(info.has_avx512pf()),
+            ),
+            (
+                "AVX512ER: exponent & reciprocal instrs",
+                bool_repr(info.has_avx512er()),
+            ),
+            (
+                "AVX512CD: conflict detection instrs",
+                bool_repr(info.has_avx512cd()),
+            ),
+            ("SHA instructions", bool_repr(info.has_sha())),
+            (
+                "AVX512BW: byte & word instructions",
+                bool_repr(info.has_avx512bw()),
+            ),
+            ("AVX512VL: vector length", bool_repr(info.has_avx512vl())),
+            ("PREFETCHWT1", bool_repr(info.has_prefetchwt1())),
+            (
+                "UMIP: user-mode instruction prevention",
+                bool_repr(info.has_umip()),
+            ),
+            (
+                "PKU protection keys for user-mode",
+                bool_repr(info.has_pku()),
+            ),
+            (
+                "OSPKE CR4.PKE and RDPKRU/WRPKRU",
+                bool_repr(info.has_ospke()),
+            ),
+            (
+                "BNDLDX/BNDSTX MAWAU value in 64-bit mode",
+                format!("{}", info.mawau_value()),
+            ),
+            (
+                "RDPID: read processor ID supported",
+                bool_repr(info.has_rdpid()),
+            ),
+            (
+                "SGX_LC: SGX launch config supported",
+                bool_repr(info.has_sgx_lc()),
+            ),
+        ];
+        let table = make_table_display(&table_template, &attrs);
+        skin.print_expander(table);
     }
+    /*
     if let Some(info) = cpuid.get_direct_cache_access_info() {
         println!("Direct Cache Access");
         println!("{:?}", info);
