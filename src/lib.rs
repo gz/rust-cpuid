@@ -4060,6 +4060,25 @@ impl Debug for ExtendedStateIter {
     }
 }
 
+/// Where the extended register state is stored.
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub enum ExtendedRegisterStateLocation {
+    Xcr0,
+    Ia32Xss,
+}
+
+impl fmt::Display for ExtendedRegisterStateLocation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let data = match self {
+            ExtendedRegisterStateLocation::Xcr0 => "XCR0 (user state)",
+            ExtendedRegisterStateLocation::Ia32Xss => "IA32_XSS (supervisor state)",
+        };
+
+        f.write_str(data)
+    }
+}
+
 /// ExtendedState subleaf structure for things that need to be restored.
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedState {
@@ -4083,13 +4102,27 @@ impl ExtendedState {
         self.ebx
     }
 
+    pub fn location(&self) -> ExtendedRegisterStateLocation {
+        if self.is_in_xcr0() {
+            return ExtendedRegisterStateLocation::Xcr0;
+        } else {
+            return ExtendedRegisterStateLocation::Ia32Xss;
+        }
+    }
+
     /// True if the bit n (corresponding to the sub-leaf index)
     /// is supported in the IA32_XSS MSR;
+    ///
+    /// # Deprecation note
+    /// This will likely be removed in the future. Use `location()` instead.
     pub fn is_in_ia32_xss(&self) -> bool {
         self.ecx & 0b1 > 0
     }
 
     /// True if bit n is supported in XCR0.
+    ///
+    /// # Deprecation note
+    /// This will likely be removed in the future. Use `location()` instead.
     pub fn is_in_xcr0(&self) -> bool {
         self.ecx & 0b1 == 0
     }
