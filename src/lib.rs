@@ -88,8 +88,7 @@ pub mod native_cpuid {
     }
 }
 
-use core::fmt;
-use core::fmt::{Debug, Formatter};
+use core::fmt::{self, Debug, Formatter};
 use core::mem::size_of;
 use core::slice;
 use core::str;
@@ -2536,7 +2535,7 @@ impl fmt::Display for CacheType {
             CacheType::Reserved => "Reserved",
         };
 
-        write!(f, "{}", typ)
+        f.write_str(typ)
     }
 }
 
@@ -3750,6 +3749,18 @@ pub enum TopologyType {
     /// Hyper-thread (Simultaneous multithreading)
     SMT = 1,
     Core = 2,
+}
+
+impl fmt::Display for TopologyType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let data = match self {
+            TopologyType::Invalid => "Invalid",
+            TopologyType::SMT => "SMT",
+            TopologyType::Core => "Core",
+        };
+
+        f.write_str(data)
+    }
 }
 
 impl Iterator for ExtendedTopologyIter {
