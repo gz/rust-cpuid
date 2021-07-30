@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use raw_cpuid::CpuId;
+use raw_cpuid::{CpuId, TopologyType};
 use termimad::{minimad::TextTemplate, minimad::TextTemplateExpander, MadSkin};
 
 fn string_to_static_str(s: String) -> &'static str {
@@ -35,6 +35,24 @@ fn make_table_display<'a, 'b, D: Display>(
         let sdesc = string_to_static_str(format!("{}", desc));
         expander
             .sub("feature-rows")
+            .set("attr-name", attr)
+            .set("attr-avail", sdesc);
+    }
+
+    expander
+}
+
+fn make_table_display3<'a, 'b, D: Display>(
+    text_template: &'a TextTemplate<'b>,
+    attrs: &[(&'b str, &'b str, D)],
+) -> TextTemplateExpander<'a, 'b> {
+    let mut expander = text_template.expander();
+
+    for (cat, attr, desc) in attrs {
+        let sdesc = string_to_static_str(format!("{}", desc));
+        expander
+            .sub("feature-rows")
+            .set("category-name", cat)
             .set("attr-name", attr)
             .set("attr-avail", sdesc);
     }
@@ -81,11 +99,69 @@ fn print_subtitle(title: &str) {
     skin.print_text(format!("### {}\n", title).as_str());
 }
 
+fn print_attr<T: Display, A: Display>(name: T, attr: A) {
+    let skin = MadSkin::default();
+    skin.print_text(format!("{} = {}", name, attr).as_str());
+}
+
 fn bool_repr(x: bool) -> String {
     if x {
         "✅".to_string()
     } else {
         "❌".to_string()
+    }
+}
+
+trait RowGen {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String);
+}
+
+impl RowGen for bool {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
+        let s = bool_repr(attr);
+        (t, s)
+    }
+}
+
+impl RowGen for u64 {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
+        let s = format!("{}", attr);
+        (t, s)
+    }
+}
+
+impl RowGen for usize {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
+        let s = format!("{}", attr);
+        (t, s)
+    }
+}
+
+impl RowGen for u32 {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
+        let s = format!("{}", attr);
+        (t, s)
+    }
+}
+
+impl RowGen for u16 {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
+        let s = format!("{}", attr);
+        (t, s)
+    }
+}
+
+impl RowGen for u8 {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
+        let s = format!("{}", attr);
+        (t, s)
+    }
+}
+
+impl RowGen for TopologyType {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
+        let s = format!("{}", attr);
+        (t, s)
     }
 }
 
@@ -526,23 +602,149 @@ fn main() {
         let table = make_table_display(&table_template, &attrs);
         skin.print_expander(table);
     }
-    /*
     if let Some(info) = cpuid.get_direct_cache_access_info() {
-        println!("Direct Cache Access");
-        println!("{:?}", info);
+        print_title("Direct Cache Access Parameters (0x09):");
+        print_attr("PLATFORM_DCA_CAP MSR bits", info.get_dca_cap_value());
     }
     if let Some(info) = cpuid.get_performance_monitoring_info() {
-        println!("Performance Monitoring");
-        println!("{:?}", info);
+        print_title("Architecture Performance Monitoring Features (0x0a)");
+        print_subtitle("Monitoring Hardware Info (0x0a/{eax, edx}):");
+        let table = make_table_display(
+            &table_template,
+            &[
+                RowGen::make_row("version ID", info.version_id()),
+                RowGen::make_row(
+                    "number of counters per HW thread",
+                    info.number_of_counters(),
+                ),
+                RowGen::make_row("bit width of counter", info.counter_bit_width()),
+                RowGen::make_row("length of EBX bit vector", info.ebx_length()),
+                RowGen::make_row("number of fixed counters", info.fixed_function_counters()),
+                RowGen::make_row(
+                    "bit width of fixed counters",
+                    info.fixed_function_counters_bit_width(),
+                ),
+                RowGen::make_row("anythread deprecation", info.has_any_thread_deprecation()),
+            ],
+        );
+        skin.print_expander(table);
+
+        print_subtitle("Monitoring Hardware Features (0x0a/ebx):");
+        let attrs = [
+            RowGen::make_row(
+                "core cycle event not available",
+                info.is_core_cyc_ev_unavailable(),
+            ),
+            RowGen::make_row(
+                "instruction retired event not available",
+                info.is_inst_ret_ev_unavailable(),
+            ),
+            RowGen::make_row(
+                "reference cycles event not available",
+                info.is_ref_cycle_ev_unavailable(),
+            ),
+            RowGen::make_row(
+                "last-level cache ref event not available",
+                info.is_cache_ref_ev_unavailable(),
+            ),
+            RowGen::make_row(
+                "last-level cache miss event not avail",
+                info.is_ll_cache_miss_ev_unavailable(),
+            ),
+            RowGen::make_row(
+                "branch inst retired event not available",
+                info.is_branch_inst_ret_ev_unavailable(),
+            ),
+            RowGen::make_row(
+                "branch mispred retired event not avail",
+                info.is_branch_midpred_ev_unavailable(),
+            ),
+        ];
+        let table = make_table_display(&table_template, &attrs);
+        skin.print_expander(table);
     }
     if let Some(info) = cpuid.get_extended_topology_info() {
-        println!("Extended Topology");
-        println!("{:?}", info);
+        print_title("x2APIC features / processor topology (0x0b):");
+
+        for level in info {
+            print_subtitle(format!("level {}:", level.level_number()).as_str());
+
+            let attrs = [
+                RowGen::make_row("level type", level.level_type()),
+                RowGen::make_row("bit width of level", level.shift_right_for_next_apic_id()),
+                RowGen::make_row("number of logical processors at level", level.processors()),
+                RowGen::make_row("x2apic id of current processor", level.x2apic_id()),
+            ];
+            let table = make_table_display(&table_template, &attrs);
+            skin.print_expander(table);
+        }
     }
     if let Some(info) = cpuid.get_extended_state_info() {
-        println!("Extended State");
-        println!("{:?}", info);
+        print_title("Extended Register State (0x0d/0):");
+
+        let table_template3 = TextTemplate::from(
+            r#"
+|-:|-:|-:|
+${feature-rows
+|**${category-name}**|**${attr-name}**|${attr-avail}|
+}
+|-|-|
+    "#,
+        );
+
+        print_subtitle("XCR0/IA32_XSS supported states:");
+        let attrs = [
+            (
+                "XCR0",
+                "x87 state",
+                bool_repr(info.xcr0_supports_legacy_x87()),
+            ),
+            ("XCR0", "SSE state", bool_repr(info.xcr0_supports_sse_128())),
+            ("XCR0", "AVX state", bool_repr(info.xcr0_supports_avx_256())),
+            (
+                "XCR0",
+                "MPX BNDREGS",
+                bool_repr(info.xcr0_supports_mpx_bndregs()),
+            ),
+            (
+                "XCR0",
+                "MPX BNDCSR",
+                bool_repr(info.xcr0_supports_mpx_bndcsr()),
+            ),
+            (
+                "XCR0",
+                "AVX-512 opmask",
+                bool_repr(info.xcr0_supports_avx512_opmask()),
+            ),
+            (
+                "XCR0",
+                "AVX-512 ZMM_Hi256",
+                bool_repr(info.xcr0_supports_avx512_zmm_hi256()),
+            ),
+            (
+                "XCR0",
+                "AVX-512 Hi16_ZMM",
+                bool_repr(info.xcr0_supports_avx512_zmm_hi16()),
+            ),
+            (
+                "IA32_XSS",
+                "PT state",
+                bool_repr(info.ia32_xss_supports_pt()),
+            ),
+            ("XCR0", "PKRU state", bool_repr(info.xcr0_supports_pkru())),
+            //("XCR0", "CET_U state", xxx),
+            //("XCR0", "CET_S state", xxx),
+            (
+                "IA32_XSS",
+                "HDC state",
+                bool_repr(info.ia32_xss_supports_hdc()),
+            ),
+        ];
+        let table = make_table_display3(&table_template3, &attrs);
+        skin.print_expander(table);
     }
+
+    /*
     if let Some(info) = cpuid.get_rdt_monitoring_info() {
         println!("RDT Monitoring");
         println!("{:?}", info);
