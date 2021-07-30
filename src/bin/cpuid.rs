@@ -77,6 +77,22 @@ fn make_feature_table<'a, 'b>(
     expander
 }
 
+fn simple_table(attrs: &[(&'static str, String)]) {
+    let table_template = TextTemplate::from(
+        r#"
+|-:|-:|
+${feature-rows
+|**${attr-name}**|${attr-avail}|
+}
+|-|-|
+    "#,
+    );
+
+    let table = make_table_display(&table_template, &attrs);
+    let skin = MadSkin::default();
+    skin.print_expander(table);
+}
+
 fn print_title_line(title: &str, attr: Option<&str>) {
     let skin = MadSkin::default();
     if let Some(opt) = attr {
@@ -620,29 +636,26 @@ fn main() {
     }
     if let Some(info) = cpuid.get_performance_monitoring_info() {
         print_title("Architecture Performance Monitoring Features (0x0a)");
+
         print_subtitle("Monitoring Hardware Info (0x0a/{eax, edx}):");
-        let table = make_table_display(
-            &table_template,
-            &[
-                RowGen::make_row("version ID", info.version_id()),
-                RowGen::make_row(
-                    "number of counters per HW thread",
-                    info.number_of_counters(),
-                ),
-                RowGen::make_row("bit width of counter", info.counter_bit_width()),
-                RowGen::make_row("length of EBX bit vector", info.ebx_length()),
-                RowGen::make_row("number of fixed counters", info.fixed_function_counters()),
-                RowGen::make_row(
-                    "bit width of fixed counters",
-                    info.fixed_function_counters_bit_width(),
-                ),
-                RowGen::make_row("anythread deprecation", info.has_any_thread_deprecation()),
-            ],
-        );
-        skin.print_expander(table);
+        simple_table(&[
+            RowGen::make_row("version ID", info.version_id()),
+            RowGen::make_row(
+                "number of counters per HW thread",
+                info.number_of_counters(),
+            ),
+            RowGen::make_row("bit width of counter", info.counter_bit_width()),
+            RowGen::make_row("length of EBX bit vector", info.ebx_length()),
+            RowGen::make_row("number of fixed counters", info.fixed_function_counters()),
+            RowGen::make_row(
+                "bit width of fixed counters",
+                info.fixed_function_counters_bit_width(),
+            ),
+            RowGen::make_row("anythread deprecation", info.has_any_thread_deprecation()),
+        ]);
 
         print_subtitle("Monitoring Hardware Features (0x0a/ebx):");
-        let attrs = [
+        simple_table(&[
             RowGen::make_row(
                 "core cycle event not available",
                 info.is_core_cyc_ev_unavailable(),
@@ -671,24 +684,19 @@ fn main() {
                 "branch mispred retired event not avail",
                 info.is_branch_midpred_ev_unavailable(),
             ),
-        ];
-        let table = make_table_display(&table_template, &attrs);
-        skin.print_expander(table);
+        ]);
     }
     if let Some(info) = cpuid.get_extended_topology_info() {
         print_title("x2APIC features / processor topology (0x0b):");
 
         for level in info {
             print_subtitle(format!("level {}:", level.level_number()).as_str());
-
-            let attrs = [
+            simple_table(&[
                 RowGen::make_row("level type", level.level_type()),
                 RowGen::make_row("bit width of level", level.shift_right_for_next_apic_id()),
                 RowGen::make_row("number of logical processors at level", level.processors()),
                 RowGen::make_row("x2apic id of current processor", level.x2apic_id()),
-            ];
-            let table = make_table_display(&table_template, &attrs);
-            skin.print_expander(table);
+            ]);
         }
     }
     if let Some(info) = cpuid.get_extended_state_info() {
@@ -743,7 +751,7 @@ ${feature-rows
         let table = make_table_display3(&table_template3, &attrs);
         skin.print_expander(table);
 
-        let attrs = [
+        simple_table(&[
             RowGen::make_row(
                 "bytes required by fields in XCR0",
                 info.xsave_area_size_enabled_features(),
@@ -752,27 +760,22 @@ ${feature-rows
                 "bytes required by XSAVE/XRSTOR area",
                 info.xsave_area_size_supported_features(),
             ),
-        ];
-        let table = make_table_display(&table_template, &attrs);
-        skin.print_expander(table);
+        ]);
 
         print_subtitle("XSAVE features (0x0d/1):");
-        let attrs = [
+        simple_table(&[
             RowGen::make_row("XSAVEOPT instruction", info.has_xsaveopt()),
             RowGen::make_row("XSAVEC instruction", info.has_xsavec()),
             RowGen::make_row("XGETBV instruction", info.has_xgetbv()),
             RowGen::make_row("XSAVES/XRSTORS instructions", info.has_xsaves_xrstors()),
             RowGen::make_row("SAVE area size in bytes", info.xsave_size()),
-        ];
-        let table = make_table_display(&table_template, &attrs);
-        skin.print_expander(table);
+        ]);
 
         for state in info.iter() {
             print_subtitle(
                 format!("{} features (0x0d/{}):", state.register(), state.subleaf).as_str(),
             );
-
-            let attrs = [
+            simple_table(&[
                 RowGen::make_row("save state byte size", state.size()),
                 RowGen::make_row("save state byte offset", state.offset()),
                 RowGen::make_row("supported in IA32_XSS or XCR0", state.location()),
@@ -780,24 +783,20 @@ ${feature-rows
                     "64-byte alignment in compacted XSAVE",
                     state.is_compacted_format(),
                 ),
-            ];
-            let table = make_table_display(&table_template, &attrs);
-            skin.print_expander(table);
+            ]);
         }
     }
     if let Some(info) = cpuid.get_rdt_monitoring_info() {
         print_title("Quality of Service Monitoring Resource Type (0x0f/0):");
-        let attrs = [
+        simple_table(&[
             RowGen::make_row("Maximum range of RMID", info.rmid_range()),
             RowGen::make_row("supports L3 cache QoS monitoring", info.has_l3_monitoring()),
-        ];
-        let table = make_table_display(&table_template, &attrs);
-        skin.print_expander(table);
+        ]);
 
         if let Some(rmid) = info.l3_monitoring() {
             print_subtitle("L3 Cache Quality of Service Monitoring (0x0f/1):");
 
-            let attrs = [
+            simple_table(&[
                 RowGen::make_row(
                     "Conversion factor from IA32_QM_CTR to bytes",
                     rmid.conversion_factor(),
@@ -815,14 +814,12 @@ ${feature-rows
                     "supports L3 local bandwidth monitoring",
                     rmid.has_local_bandwidth_monitoring(),
                 ),
-            ];
-            let table = make_table_display(&table_template, &attrs);
-            skin.print_expander(table);
+            ]);
         }
     }
     if let Some(info) = cpuid.get_rdt_allocation_info() {
         print_title("Resource Director Technology Allocation (0x10/0)");
-        let attrs = [
+        simple_table(&[
             RowGen::make_row(
                 "L3 cache allocation technology supported",
                 info.has_l3_cat(),
@@ -835,13 +832,11 @@ ${feature-rows
                 "memory bandwidth allocation supported",
                 info.has_memory_bandwidth_allocation(),
             ),
-        ];
-        let table = make_table_display(&table_template, &attrs);
-        skin.print_expander(table);
+        ]);
 
         if let Some(l3_cat) = info.l3_cat() {
             print_subtitle("L3 Cache Allocation Technology (0x10/1):");
-            let attrs = [
+            simple_table(&[
                 RowGen::make_row("length of capacity bit mask", l3_cat.capacity_mask_length()),
                 RowGen::make_row(
                     "Bit-granular map of isolation/contention",
@@ -852,39 +847,33 @@ ${feature-rows
                     l3_cat.has_code_data_prioritization(),
                 ),
                 RowGen::make_row("highest COS number supported", l3_cat.highest_cos()),
-            ];
-            let table = make_table_display(&table_template, &attrs);
-            skin.print_expander(table);
+            ]);
         }
         if let Some(l2_cat) = info.l2_cat() {
             print_subtitle("L2 Cache Allocation Technology (0x10/2):");
-            let attrs = [
+            simple_table(&[
                 RowGen::make_row("length of capacity bit mask", l2_cat.capacity_mask_length()),
                 RowGen::make_row(
                     "Bit-granular map of isolation/contention",
                     l2_cat.isolation_bitmap(),
                 ),
                 RowGen::make_row("highest COS number supported", l2_cat.highest_cos()),
-            ];
-            let table = make_table_display(&table_template, &attrs);
-            skin.print_expander(table);
+            ]);
         }
         if let Some(mem) = info.memory_bandwidth_allocation() {
             print_subtitle("Memory Bandwidth Allocation (0x10/3):");
-            let attrs = [
+            simple_table(&[
                 RowGen::make_row("maximum throttling value", mem.max_hba_throttling()),
                 RowGen::make_row("delay values are linear", mem.has_linear_response_delay()),
                 RowGen::make_row("highest COS number supported", mem.highest_cos()),
-            ];
-            let table = make_table_display(&table_template, &attrs);
-            skin.print_expander(table);
+            ]);
         }
     }
 
     if let Some(info) = cpuid.get_sgx_info() {
-        print_title("SGX - Software Guard Extensions (0x12/0):");
+        print_title("SGX - Software Guard Extensions (0x12/{0,1}):");
 
-        let attrs = [
+        simple_table(&[
             RowGen::make_row("SGX1 supported", info.has_sgx1()),
             RowGen::make_row("SGX2 supported", info.has_sgx2()),
             RowGen::make_row(
@@ -901,28 +890,75 @@ ${feature-rows
                 info.max_enclave_size_non_64bit(),
             ),
             RowGen::make_row("MaxEnclaveSize_64 (log2)", info.max_enclave_size_64bit()),
-        ];
-        let table = make_table_display(&table_template, &attrs);
-        skin.print_expander(table);
+        ]);
 
         for (idx, leaf) in info.iter().enumerate() {
             let SgxSectionInfo::Epc(section) = leaf;
             print_subtitle(format!("Enclave Page Cache (0x12/{})", idx + 2).as_str());
-            let attrs = [
+            simple_table(&[
                 RowGen::make_row("physical base address", section.physical_base()),
                 RowGen::make_row("size", section.size()),
-            ];
-            let table = make_table_display(&table_template, &attrs);
-            skin.print_expander(table);
+            ]);
         }
+    }
+    if let Some(info) = cpuid.get_processor_trace_info() {
+        print_title("Intel Processor Trace (0x14):");
+        simple_table(&[
+            RowGen::make_row(
+                "IA32_RTIT_CR3_MATCH is accessible",
+                info.has_rtit_cr3_match(),
+            ),
+            RowGen::make_row(
+                "configurable PSB & cycle-accurate",
+                info.has_configurable_psb_and_cycle_accurate_mode(),
+            ),
+            RowGen::make_row(
+                "IP & TraceStop filtering; PT preserve",
+                info.has_ip_tracestop_filtering(),
+            ),
+            RowGen::make_row(
+                "MTC timing packet; suppress COFI-based",
+                info.has_mtc_timing_packet_coefi_suppression(),
+            ),
+            RowGen::make_row("PTWRITE support", info.has_ptwrite()),
+            RowGen::make_row("power event trace support", info.has_power_event_trace()),
+            RowGen::make_row("ToPA output scheme support", info.has_topa()),
+            RowGen::make_row(
+                "ToPA can hold many output entries",
+                info.has_topa_maximum_entries(),
+            ),
+            RowGen::make_row(
+                "single-range output scheme support",
+                info.has_single_range_output_scheme(),
+            ),
+            RowGen::make_row(
+                "output to trace transport",
+                info.has_trace_transport_subsystem(),
+            ),
+            RowGen::make_row(
+                "IP payloads have LIP values & CS",
+                info.has_lip_with_cs_base(),
+            ),
+            RowGen::make_row(
+                "configurable address ranges",
+                info.configurable_address_ranges(),
+            ),
+            RowGen::make_row(
+                "supported MTC periods bitmask",
+                info.supported_mtc_period_encodings(),
+            ),
+            RowGen::make_row(
+                "supported cycle threshold bitmask",
+                info.supported_cycle_threshold_value_encodings(),
+            ),
+            RowGen::make_row(
+                "supported config PSB freq bitmask",
+                info.supported_psb_frequency_encodings(),
+            ),
+        ]);
     }
 
     /*
-
-    if let Some(info) = cpuid.get_processor_trace_info() {
-        println!("Processor Trace");
-        println!("{:?}", info);
-    }
     if let Some(info) = cpuid.get_tsc_info() {
         println!("TSC");
         println!("{:?}", info);
