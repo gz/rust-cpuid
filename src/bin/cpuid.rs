@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use raw_cpuid::{CpuId, ExtendedRegisterStateLocation, TopologyType};
+use raw_cpuid::{CpuId, ExtendedRegisterStateLocation, SgxSectionInfo, TopologyType};
 use termimad::{minimad::TextTemplate, minimad::TextTemplateExpander, MadSkin};
 
 fn string_to_static_str(s: String) -> &'static str {
@@ -785,20 +785,140 @@ ${feature-rows
             skin.print_expander(table);
         }
     }
-
-    /*
     if let Some(info) = cpuid.get_rdt_monitoring_info() {
-        println!("RDT Monitoring");
-        println!("{:?}", info);
+        print_title("Quality of Service Monitoring Resource Type (0x0f/0):");
+        let attrs = [
+            RowGen::make_row("Maximum range of RMID", info.rmid_range()),
+            RowGen::make_row("supports L3 cache QoS monitoring", info.has_l3_monitoring()),
+        ];
+        let table = make_table_display(&table_template, &attrs);
+        skin.print_expander(table);
+
+        if let Some(rmid) = info.l3_monitoring() {
+            print_subtitle("L3 Cache Quality of Service Monitoring (0x0f/1):");
+
+            let attrs = [
+                RowGen::make_row(
+                    "Conversion factor from IA32_QM_CTR to bytes",
+                    rmid.conversion_factor(),
+                ),
+                RowGen::make_row("Maximum range of RMID", rmid.maximum_rmid_range()),
+                RowGen::make_row(
+                    "supports L3 occupancy monitoring",
+                    rmid.has_occupancy_monitoring(),
+                ),
+                RowGen::make_row(
+                    "supports L3 total bandwidth monitoring",
+                    rmid.has_total_bandwidth_monitoring(),
+                ),
+                RowGen::make_row(
+                    "supports L3 local bandwidth monitoring",
+                    rmid.has_local_bandwidth_monitoring(),
+                ),
+            ];
+            let table = make_table_display(&table_template, &attrs);
+            skin.print_expander(table);
+        }
     }
     if let Some(info) = cpuid.get_rdt_allocation_info() {
-        println!("RDT Allocation");
-        println!("{:?}", info);
+        print_title("Resource Director Technology Allocation (0x10/0)");
+        let attrs = [
+            RowGen::make_row(
+                "L3 cache allocation technology supported",
+                info.has_l3_cat(),
+            ),
+            RowGen::make_row(
+                "L2 cache allocation technology supported",
+                info.has_l2_cat(),
+            ),
+            RowGen::make_row(
+                "memory bandwidth allocation supported",
+                info.has_memory_bandwidth_allocation(),
+            ),
+        ];
+        let table = make_table_display(&table_template, &attrs);
+        skin.print_expander(table);
+
+        if let Some(l3_cat) = info.l3_cat() {
+            print_subtitle("L3 Cache Allocation Technology (0x10/1):");
+            let attrs = [
+                RowGen::make_row("length of capacity bit mask", l3_cat.capacity_mask_length()),
+                RowGen::make_row(
+                    "Bit-granular map of isolation/contention",
+                    l3_cat.isolation_bitmap(),
+                ),
+                RowGen::make_row(
+                    "code and data prioritization supported",
+                    l3_cat.has_code_data_prioritization(),
+                ),
+                RowGen::make_row("highest COS number supported", l3_cat.highest_cos()),
+            ];
+            let table = make_table_display(&table_template, &attrs);
+            skin.print_expander(table);
+        }
+        if let Some(l2_cat) = info.l2_cat() {
+            print_subtitle("L2 Cache Allocation Technology (0x10/2):");
+            let attrs = [
+                RowGen::make_row("length of capacity bit mask", l2_cat.capacity_mask_length()),
+                RowGen::make_row(
+                    "Bit-granular map of isolation/contention",
+                    l2_cat.isolation_bitmap(),
+                ),
+                RowGen::make_row("highest COS number supported", l2_cat.highest_cos()),
+            ];
+            let table = make_table_display(&table_template, &attrs);
+            skin.print_expander(table);
+        }
+        if let Some(mem) = info.memory_bandwidth_allocation() {
+            print_subtitle("Memory Bandwidth Allocation (0x10/3):");
+            let attrs = [
+                RowGen::make_row("maximum throttling value", mem.max_hba_throttling()),
+                RowGen::make_row("delay values are linear", mem.has_linear_response_delay()),
+                RowGen::make_row("highest COS number supported", mem.highest_cos()),
+            ];
+            let table = make_table_display(&table_template, &attrs);
+            skin.print_expander(table);
+        }
     }
+
     if let Some(info) = cpuid.get_sgx_info() {
-        println!("Software Guard Extensions");
-        println!("{:?}", info);
+        print_title("SGX - Software Guard Extensions (0x12/0):");
+
+        let attrs = [
+            RowGen::make_row("SGX1 supported", info.has_sgx1()),
+            RowGen::make_row("SGX2 supported", info.has_sgx2()),
+            RowGen::make_row(
+                "SGX ENCLV E*VIRTCHILD, ESETCONTEXT",
+                info.has_enclv_leaves_einvirtchild_edecvirtchild_esetcontext(),
+            ),
+            RowGen::make_row(
+                "SGX ENCLS ETRACKC, ERDINFO, ELDBC, ELDUC",
+                info.has_encls_leaves_etrackc_erdinfo_eldbc_elduc(),
+            ),
+            RowGen::make_row("MISCSELECT", info.miscselect()),
+            RowGen::make_row(
+                "MaxEnclaveSize_Not64 (log2)",
+                info.max_enclave_size_non_64bit(),
+            ),
+            RowGen::make_row("MaxEnclaveSize_64 (log2)", info.max_enclave_size_64bit()),
+        ];
+        let table = make_table_display(&table_template, &attrs);
+        skin.print_expander(table);
+
+        for (idx, leaf) in info.iter().enumerate() {
+            let SgxSectionInfo::Epc(section) = leaf;
+            print_subtitle(format!("Enclave Page Cache (0x12/{})", idx + 2).as_str());
+            let attrs = [
+                RowGen::make_row("physical base address", section.physical_base()),
+                RowGen::make_row("size", section.size()),
+            ];
+            let table = make_table_display(&table_template, &attrs);
+            skin.print_expander(table);
+        }
     }
+
+    /*
+
     if let Some(info) = cpuid.get_processor_trace_info() {
         println!("Processor Trace");
         println!("{:?}", info);
