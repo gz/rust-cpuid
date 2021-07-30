@@ -4060,6 +4060,61 @@ impl Debug for ExtendedStateIter {
     }
 }
 
+/// What kidn of extended register state this is.
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[repr(u32)]
+pub enum ExtendedRegisterType {
+    Avx,
+    MpxBndregs,
+    MpxBndcsr,
+    Avx512Opmask,
+    Avx512ZmmHi256,
+    Avx512ZmmHi16,
+    Pt,
+    Pkru,
+    Hdc,
+    Unknown(u32),
+}
+
+impl From<u32> for ExtendedRegisterType {
+    fn from(value: u32) -> ExtendedRegisterType {
+        match value {
+            0x2 => ExtendedRegisterType::Avx,
+            0x3 => ExtendedRegisterType::MpxBndregs,
+            0x4 => ExtendedRegisterType::MpxBndcsr,
+            0x5 => ExtendedRegisterType::Avx512Opmask,
+            0x6 => ExtendedRegisterType::Avx512ZmmHi256,
+            0x7 => ExtendedRegisterType::Avx512ZmmHi16,
+            0x8 => ExtendedRegisterType::Pt,
+            0x9 => ExtendedRegisterType::Pkru,
+            0xd => ExtendedRegisterType::Hdc,
+            x => ExtendedRegisterType::Unknown(x),
+        }
+    }
+}
+
+impl fmt::Display for ExtendedRegisterType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let data = match self {
+            ExtendedRegisterType::Avx => "AVX/YMM",
+            ExtendedRegisterType::MpxBndregs => "MPX BNDREGS",
+            ExtendedRegisterType::MpxBndcsr => "MPX BNDCSR",
+            ExtendedRegisterType::Avx512Opmask => "AVX-512 opmask",
+            ExtendedRegisterType::Avx512ZmmHi256 => "AVX-512 ZMM_Hi256",
+            ExtendedRegisterType::Avx512ZmmHi16 => "AVX-512 Hi16_ZMM",
+            ExtendedRegisterType::Pkru => "PKRU",
+            ExtendedRegisterType::Pt => "PT",
+            ExtendedRegisterType::Hdc => "HDC",
+            ExtendedRegisterType::Unknown(t) => {
+                return write!(f, "Unknown({})", t);
+            }
+        };
+
+        f.write_str(data)
+    }
+}
+
 /// Where the extended register state is stored.
 #[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -4089,6 +4144,11 @@ pub struct ExtendedState {
 }
 
 impl ExtendedState {
+    /// Returns which register this specific extended subleaf contains information for.
+    pub fn register(&self) -> ExtendedRegisterType {
+        self.subleaf.into()
+    }
+
     /// The size in bytes (from the offset specified in EBX) of the save area
     /// for an extended state feature associated with a valid sub-leaf index, n.
     /// This field reports 0 if the sub-leaf index, n, is invalid.
