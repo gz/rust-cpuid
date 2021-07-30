@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `Display` for `TopologyType`
 - Added `location()` method for `ExtendedState` as an alternative for
   `is_in_ia32_xss` and `is_in_xcr0`.
+- Added new `register()` method for `ExtendedState` to identify which register
+  this instance refers to.
 
 ## [10.0.0] - 2021-07-14
 
