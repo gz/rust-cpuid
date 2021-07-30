@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use raw_cpuid::{CpuId, TopologyType};
+use raw_cpuid::{CpuId, ExtendedRegisterStateLocation, TopologyType};
 use termimad::{minimad::TextTemplate, minimad::TextTemplateExpander, MadSkin};
 
 fn string_to_static_str(s: String) -> &'static str {
@@ -158,6 +158,12 @@ impl RowGen for u8 {
     }
 }
 
+impl RowGen for String {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
+        (t, attr)
+    }
+}
+
 impl RowGen for TopologyType {
     fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
         let s = format!("{}", attr);
@@ -165,6 +171,12 @@ impl RowGen for TopologyType {
     }
 }
 
+impl RowGen for ExtendedRegisterStateLocation {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
+        let s = format!("{}", attr);
+        (t, s)
+    }
+}
 fn main() {
     let cpuid = CpuId::new();
     let skin = MadSkin::default();
@@ -684,7 +696,7 @@ fn main() {
 
         let table_template3 = TextTemplate::from(
             r#"
-|-:|-:|-:|
+|:-|-:|-:|
 ${feature-rows
 |**${category-name}**|**${attr-name}**|${attr-avail}|
 }
@@ -694,11 +706,7 @@ ${feature-rows
 
         print_subtitle("XCR0/IA32_XSS supported states:");
         let attrs = [
-            (
-                "XCR0",
-                "x87 state",
-                bool_repr(info.xcr0_supports_legacy_x87()),
-            ),
+            ("XCR0", "x87", bool_repr(info.xcr0_supports_legacy_x87())),
             ("XCR0", "SSE state", bool_repr(info.xcr0_supports_sse_128())),
             ("XCR0", "AVX state", bool_repr(info.xcr0_supports_avx_256())),
             (
@@ -726,22 +734,56 @@ ${feature-rows
                 "AVX-512 Hi16_ZMM",
                 bool_repr(info.xcr0_supports_avx512_zmm_hi16()),
             ),
-            (
-                "IA32_XSS",
-                "PT state",
-                bool_repr(info.ia32_xss_supports_pt()),
-            ),
-            ("XCR0", "PKRU state", bool_repr(info.xcr0_supports_pkru())),
+            ("IA32_XSS", "PT", bool_repr(info.ia32_xss_supports_pt())),
+            ("XCR0", "PKRU", bool_repr(info.xcr0_supports_pkru())),
             //("XCR0", "CET_U state", xxx),
             //("XCR0", "CET_S state", xxx),
-            (
-                "IA32_XSS",
-                "HDC state",
-                bool_repr(info.ia32_xss_supports_hdc()),
-            ),
+            ("IA32_XSS", "HDC", bool_repr(info.ia32_xss_supports_hdc())),
         ];
         let table = make_table_display3(&table_template3, &attrs);
         skin.print_expander(table);
+
+        let attrs = [
+            RowGen::make_row(
+                "bytes required by fields in XCR0",
+                info.xsave_area_size_enabled_features(),
+            ),
+            RowGen::make_row(
+                "bytes required by XSAVE/XRSTOR area",
+                info.xsave_area_size_supported_features(),
+            ),
+        ];
+        let table = make_table_display(&table_template, &attrs);
+        skin.print_expander(table);
+
+        print_subtitle("XSAVE features (0x0d/1):");
+        let attrs = [
+            RowGen::make_row("XSAVEOPT instruction", info.has_xsaveopt()),
+            RowGen::make_row("XSAVEC instruction", info.has_xsavec()),
+            RowGen::make_row("XGETBV instruction", info.has_xgetbv()),
+            RowGen::make_row("XSAVES/XRSTORS instructions", info.has_xsaves_xrstors()),
+            RowGen::make_row("SAVE area size in bytes", info.xsave_size()),
+        ];
+        let table = make_table_display(&table_template, &attrs);
+        skin.print_expander(table);
+
+        for state in info.iter() {
+            print_subtitle(
+                format!("{} features (0x0d/{}):", state.register(), state.subleaf).as_str(),
+            );
+
+            let attrs = [
+                RowGen::make_row("save state byte size", state.size()),
+                RowGen::make_row("save state byte offset", state.offset()),
+                RowGen::make_row("supported in IA32_XSS or XCR0", state.location()),
+                RowGen::make_row(
+                    "64-byte alignment in compacted XSAVE",
+                    state.is_compacted_format(),
+                ),
+            ];
+            let table = make_table_display(&table_template, &attrs);
+            skin.print_expander(table);
+        }
     }
 
     /*
