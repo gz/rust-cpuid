@@ -782,7 +782,7 @@ impl Display for Associativity {
                 return write!(f, "NWay({})", n);
             }
             Associativity::FullyAssociative => "Fully associative",
-            Associativity::Unknown => "Unknown (check leaf 0x8000_001D)",
+            Associativity::Unknown => "Unknown (check leaf 0x8000_001d)",
         };
         f.write_str(s)
     }
