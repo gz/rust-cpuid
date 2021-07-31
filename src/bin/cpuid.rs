@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
 use raw_cpuid::{
-    CpuId, CpuIdResult, DatType, ExtendedRegisterStateLocation, SgxSectionInfo, SoCVendorBrand,
-    TopologyType,
+    Associativity, CpuId, CpuIdResult, DatType, ExtendedRegisterStateLocation, SgxSectionInfo,
+    SoCVendorBrand, TopologyType,
 };
 use termimad::{minimad::TextTemplate, minimad::TextTemplateExpander, MadSkin};
 
@@ -191,6 +191,13 @@ impl RowGen for u8 {
 impl RowGen for String {
     fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
         (t, attr)
+    }
+}
+
+impl RowGen for Associativity {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
+        let s = format!("{}", attr);
+        (t, s)
     }
 }
 
@@ -1052,6 +1059,74 @@ ${feature-rows
             "Processor Brand String",
             format!("\"**{}**\"", info.as_str()),
         );
+    }
+
+    if let Some(info) = cpuid.get_l1_cache_and_tlb_info() {
+        print_title("L1 TLB 2/4 MiB entries (0x8000_0005/eax):");
+        simple_table(&[
+            RowGen::make_row("iTLB #entries", info.dtlb_2m_4m_size()),
+            RowGen::make_row("iTLB associativity", info.itlb_2m_4m_associativity()),
+            RowGen::make_row("dTLB #entries", info.itlb_2m_4m_size()),
+            RowGen::make_row("dTLB associativity", info.dtlb_2m_4m_associativity()),
+        ]);
+
+        print_title("L1 TLB 4 KiB entries (0x8000_0005/ebx):");
+        simple_table(&[
+            RowGen::make_row("iTLB #entries", info.itlb_4k_size()),
+            RowGen::make_row("iTLB associativity", info.itlb_4k_associativity()),
+            RowGen::make_row("dTLB #entries", info.dtlb_4k_size()),
+            RowGen::make_row("dTLB associativity", info.dtlb_4k_associativity()),
+        ]);
+
+        print_title("L1 dCache (0x8000_0005/ecx):");
+        simple_table(&[
+            RowGen::make_row("line size [Bytes]", info.dcache_line_size()),
+            RowGen::make_row("lines per tag", info.dcache_lines_per_tag()),
+            RowGen::make_row("associativity", info.dcache_associativity()),
+            RowGen::make_row("size [KiB]", info.dcache_size()),
+        ]);
+
+        print_title("L1 iCache (0x8000_0005/edx):");
+        simple_table(&[
+            RowGen::make_row("line size [Bytes]", info.icache_line_size()),
+            RowGen::make_row("lines per tag", info.icache_lines_per_tag()),
+            RowGen::make_row("associativity", info.icache_associativity()),
+            RowGen::make_row("size [KiB]", info.icache_size()),
+        ]);
+    }
+
+    if let Some(info) = cpuid.get_l2_l3_cache_and_tlb_info() {
+        print_title("L2 TLB 2/4 MiB entries (0x8000_0006/eax):");
+        simple_table(&[
+            RowGen::make_row("iTLB #entries", info.dtlb_2m_4m_size()),
+            RowGen::make_row("iTLB associativity", info.itlb_2m_4m_associativity()),
+            RowGen::make_row("dTLB #entries", info.itlb_2m_4m_size()),
+            RowGen::make_row("dTLB associativity", info.dtlb_2m_4m_associativity()),
+        ]);
+
+        print_title("L2 TLB 4 KiB entries (0x8000_0006/ebx):");
+        simple_table(&[
+            RowGen::make_row("iTLB #entries", info.itlb_4k_size()),
+            RowGen::make_row("iTLB associativity", info.itlb_4k_associativity()),
+            RowGen::make_row("dTLB #entries", info.dtlb_4k_size()),
+            RowGen::make_row("dTLB associativity", info.dtlb_4k_associativity()),
+        ]);
+
+        print_title("L2 Cache (0x8000_0006/ecx):");
+        simple_table(&[
+            RowGen::make_row("line size [Bytes]", info.l2cache_line_size()),
+            RowGen::make_row("lines per tag", info.l2cache_lines_per_tag()),
+            RowGen::make_row("associativity", info.l2cache_associativity()),
+            RowGen::make_row("size [KiB]", info.l2cache_size()),
+        ]);
+
+        print_title("L3 Cache (0x8000_0006/edx):");
+        simple_table(&[
+            RowGen::make_row("line size [Bytes]", info.l3cache_line_size()),
+            RowGen::make_row("lines per tag", info.l3cache_lines_per_tag()),
+            RowGen::make_row("associativity", info.l3cache_associativity()),
+            RowGen::make_row("size [KiB]", info.l3cache_size() * 512),
+        ]);
     }
 
     if let Some(info) = cpuid.get_memory_encryption_info() {
