@@ -443,10 +443,7 @@ fn main() {
                 "largest monitor-line size",
                 format!("{}", info.largest_monitor_line()),
             ),
-            (
-                "MONITOR/MWAIT exts supported",
-                bool_repr(info.extensions_supported()),
-            ),
+            ("MONITOR/MWAIT exts", bool_repr(info.extensions_supported())),
             (
                 "Interrupts as break-event for MWAIT",
                 bool_repr(info.interrupts_as_break_event()),
@@ -555,14 +552,8 @@ fn main() {
 
         let attrs = [
             ("FSGSBASE instructions", bool_repr(info.has_fsgsbase())),
-            (
-                "IA32_TSC_ADJUST MSR supported",
-                bool_repr(info.has_tsc_adjust_msr()),
-            ),
-            (
-                "SGX: Software Guard Extensions supported",
-                bool_repr(info.has_sgx()),
-            ),
+            ("IA32_TSC_ADJUST MSR", bool_repr(info.has_tsc_adjust_msr())),
+            ("SGX: Software Guard Extensions", bool_repr(info.has_sgx())),
             ("BMI1 instructions", bool_repr(info.has_bmi1())),
             ("HLE hardware lock elision", bool_repr(info.has_hle())),
             (
@@ -653,14 +644,8 @@ fn main() {
                 "BNDLDX/BNDSTX MAWAU value in 64-bit mode",
                 format!("{}", info.mawau_value()),
             ),
-            (
-                "RDPID: read processor ID supported",
-                bool_repr(info.has_rdpid()),
-            ),
-            (
-                "SGX_LC: SGX launch config supported",
-                bool_repr(info.has_sgx_lc()),
-            ),
+            ("RDPID: read processor ID", bool_repr(info.has_rdpid())),
+            ("SGX_LC: SGX launch config", bool_repr(info.has_sgx_lc())),
         ];
         let table = make_table_display(&table_template, &attrs);
         skin.print_expander(table);
@@ -718,7 +703,7 @@ fn main() {
                 info.is_branch_inst_ret_ev_unavailable(),
             ),
             RowGen::make_row(
-                "branch mispred retired event not avail",
+                "branch mispred retired event not available",
                 info.is_branch_midpred_ev_unavailable(),
             ),
         ]);
@@ -830,7 +815,7 @@ ${feature-rows
         print_title("Quality of Service Monitoring Resource Type (0x0f/0):");
         simple_table(&[
             RowGen::make_row("Maximum range of RMID", info.rmid_range()),
-            RowGen::make_row("supports L3 cache QoS monitoring", info.has_l3_monitoring()),
+            RowGen::make_row("L3 cache QoS monitoring", info.has_l3_monitoring()),
         ]);
 
         if let Some(rmid) = info.l3_monitoring() {
@@ -842,16 +827,13 @@ ${feature-rows
                     rmid.conversion_factor(),
                 ),
                 RowGen::make_row("Maximum range of RMID", rmid.maximum_rmid_range()),
+                RowGen::make_row("L3 occupancy monitoring", rmid.has_occupancy_monitoring()),
                 RowGen::make_row(
-                    "supports L3 occupancy monitoring",
-                    rmid.has_occupancy_monitoring(),
-                ),
-                RowGen::make_row(
-                    "supports L3 total bandwidth monitoring",
+                    "L3 total bandwidth monitoring",
                     rmid.has_total_bandwidth_monitoring(),
                 ),
                 RowGen::make_row(
-                    "supports L3 local bandwidth monitoring",
+                    "L3 local bandwidth monitoring",
                     rmid.has_local_bandwidth_monitoring(),
                 ),
             ]);
@@ -861,16 +843,10 @@ ${feature-rows
     if let Some(info) = cpuid.get_rdt_allocation_info() {
         print_title("Resource Director Technology Allocation (0x10/0)");
         simple_table(&[
+            RowGen::make_row("L3 cache allocation technology", info.has_l3_cat()),
+            RowGen::make_row("L2 cache allocation technology", info.has_l2_cat()),
             RowGen::make_row(
-                "L3 cache allocation technology supported",
-                info.has_l3_cat(),
-            ),
-            RowGen::make_row(
-                "L2 cache allocation technology supported",
-                info.has_l2_cat(),
-            ),
-            RowGen::make_row(
-                "memory bandwidth allocation supported",
+                "memory bandwidth allocation",
                 info.has_memory_bandwidth_allocation(),
             ),
         ]);
@@ -884,10 +860,10 @@ ${feature-rows
                     l3_cat.isolation_bitmap(),
                 ),
                 RowGen::make_row(
-                    "code and data prioritization supported",
+                    "code and data prioritization",
                     l3_cat.has_code_data_prioritization(),
                 ),
-                RowGen::make_row("highest COS number supported", l3_cat.highest_cos()),
+                RowGen::make_row("highest COS number", l3_cat.highest_cos()),
             ]);
         }
         if let Some(l2_cat) = info.l2_cat() {
@@ -898,7 +874,7 @@ ${feature-rows
                     "Bit-granular map of isolation/contention",
                     l2_cat.isolation_bitmap(),
                 ),
-                RowGen::make_row("highest COS number supported", l2_cat.highest_cos()),
+                RowGen::make_row("highest COS number", l2_cat.highest_cos()),
             ]);
         }
         if let Some(mem) = info.memory_bandwidth_allocation() {
@@ -906,7 +882,7 @@ ${feature-rows
             simple_table(&[
                 RowGen::make_row("maximum throttling value", mem.max_hba_throttling()),
                 RowGen::make_row("delay values are linear", mem.has_linear_response_delay()),
-                RowGen::make_row("highest COS number supported", mem.highest_cos()),
+                RowGen::make_row("highest COS number", mem.highest_cos()),
             ]);
         }
     }
@@ -915,8 +891,8 @@ ${feature-rows
         print_title("SGX - Software Guard Extensions (0x12/{0,1}):");
 
         simple_table(&[
-            RowGen::make_row("SGX1 supported", info.has_sgx1()),
-            RowGen::make_row("SGX2 supported", info.has_sgx2()),
+            RowGen::make_row("SGX1", info.has_sgx1()),
+            RowGen::make_row("SGX2", info.has_sgx2()),
             RowGen::make_row(
                 "SGX ENCLV E*VIRTCHILD, ESETCONTEXT",
                 info.has_enclv_leaves_einvirtchild_edecvirtchild_esetcontext(),
@@ -962,9 +938,9 @@ ${feature-rows
                 "MTC timing packet; suppress COFI-based",
                 info.has_mtc_timing_packet_coefi_suppression(),
             ),
-            RowGen::make_row("PTWRITE support", info.has_ptwrite()),
-            RowGen::make_row("power event trace support", info.has_power_event_trace()),
-            RowGen::make_row("ToPA output scheme support", info.has_topa()),
+            RowGen::make_row("PTWRITE", info.has_ptwrite()),
+            RowGen::make_row("power event trace", info.has_power_event_trace()),
+            RowGen::make_row("ToPA output scheme", info.has_topa()),
             RowGen::make_row(
                 "ToPA can hold many output entries",
                 info.has_topa_maximum_entries(),
@@ -1034,10 +1010,10 @@ ${feature-rows
             );
             simple_table(&[
                 RowGen::make_row("number of sets", info.sets()),
-                RowGen::make_row("4 KiB page size entries supported", info.has_4k_entries()),
-                RowGen::make_row("2 MiB page size entries supported", info.has_2mb_entries()),
-                RowGen::make_row("4 MiB page size entries supported", info.has_4mb_entries()),
-                RowGen::make_row("1 GiB page size entries supported", info.has_1gb_entries()),
+                RowGen::make_row("4 KiB page size entries", info.has_4k_entries()),
+                RowGen::make_row("2 MiB page size entries", info.has_2mb_entries()),
+                RowGen::make_row("4 MiB page size entries", info.has_4mb_entries()),
+                RowGen::make_row("1 GiB page size entries", info.has_1gb_entries()),
                 RowGen::make_row("partitioning", info.partitioning()),
                 RowGen::make_row("ways of associativity", info.ways()),
                 RowGen::make_row("translation cache type", info.cache_type()),
@@ -1072,7 +1048,10 @@ ${feature-rows
     }
 
     if let Some(info) = cpuid.get_processor_brand_string() {
-        print_attr("Processor Brand String", info.as_str());
+        print_attr(
+            "Processor Brand String",
+            format!("\"**{}**\"", info.as_str()),
+        );
     }
 
     if let Some(info) = cpuid.get_memory_encryption_info() {
@@ -1089,8 +1068,8 @@ ${feature-rows
                 info.has_hw_enforced_cache_coh(),
             ),
             RowGen::make_row("SEV guests only with 64-bit host", info.has_64bit_mode()),
-            RowGen::make_row("Restricted Injection", info.has_restricted_injection()),
-            RowGen::make_row("Alternate Injection", info.has_alternate_injection()),
+            RowGen::make_row("Restricted injection", info.has_restricted_injection()),
+            RowGen::make_row("Alternate injection", info.has_alternate_injection()),
             RowGen::make_row(
                 "Full debug state swap for SEV-ES guests",
                 info.has_debug_swap(),
