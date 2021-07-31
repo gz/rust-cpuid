@@ -1,6 +1,9 @@
 use std::fmt::Display;
 
-use raw_cpuid::{CpuId, ExtendedRegisterStateLocation, SgxSectionInfo, TopologyType};
+use raw_cpuid::{
+    CpuId, CpuIdResult, DatType, ExtendedRegisterStateLocation, SgxSectionInfo, SoCVendorBrand,
+    TopologyType,
+};
 use termimad::{minimad::TextTemplate, minimad::TextTemplateExpander, MadSkin};
 
 fn string_to_static_str(s: String) -> &'static str {
@@ -120,6 +123,17 @@ fn print_attr<T: Display, A: Display>(name: T, attr: A) {
     skin.print_text(format!("{} = {}", name, attr).as_str());
 }
 
+fn print_cpuid_result<T: Display>(name: T, attr: CpuIdResult) {
+    let skin = MadSkin::default();
+    skin.print_text(
+        format!(
+            "{}: eax = {:#x} ebx = {:#x} ecx = {:#x} edx = {:#x}",
+            name, attr.eax, attr.ebx, attr.ecx, attr.edx,
+        )
+        .as_str(),
+    );
+}
+
 fn bool_repr(x: bool) -> String {
     if x {
         "✅".to_string()
@@ -193,6 +207,26 @@ impl RowGen for ExtendedRegisterStateLocation {
         (t, s)
     }
 }
+
+impl RowGen for DatType {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
+        let s = format!("{}", attr);
+        (t, s)
+    }
+}
+
+impl RowGen for Option<SoCVendorBrand> {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
+        let s = format!(
+            "{}",
+            attr.map(|v| v.as_str().to_string())
+                .unwrap_or(String::from(""))
+        );
+
+        (t, s)
+    }
+}
+
 fn main() {
     let cpuid = CpuId::new();
     let skin = MadSkin::default();
@@ -515,6 +549,7 @@ fn main() {
         let table = make_table_display(&table_template, &*attrs);
         skin.print_expander(table);
     }
+
     if let Some(info) = cpuid.get_extended_feature_info() {
         print_title("Extended feature flags (0x07):");
 
@@ -630,10 +665,12 @@ fn main() {
         let table = make_table_display(&table_template, &attrs);
         skin.print_expander(table);
     }
+
     if let Some(info) = cpuid.get_direct_cache_access_info() {
         print_title("Direct Cache Access Parameters (0x09):");
         print_attr("PLATFORM_DCA_CAP MSR bits", info.get_dca_cap_value());
     }
+
     if let Some(info) = cpuid.get_performance_monitoring_info() {
         print_title("Architecture Performance Monitoring Features (0x0a)");
 
@@ -686,6 +723,7 @@ fn main() {
             ),
         ]);
     }
+
     if let Some(info) = cpuid.get_extended_topology_info() {
         print_title("x2APIC features / processor topology (0x0b):");
 
@@ -699,6 +737,7 @@ fn main() {
             ]);
         }
     }
+
     if let Some(info) = cpuid.get_extended_state_info() {
         print_title("Extended Register State (0x0d/0):");
 
@@ -786,6 +825,7 @@ ${feature-rows
             ]);
         }
     }
+
     if let Some(info) = cpuid.get_rdt_monitoring_info() {
         print_title("Quality of Service Monitoring Resource Type (0x0f/0):");
         simple_table(&[
@@ -817,6 +857,7 @@ ${feature-rows
             ]);
         }
     }
+
     if let Some(info) = cpuid.get_rdt_allocation_info() {
         print_title("Resource Director Technology Allocation (0x10/0)");
         simple_table(&[
@@ -901,6 +942,7 @@ ${feature-rows
             ]);
         }
     }
+
     if let Some(info) = cpuid.get_processor_trace_info() {
         print_title("Intel Processor Trace (0x14):");
         simple_table(&[
@@ -958,32 +1000,119 @@ ${feature-rows
         ]);
     }
 
-    /*
     if let Some(info) = cpuid.get_tsc_info() {
-        println!("TSC");
-        println!("{:?}", info);
+        print_title("Time Stamp Counter/Core Crystal Clock Information (0x15):");
+        simple_table(&[
+            RowGen::make_row(
+                "TSC/clock ratio",
+                format!("{} / {}", info.numerator(), info.denominator()),
+            ),
+            RowGen::make_row("nominal core crystal clock", info.nominal_frequency()),
+        ]);
     }
+
     if let Some(info) = cpuid.get_processor_frequency_info() {
-        println!("Processor Frequency");
-        println!("{:?}", info);
+        print_title("Processor Frequency Information (0x16):");
+        simple_table(&[
+            RowGen::make_row("Core Base Frequency (MHz)", info.processor_base_frequency()),
+            RowGen::make_row(
+                "Core Maximum Frequency (MHz)",
+                info.processor_max_frequency(),
+            ),
+            RowGen::make_row("Bus (Reference) Frequency (MHz)", info.bus_frequency()),
+        ]);
     }
-    if let Some(dats) = cpuid.get_deterministic_address_translation_info() {
-        println!("Deterministic Address Translation");
-        for dat in dats {
-            println!("{:?}", dat);
+
+    if let Some(dat_iter) = cpuid.get_deterministic_address_translation_info() {
+        for (idx, info) in dat_iter.enumerate() {
+            print_title(
+                format!(
+                    "Deterministic Address Translation Structure (0x18/{}):",
+                    idx
+                )
+                .as_str(),
+            );
+            simple_table(&[
+                RowGen::make_row("number of sets", info.sets()),
+                RowGen::make_row("4 KiB page size entries supported", info.has_4k_entries()),
+                RowGen::make_row("2 MiB page size entries supported", info.has_2mb_entries()),
+                RowGen::make_row("4 MiB page size entries supported", info.has_4mb_entries()),
+                RowGen::make_row("1 GiB page size entries supported", info.has_1gb_entries()),
+                RowGen::make_row("partitioning", info.partitioning()),
+                RowGen::make_row("ways of associativity", info.ways()),
+                RowGen::make_row("translation cache type", info.cache_type()),
+                RowGen::make_row("translation cache level", info.cache_level()),
+                RowGen::make_row("fully associative", info.is_fully_associative()),
+                RowGen::make_row(
+                    "maximum number of addressible IDs",
+                    info.max_addressable_ids(),
+                ),
+                RowGen::make_row(
+                    "maximum number of addressible IDs",
+                    info.max_addressable_ids(),
+                ),
+            ]);
         }
     }
+
     if let Some(info) = cpuid.get_soc_vendor_info() {
-        println!("SoC Vendor Info");
-        println!("{:?}", info);
+        print_title("System-on-Chip (SoC) Vendor Info (0x17):");
+        simple_table(&[
+            RowGen::make_row("Vendor ID", info.get_soc_vendor_id()),
+            RowGen::make_row("Project ID", info.get_project_id()),
+            RowGen::make_row("Stepping ID", info.get_stepping_id()),
+            RowGen::make_row("Vendor Brand", info.get_vendor_brand()),
+        ]);
+
+        if let Some(iter) = info.get_vendor_attributes() {
+            for (idx, attr) in iter.enumerate() {
+                print_cpuid_result(format!("0x17 {:#x}", idx + 4), attr);
+            }
+        }
     }
+
     if let Some(info) = cpuid.get_processor_brand_string() {
-        println!("Processor Brand String");
-        println!("{:?}", info);
+        print_attr("Processor Brand String", info.as_str());
     }
+
     if let Some(info) = cpuid.get_memory_encryption_info() {
-        println!("Memory Encryption Info");
-        println!("{:?}", info);
+        print_title("Memory Encryption Support (0x8000_001f):");
+        simple_table(&[
+            RowGen::make_row("SME: Secure Memory Encryption", info.has_sme()),
+            RowGen::make_row("SEV: Secure Encrypted Virtualization", info.has_sev()),
+            RowGen::make_row("Page Flush MSR", info.has_page_flush_msr()),
+            RowGen::make_row("SEV-ES: Encrypted State", info.has_sev_es()),
+            RowGen::make_row("SEV Secure Nested Paging", info.has_sev_snp()),
+            RowGen::make_row("VM Permission Levels", info.has_vmpl()),
+            RowGen::make_row(
+                "Hardware cache coherency across encryption domains",
+                info.has_hw_enforced_cache_coh(),
+            ),
+            RowGen::make_row("SEV guests only with 64-bit host", info.has_64bit_mode()),
+            RowGen::make_row("Restricted Injection", info.has_restricted_injection()),
+            RowGen::make_row("Alternate Injection", info.has_alternate_injection()),
+            RowGen::make_row(
+                "Full debug state swap for SEV-ES guests",
+                info.has_debug_swap(),
+            ),
+            RowGen::make_row(
+                "Disallowing IBS use by the host supported",
+                info.has_prevent_host_ibs(),
+            ),
+            RowGen::make_row("Virtual Transparent Encryption", info.has_vte()),
+            RowGen::make_row("C-bit position in page-table", info.c_bit_position()),
+            RowGen::make_row(
+                "Physical address bit reduction",
+                info.physical_address_reduction(),
+            ),
+            RowGen::make_row(
+                "Max. simultaneouslys encrypted guests",
+                info.max_encrypted_guests(),
+            ),
+            RowGen::make_row(
+                "Minimum ASID value for SEV guest",
+                info.min_sev_no_es_asid(),
+            ),
+        ]);
     }
-    */
 }
