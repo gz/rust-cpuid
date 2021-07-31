@@ -2,7 +2,7 @@
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 edition = "2018"
 name = "raw-cpuid"
-version = "10.0.0"
+version = "10.1.0"
 
 description = "A library to parse the x86 CPUID instruction, written in rust with no external dependencies. The implementation closely resembles the Intel CPUID manual description. The library does only depend on libcore."
 documentation = "https://docs.rs/raw-cpuid/"
@@ -16,12 +16,12 @@ readme = "README.md"
 [[bin]]
 name = "cpuid"
 path = "src/bin/cpuid.rs"
-required-features = ["build-cpuid-binary"]
+required-features = ["cli"]
 
 [features]
 serialize = ["serde", "serde_derive"]
-# This is not a public feature and should never be used other than by the cpuid binary:
-build-cpuid-binary = ["termimad"]
+# This is not a public feature and should only be used by the cpuid binary:
+cli = ["termimad"]
 
 [dependencies]
 bitflags = "1.2"
