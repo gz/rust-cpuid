@@ -1,83 +1,13 @@
 use std::fmt::Display;
 
 use raw_cpuid::{
-    Associativity, CpuId, CpuIdResult, DatType, ExtendedRegisterStateLocation, SgxSectionInfo,
-    SoCVendorBrand, TopologyType,
+    Associativity, CacheType, CpuId, CpuIdResult, DatType, ExtendedRegisterStateLocation,
+    SgxSectionInfo, SoCVendorBrand, TopologyType,
 };
 use termimad::{minimad::TextTemplate, minimad::TextTemplateExpander, MadSkin};
 
 fn string_to_static_str(s: String) -> &'static str {
     Box::leak(s.into_boxed_str())
-}
-
-fn make_table<'a, 'b>(
-    text_template: &'a TextTemplate<'b>,
-    attrs: &[(&'b str, u64)],
-) -> TextTemplateExpander<'a, 'b> {
-    let mut expander = text_template.expander();
-    expander.set("app-version", "2");
-
-    for &(attr, desc) in attrs {
-        let sdesc = string_to_static_str(format!("{}", desc));
-        expander
-            .sub("feature-rows")
-            .set("attr-name", attr)
-            .set("attr-avail", sdesc);
-    }
-
-    expander
-}
-
-fn make_table_display<'a, 'b, D: Display>(
-    text_template: &'a TextTemplate<'b>,
-    attrs: &[(&'b str, D)],
-) -> TextTemplateExpander<'a, 'b> {
-    let mut expander = text_template.expander();
-
-    for (attr, desc) in attrs {
-        let sdesc = string_to_static_str(format!("{}", desc));
-        expander
-            .sub("feature-rows")
-            .set("attr-name", attr)
-            .set("attr-avail", sdesc);
-    }
-
-    expander
-}
-
-fn make_table_display3<'a, 'b, D: Display>(
-    text_template: &'a TextTemplate<'b>,
-    attrs: &[(&'b str, &'b str, D)],
-) -> TextTemplateExpander<'a, 'b> {
-    let mut expander = text_template.expander();
-
-    for (cat, attr, desc) in attrs {
-        let sdesc = string_to_static_str(format!("{}", desc));
-        expander
-            .sub("feature-rows")
-            .set("category-name", cat)
-            .set("attr-name", attr)
-            .set("attr-avail", sdesc);
-    }
-
-    expander
-}
-
-fn make_feature_table<'a, 'b>(
-    text_template: &'a TextTemplate<'b>,
-    attrs: &[(&'b str, bool)],
-) -> TextTemplateExpander<'a, 'b> {
-    let mut expander = text_template.expander();
-
-    for &(attr, desc) in attrs {
-        let desc = if desc { "✅" } else { "❌" };
-        expander
-            .sub("feature-rows")
-            .set("attr-name", attr)
-            .set("attr-avail", desc);
-    }
-
-    expander
 }
 
 fn simple_table(attrs: &[(&'static str, String)]) {
@@ -91,7 +21,58 @@ ${feature-rows
     "#,
     );
 
+    fn make_table_display<'a, 'b, D: Display>(
+        text_template: &'a TextTemplate<'b>,
+        attrs: &[(&'b str, D)],
+    ) -> TextTemplateExpander<'a, 'b> {
+        let mut expander = text_template.expander();
+
+        for (attr, desc) in attrs {
+            let sdesc = string_to_static_str(format!("{}", desc));
+            expander
+                .sub("feature-rows")
+                .set("attr-name", attr)
+                .set("attr-avail", sdesc);
+        }
+
+        expander
+    }
+
     let table = make_table_display(&table_template, &attrs);
+    let skin = MadSkin::default();
+    skin.print_expander(table);
+}
+
+fn table3(attrs: &[(&'static str, &'static str, String)]) {
+    let table_template3 = TextTemplate::from(
+        r#"
+|:-|-:|-:|
+${feature-rows
+|**${category-name}**|**${attr-name}**|${attr-avail}|
+}
+|-|-|
+    "#,
+    );
+
+    fn make_table_display3<'a, 'b, D: Display>(
+        text_template: &'a TextTemplate<'b>,
+        attrs: &[(&'b str, &'b str, D)],
+    ) -> TextTemplateExpander<'a, 'b> {
+        let mut expander = text_template.expander();
+
+        for (cat, attr, desc) in attrs {
+            let sdesc = string_to_static_str(format!("{}", desc));
+            expander
+                .sub("feature-rows")
+                .set("category-name", cat)
+                .set("attr-name", attr)
+                .set("attr-avail", sdesc);
+        }
+
+        expander
+    }
+
+    let table = make_table_display3(&table_template3, &attrs);
     let skin = MadSkin::default();
     skin.print_expander(table);
 }
@@ -201,6 +182,13 @@ impl RowGen for Associativity {
     }
 }
 
+impl RowGen for CacheType {
+    fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
+        let s = format!("{}", attr);
+        (t, s)
+    }
+}
+
 impl RowGen for TopologyType {
     fn make_row(t: &'static str, attr: Self) -> (&'static str, String) {
         let s = format!("{}", attr);
@@ -240,125 +228,95 @@ fn main() {
 
     skin.print_text("# CpuId\n");
 
-    let table_template = TextTemplate::from(
-        r#"
-    |-:|-:|
-    ${feature-rows
-    |**${attr-name}**|${attr-avail}|
-    }
-    |-|-|
-    "#,
-    );
-
     if let Some(info) = cpuid.get_vendor_info() {
         print_title_attr("vendor_id (0x00)", info.as_str());
     }
 
     if let Some(info) = cpuid.get_feature_info() {
         print_title("version information (1/eax):");
-        let table = make_table(
-            &table_template,
-            &[
-                ("base family", info.base_family_id().into()),
-                ("base model", info.base_model_id().into()),
-                ("stepping", info.stepping_id().into()),
-                ("extended family", info.extended_family_id().into()),
-                ("extended model", info.extended_model_id().into()),
-                ("family", info.family_id().into()),
-                ("model", info.model_id().into()),
-            ],
-        );
-        skin.print_expander(table);
+        simple_table(&[
+            RowGen::make_row("base family", info.base_family_id()),
+            RowGen::make_row("base model", info.base_model_id()),
+            RowGen::make_row("stepping", info.stepping_id()),
+            RowGen::make_row("extended family", info.extended_family_id()),
+            RowGen::make_row("extended model", info.extended_model_id()),
+            RowGen::make_row("family", info.family_id()),
+            RowGen::make_row("model", info.model_id()),
+        ]);
 
         print_title("miscellaneous (1/ebx):");
-        let table = make_table(
-            &table_template,
-            &[
-                (
-                    "processor APIC physical id",
-                    info.initial_local_apic_id().into(),
-                ),
-                ("max. cpus", info.max_logical_processor_ids().into()),
-                ("CLFLUSH line size", info.cflush_cache_line_size().into()),
-                ("brand index", info.brand_index().into()),
-            ],
-        );
-        skin.print_expander(table);
+        simple_table(&[
+            RowGen::make_row("processor APIC physical id", info.initial_local_apic_id()),
+            RowGen::make_row("max. cpus", info.max_logical_processor_ids()),
+            RowGen::make_row("CLFLUSH line size", info.cflush_cache_line_size()),
+            RowGen::make_row("brand index", info.brand_index()),
+        ]);
 
         print_title("feature information (1/edx):");
-        let table = make_feature_table(
-            &table_template,
-            &[
-                ("fpu", info.has_fpu()),
-                ("vme", info.has_vme()),
-                ("de", info.has_de()),
-                ("pse", info.has_pse()),
-                ("tsc", info.has_tsc()),
-                ("msr", info.has_msr()),
-                ("pae", info.has_pae()),
-                ("mce", info.has_mce()),
-                ("cmpxchg8b", info.has_cmpxchg8b()),
-                ("apic", info.has_apic()),
-                ("sysenter_sysexit", info.has_sysenter_sysexit()),
-                ("mtrr", info.has_mtrr()),
-                ("pge", info.has_pge()),
-                ("mca", info.has_mca()),
-                ("cmov", info.has_cmov()),
-                ("pat", info.has_pat()),
-                ("pse36", info.has_pse36()),
-                ("psn", info.has_psn()),
-                ("clflush", info.has_clflush()),
-                ("ds", info.has_ds()),
-                ("acpi", info.has_acpi()),
-                ("mmx", info.has_mmx()),
-                ("fxsave_fxstor", info.has_fxsave_fxstor()),
-                ("sse", info.has_sse()),
-                ("sse2", info.has_sse2()),
-                ("ss", info.has_ss()),
-                ("htt", info.has_htt()),
-                ("tm", info.has_tm()),
-                ("pbe", info.has_pbe()),
-            ],
-        );
-        skin.print_expander(table);
+        simple_table(&[
+            RowGen::make_row("fpu", info.has_fpu()),
+            RowGen::make_row("vme", info.has_vme()),
+            RowGen::make_row("de", info.has_de()),
+            RowGen::make_row("pse", info.has_pse()),
+            RowGen::make_row("tsc", info.has_tsc()),
+            RowGen::make_row("msr", info.has_msr()),
+            RowGen::make_row("pae", info.has_pae()),
+            RowGen::make_row("mce", info.has_mce()),
+            RowGen::make_row("cmpxchg8b", info.has_cmpxchg8b()),
+            RowGen::make_row("apic", info.has_apic()),
+            RowGen::make_row("sysenter_sysexit", info.has_sysenter_sysexit()),
+            RowGen::make_row("mtrr", info.has_mtrr()),
+            RowGen::make_row("pge", info.has_pge()),
+            RowGen::make_row("mca", info.has_mca()),
+            RowGen::make_row("cmov", info.has_cmov()),
+            RowGen::make_row("pat", info.has_pat()),
+            RowGen::make_row("pse36", info.has_pse36()),
+            RowGen::make_row("psn", info.has_psn()),
+            RowGen::make_row("clflush", info.has_clflush()),
+            RowGen::make_row("ds", info.has_ds()),
+            RowGen::make_row("acpi", info.has_acpi()),
+            RowGen::make_row("mmx", info.has_mmx()),
+            RowGen::make_row("fxsave_fxstor", info.has_fxsave_fxstor()),
+            RowGen::make_row("sse", info.has_sse()),
+            RowGen::make_row("sse2", info.has_sse2()),
+            RowGen::make_row("ss", info.has_ss()),
+            RowGen::make_row("htt", info.has_htt()),
+            RowGen::make_row("tm", info.has_tm()),
+            RowGen::make_row("pbe", info.has_pbe()),
+        ]);
 
         print_title("feature information (1/ecx):");
-
-        let table = make_feature_table(
-            &table_template,
-            &[
-                ("sse3", info.has_sse3()),
-                ("pclmulqdq", info.has_pclmulqdq()),
-                ("ds_area", info.has_ds_area()),
-                ("monitor_mwait", info.has_monitor_mwait()),
-                ("cpl", info.has_cpl()),
-                ("vmx", info.has_vmx()),
-                ("smx", info.has_smx()),
-                ("eist", info.has_eist()),
-                ("tm2", info.has_tm2()),
-                ("ssse3", info.has_ssse3()),
-                ("cnxtid", info.has_cnxtid()),
-                ("fma", info.has_fma()),
-                ("cmpxchg16b", info.has_cmpxchg16b()),
-                ("pdcm", info.has_pdcm()),
-                ("pcid", info.has_pcid()),
-                ("dca", info.has_dca()),
-                ("sse41", info.has_sse41()),
-                ("sse42", info.has_sse42()),
-                ("x2apic", info.has_x2apic()),
-                ("movbe", info.has_movbe()),
-                ("popcnt", info.has_popcnt()),
-                ("tsc_deadline", info.has_tsc_deadline()),
-                ("aesni", info.has_aesni()),
-                ("xsave", info.has_xsave()),
-                ("oxsave", info.has_oxsave()),
-                ("avx", info.has_avx()),
-                ("f16c", info.has_f16c()),
-                ("rdrand", info.has_rdrand()),
-                ("hypervisor", info.has_hypervisor()),
-            ],
-        );
-        skin.print_expander(table);
+        simple_table(&[
+            RowGen::make_row("sse3", info.has_sse3()),
+            RowGen::make_row("pclmulqdq", info.has_pclmulqdq()),
+            RowGen::make_row("ds_area", info.has_ds_area()),
+            RowGen::make_row("monitor_mwait", info.has_monitor_mwait()),
+            RowGen::make_row("cpl", info.has_cpl()),
+            RowGen::make_row("vmx", info.has_vmx()),
+            RowGen::make_row("smx", info.has_smx()),
+            RowGen::make_row("eist", info.has_eist()),
+            RowGen::make_row("tm2", info.has_tm2()),
+            RowGen::make_row("ssse3", info.has_ssse3()),
+            RowGen::make_row("cnxtid", info.has_cnxtid()),
+            RowGen::make_row("fma", info.has_fma()),
+            RowGen::make_row("cmpxchg16b", info.has_cmpxchg16b()),
+            RowGen::make_row("pdcm", info.has_pdcm()),
+            RowGen::make_row("pcid", info.has_pcid()),
+            RowGen::make_row("dca", info.has_dca()),
+            RowGen::make_row("sse41", info.has_sse41()),
+            RowGen::make_row("sse42", info.has_sse42()),
+            RowGen::make_row("x2apic", info.has_x2apic()),
+            RowGen::make_row("movbe", info.has_movbe()),
+            RowGen::make_row("popcnt", info.has_popcnt()),
+            RowGen::make_row("tsc_deadline", info.has_tsc_deadline()),
+            RowGen::make_row("aesni", info.has_aesni()),
+            RowGen::make_row("xsave", info.has_xsave()),
+            RowGen::make_row("oxsave", info.has_oxsave()),
+            RowGen::make_row("avx", info.has_avx()),
+            RowGen::make_row("f16c", info.has_f16c()),
+            RowGen::make_row("rdrand", info.has_rdrand()),
+            RowGen::make_row("hypervisor", info.has_hypervisor()),
+        ]);
     }
 
     if let Some(info) = cpuid.get_cache_info() {
@@ -389,76 +347,42 @@ fn main() {
                 * cache.coherency_line_size()
                 * cache.sets()) as u64;
 
-            let attrs = vec![
-                ("cache type", format!("{:?}", cache.cache_type())),
-                ("cache level", format!("{}", cache.level())),
-                (
+            simple_table(&[
+                RowGen::make_row("cache type", cache.cache_type()),
+                RowGen::make_row("cache level", cache.level()),
+                RowGen::make_row(
                     "self-initializing cache level",
-                    bool_repr(cache.is_self_initializing()),
+                    cache.is_self_initializing(),
                 ),
-                (
-                    "fully associative cache",
-                    bool_repr(cache.is_fully_associative()),
-                ),
-                (
-                    "threads sharing this cache",
-                    format!("{}", cache.max_cores_for_cache()),
-                ),
-                (
-                    "processor cores on this die",
-                    format!("{}", cache.max_cores_for_package()),
-                ),
-                (
-                    "system coherency line size",
-                    format!("{}", cache.coherency_line_size()),
-                ),
-                (
-                    "physical line partitions",
-                    format!("{}", cache.physical_line_partitions()),
-                ),
-                (
-                    "ways of associativity",
-                    format!("{}", cache.associativity()),
-                ),
-                (
+                RowGen::make_row("fully associative cache", cache.is_fully_associative()),
+                RowGen::make_row("threads sharing this cache", cache.max_cores_for_cache()),
+                RowGen::make_row("processor cores on this die", cache.max_cores_for_package()),
+                RowGen::make_row("system coherency line size", cache.coherency_line_size()),
+                RowGen::make_row("physical line partitions", cache.physical_line_partitions()),
+                RowGen::make_row("ways of associativity", cache.associativity()),
+                RowGen::make_row(
                     "WBINVD/INVD acts on lower caches",
-                    bool_repr(cache.is_write_back_invalidate()),
+                    cache.is_write_back_invalidate(),
                 ),
-                ("inclusive to lower caches", bool_repr(cache.is_inclusive())),
-                (
-                    "complex cache indexing",
-                    bool_repr(cache.has_complex_indexing()),
-                ),
-                ("number of sets", format!("{}", cache.sets())),
-                ("(size synth.)", format!("{}", size)),
-            ];
-
-            let table = make_table_display(&table_template, &*attrs);
-            skin.print_expander(table);
+                RowGen::make_row("inclusive to lower caches", cache.is_inclusive()),
+                RowGen::make_row("complex cache indexing", cache.has_complex_indexing()),
+                RowGen::make_row("number of sets", cache.sets()),
+                RowGen::make_row("(size synth.)", size),
+            ]);
         }
     }
 
     if let Some(info) = cpuid.get_monitor_mwait_info() {
         print_title("MONITOR/MWAIT (0x05):");
-
-        let attrs = vec![
-            (
-                "smallest monitor-line size",
-                format!("{:?}", info.smallest_monitor_line()),
-            ),
-            (
-                "largest monitor-line size",
-                format!("{}", info.largest_monitor_line()),
-            ),
-            ("MONITOR/MWAIT exts", bool_repr(info.extensions_supported())),
-            (
+        simple_table(&[
+            RowGen::make_row("smallest monitor-line size", info.smallest_monitor_line()),
+            RowGen::make_row("largest monitor-line size", info.largest_monitor_line()),
+            RowGen::make_row("MONITOR/MWAIT exts", info.extensions_supported()),
+            RowGen::make_row(
                 "Interrupts as break-event for MWAIT",
-                bool_repr(info.interrupts_as_break_event()),
+                info.interrupts_as_break_event(),
             ),
-        ];
-
-        let table = make_table_display(&table_template, &*attrs);
-        skin.print_expander(table);
+        ]);
 
         skin.print_text("number of CX sub C-states using MWAIT:\n");
         let cstate_table = TextTemplate::from(
@@ -493,169 +417,107 @@ fn main() {
 
     if let Some(info) = cpuid.get_thermal_power_info() {
         print_title("Thermal and Power Management Features (0x06):");
-        let attrs = vec![
-            ("digital thermometer", bool_repr(info.has_dts())),
-            (
-                "Intel Turbo Boost Technology",
-                bool_repr(info.has_turbo_boost()),
-            ),
-            ("ARAT always running APIC timer", bool_repr(info.has_arat())),
-            ("PLN power limit notification", bool_repr(info.has_pln())),
-            (
-                "ECMD extended clock modulation duty",
-                bool_repr(info.has_ecmd()),
-            ),
-            ("PTM package thermal management", bool_repr(info.has_ptm())),
-            ("HWP base registers", bool_repr(info.has_hwp())),
-            ("HWP notification", bool_repr(info.has_hwp_notification())),
-            (
-                "HWP activity window",
-                bool_repr(info.has_hwp_activity_window()),
-            ),
-            (
+        simple_table(&[
+            RowGen::make_row("digital thermometer", info.has_dts()),
+            RowGen::make_row("Intel Turbo Boost Technology", info.has_turbo_boost()),
+            RowGen::make_row("ARAT always running APIC timer", info.has_arat()),
+            RowGen::make_row("PLN power limit notification", info.has_pln()),
+            RowGen::make_row("ECMD extended clock modulation duty", info.has_ecmd()),
+            RowGen::make_row("PTM package thermal management", info.has_ptm()),
+            RowGen::make_row("HWP base registers", info.has_hwp()),
+            RowGen::make_row("HWP notification", info.has_hwp_notification()),
+            RowGen::make_row("HWP activity window", info.has_hwp_activity_window()),
+            RowGen::make_row(
                 "HWP energy performance preference",
-                bool_repr(info.has_hwp_energy_performance_preference()),
+                info.has_hwp_energy_performance_preference(),
             ),
-            (
+            RowGen::make_row(
                 "HWP package level request",
-                bool_repr(info.has_hwp_package_level_request()),
+                info.has_hwp_package_level_request(),
             ),
-            ("HDC base registers", bool_repr(info.has_hdc())),
-            (
+            RowGen::make_row("HDC base registers", info.has_hdc()),
+            RowGen::make_row(
                 "Intel Turbo Boost Max Technology 3.0",
-                bool_repr(info.has_turbo_boost3()),
+                info.has_turbo_boost3(),
             ),
-            ("HWP capabilities", bool_repr(info.has_hwp_capabilities())),
-            ("HWP PECI override", bool_repr(info.has_hwp_peci_override())),
-            ("flexible HWP", bool_repr(info.has_flexible_hwp())),
-            (
+            RowGen::make_row("HWP capabilities", info.has_hwp_capabilities()),
+            RowGen::make_row("HWP PECI override", info.has_hwp_peci_override()),
+            RowGen::make_row("flexible HWP", info.has_flexible_hwp()),
+            RowGen::make_row(
                 "IA32_HWP_REQUEST MSR fast access mode",
-                bool_repr(info.has_hwp_fast_access_mode()),
+                info.has_hwp_fast_access_mode(),
             ),
-            (
+            RowGen::make_row(
                 "ignoring idle logical processor HWP req",
-                bool_repr(info.has_ignore_idle_processor_hwp_request()),
+                info.has_ignore_idle_processor_hwp_request(),
             ),
-            (
-                "digital thermometer threshold",
-                format!("{}", info.dts_irq_threshold()),
-            ),
-            (
+            RowGen::make_row("digital thermometer threshold", info.dts_irq_threshold()),
+            RowGen::make_row(
                 "hardware coordination feedback",
-                bool_repr(info.has_hw_coord_feedback()),
+                info.has_hw_coord_feedback(),
             ),
-            (
+            RowGen::make_row(
                 "performance-energy bias capability",
-                bool_repr(info.has_energy_bias_pref()),
+                info.has_energy_bias_pref(),
             ),
-        ];
-
-        let table = make_table_display(&table_template, &*attrs);
-        skin.print_expander(table);
+        ]);
     }
 
     if let Some(info) = cpuid.get_extended_feature_info() {
         print_title("Extended feature flags (0x07):");
 
-        let attrs = [
-            ("FSGSBASE instructions", bool_repr(info.has_fsgsbase())),
-            ("IA32_TSC_ADJUST MSR", bool_repr(info.has_tsc_adjust_msr())),
-            ("SGX: Software Guard Extensions", bool_repr(info.has_sgx())),
-            ("BMI1 instructions", bool_repr(info.has_bmi1())),
-            ("HLE hardware lock elision", bool_repr(info.has_hle())),
-            (
-                "AVX2: advanced vector extensions 2",
-                bool_repr(info.has_avx2()),
-            ),
-            ("FDP_EXCPTN_ONLY", bool_repr(info.has_fdp())),
-            (
-                "SMEP supervisor mode exec protection",
-                bool_repr(info.has_smep()),
-            ),
-            ("BMI2 instructions", bool_repr(info.has_bmi2())),
-            (
-                "enhanced REP MOVSB/STOSB",
-                bool_repr(info.has_rep_movsb_stosb()),
-            ),
-            ("INVPCID instruction", bool_repr(info.has_invpcid())),
-            (
-                "RTM: restricted transactional memory",
-                bool_repr(info.has_rtm()),
-            ),
-            ("RDT-CMT/PQoS cache monitoring", bool_repr(info.has_rdtm())),
-            (
-                "deprecated FPU CS/DS",
-                bool_repr(info.has_fpu_cs_ds_deprecated()),
-            ),
-            (
-                "MPX: intel memory protection extensions",
-                bool_repr(info.has_mpx()),
-            ),
-            ("RDT-CAT/PQE cache allocation", bool_repr(info.has_rdta())),
-            (
+        simple_table(&[
+            RowGen::make_row("FSGSBASE", info.has_fsgsbase()),
+            RowGen::make_row("IA32_TSC_ADJUST MSR", info.has_tsc_adjust_msr()),
+            RowGen::make_row("SGX: Software Guard Extensions", info.has_sgx()),
+            RowGen::make_row("BMI1", info.has_bmi1()),
+            RowGen::make_row("HLE hardware lock elision", info.has_hle()),
+            RowGen::make_row("AVX2: advanced vector extensions 2", info.has_avx2()),
+            RowGen::make_row("FDP_EXCPTN_ONLY", info.has_fdp()),
+            RowGen::make_row("SMEP supervisor mode exec protection", info.has_smep()),
+            RowGen::make_row("BMI2 instructions", info.has_bmi2()),
+            RowGen::make_row("enhanced REP MOVSB/STOSB", info.has_rep_movsb_stosb()),
+            RowGen::make_row("INVPCID instruction", info.has_invpcid()),
+            RowGen::make_row("RTM: restricted transactional memory", info.has_rtm()),
+            RowGen::make_row("RDT-CMT/PQoS cache monitoring", info.has_rdtm()),
+            RowGen::make_row("deprecated FPU CS/DS", info.has_fpu_cs_ds_deprecated()),
+            RowGen::make_row("MPX: intel memory protection extensions", info.has_mpx()),
+            RowGen::make_row("RDT-CAT/PQE cache allocation", info.has_rdta()),
+            RowGen::make_row(
                 "AVX512F: AVX-512 foundation instructions",
-                bool_repr(info.has_avx512f()),
+                info.has_avx512f(),
             ),
-            (
+            RowGen::make_row(
                 "AVX512DQ: double & quadword instructions",
-                bool_repr(info.has_avx512dq()),
+                info.has_avx512dq(),
             ),
-            ("RDSEED instruction", bool_repr(info.has_rdseed())),
-            ("ADX instructions", bool_repr(info.has_adx())),
-            (
-                "SMAP: supervisor mode access prevention",
-                bool_repr(info.has_smap()),
-            ),
-            (
-                "AVX512IFMA: fused multiply add",
-                bool_repr(info.has_avx512_ifma()),
-            ),
-            ("CLFLUSHOPT instruction", bool_repr(info.has_clflushopt())),
-            ("CLWB instruction", bool_repr(info.has_clwb())),
-            (
-                "Intel processor trace",
-                bool_repr(info.has_processor_trace()),
-            ),
-            (
-                "AVX512PF: prefetch instructions",
-                bool_repr(info.has_avx512pf()),
-            ),
-            (
+            RowGen::make_row("RDSEED instruction", info.has_rdseed()),
+            RowGen::make_row("ADX instructions", info.has_adx()),
+            RowGen::make_row("SMAP: supervisor mode access prevention", info.has_smap()),
+            RowGen::make_row("AVX512IFMA: fused multiply add", info.has_avx512_ifma()),
+            RowGen::make_row("CLFLUSHOPT instruction", info.has_clflushopt()),
+            RowGen::make_row("CLWB instruction", info.has_clwb()),
+            RowGen::make_row("Intel processor trace", info.has_processor_trace()),
+            RowGen::make_row("AVX512PF: prefetch instructions", info.has_avx512pf()),
+            RowGen::make_row(
                 "AVX512ER: exponent & reciprocal instrs",
-                bool_repr(info.has_avx512er()),
+                info.has_avx512er(),
             ),
-            (
-                "AVX512CD: conflict detection instrs",
-                bool_repr(info.has_avx512cd()),
-            ),
-            ("SHA instructions", bool_repr(info.has_sha())),
-            (
-                "AVX512BW: byte & word instructions",
-                bool_repr(info.has_avx512bw()),
-            ),
-            ("AVX512VL: vector length", bool_repr(info.has_avx512vl())),
-            ("PREFETCHWT1", bool_repr(info.has_prefetchwt1())),
-            (
-                "UMIP: user-mode instruction prevention",
-                bool_repr(info.has_umip()),
-            ),
-            (
-                "PKU protection keys for user-mode",
-                bool_repr(info.has_pku()),
-            ),
-            (
-                "OSPKE CR4.PKE and RDPKRU/WRPKRU",
-                bool_repr(info.has_ospke()),
-            ),
-            (
+            RowGen::make_row("AVX512CD: conflict detection instrs", info.has_avx512cd()),
+            RowGen::make_row("SHA instructions", info.has_sha()),
+            RowGen::make_row("AVX512BW: byte & word instructions", info.has_avx512bw()),
+            RowGen::make_row("AVX512VL: vector length", info.has_avx512vl()),
+            RowGen::make_row("PREFETCHWT1", info.has_prefetchwt1()),
+            RowGen::make_row("UMIP: user-mode instruction prevention", info.has_umip()),
+            RowGen::make_row("PKU protection keys for user-mode", info.has_pku()),
+            RowGen::make_row("OSPKE CR4.PKE and RDPKRU/WRPKRU", info.has_ospke()),
+            RowGen::make_row(
                 "BNDLDX/BNDSTX MAWAU value in 64-bit mode",
-                format!("{}", info.mawau_value()),
+                info.mawau_value(),
             ),
-            ("RDPID: read processor ID", bool_repr(info.has_rdpid())),
-            ("SGX_LC: SGX launch config", bool_repr(info.has_sgx_lc())),
-        ];
-        let table = make_table_display(&table_template, &attrs);
-        skin.print_expander(table);
+            RowGen::make_row("RDPID: read processor ID", info.has_rdpid()),
+            RowGen::make_row("SGX_LC: SGX launch config", info.has_sgx_lc()),
+        ]);
     }
 
     if let Some(info) = cpuid.get_direct_cache_access_info() {
@@ -733,18 +595,8 @@ fn main() {
     if let Some(info) = cpuid.get_extended_state_info() {
         print_title("Extended Register State (0x0d/0):");
 
-        let table_template3 = TextTemplate::from(
-            r#"
-|:-|-:|-:|
-${feature-rows
-|**${category-name}**|**${attr-name}**|${attr-avail}|
-}
-|-|-|
-    "#,
-        );
-
         print_subtitle("XCR0/IA32_XSS supported states:");
-        let attrs = [
+        table3(&[
             ("XCR0", "x87", bool_repr(info.xcr0_supports_legacy_x87())),
             ("XCR0", "SSE state", bool_repr(info.xcr0_supports_sse_128())),
             ("XCR0", "AVX state", bool_repr(info.xcr0_supports_avx_256())),
@@ -778,9 +630,7 @@ ${feature-rows
             //("XCR0", "CET_U state", xxx),
             //("XCR0", "CET_S state", xxx),
             ("IA32_XSS", "HDC", bool_repr(info.ia32_xss_supports_hdc())),
-        ];
-        let table = make_table_display3(&table_template3, &attrs);
-        skin.print_expander(table);
+        ]);
 
         simple_table(&[
             RowGen::make_row(
