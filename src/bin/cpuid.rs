@@ -799,7 +799,7 @@ ${feature-rows
             RowGen::make_row("XSAVEC instruction", info.has_xsavec()),
             RowGen::make_row("XGETBV instruction", info.has_xgetbv()),
             RowGen::make_row("XSAVES/XRSTORS instructions", info.has_xsaves_xrstors()),
-            RowGen::make_row("SAVE area size in bytes", info.xsave_size()),
+            RowGen::make_row("SAVE area size [Bytes]", info.xsave_size()),
         ]);
 
         for state in info.iter() {
@@ -807,7 +807,7 @@ ${feature-rows
                 format!("{} features (0x0d/{}):", state.register(), state.subleaf).as_str(),
             );
             simple_table(&[
-                RowGen::make_row("save state byte size", state.size()),
+                RowGen::make_row("save state size [Bytes]", state.size()),
                 RowGen::make_row("save state byte offset", state.offset()),
                 RowGen::make_row("supported in IA32_XSS or XCR0", state.location()),
                 RowGen::make_row(
