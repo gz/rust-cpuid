@@ -32,8 +32,8 @@ if let Some(cparams) = cpuid.get_cache_parameters() {
 
 ## `cpuid` binary
 
-The `raw-cpuid` ships with a cpuid binary that can be installed to inspect the
-CPUID instruction on a host system.
+`raw-cpuid` ships with a `cpuid` binary that can be installed to inspect the
+output of the CPUID instruction on a host system.
 
 To install, use:
 
