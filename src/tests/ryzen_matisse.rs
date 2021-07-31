@@ -1210,7 +1210,7 @@ fn svm() {
     assert!(e.has_gmet());
     assert!(!e.has_sss_check());
     assert!(e.has_spec_ctrl());
-    assert!(!e.has_host_mce_overrwide());
+    assert!(!e.has_host_mce_override());
     assert!(!e.has_tlb_ctrl());
 }
 

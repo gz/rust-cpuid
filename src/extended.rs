@@ -1499,6 +1499,11 @@ impl SvmFeatures {
         self.edx.contains(SvmFeaturesEdx::VMSAVE_VIRT)
     }
 
+    /// GIF -- virtualized global interrupt flag if set.
+    pub fn has_gif(&self) -> bool {
+        self.edx.contains(SvmFeaturesEdx::VGIF)
+    }
+
     /// Guest Mode Execution Trap supported if set.
     pub fn has_gmet(&self) -> bool {
         self.edx.contains(SvmFeaturesEdx::GMET)
@@ -1516,7 +1521,7 @@ impl SvmFeatures {
 
     /// When host `CR4.MCE=1` and guest `CR4.MCE=0`, machine check exceptions (`#MC`) in a
     /// guest do not cause shutdown and are always intercepted if set.
-    pub fn has_host_mce_overrwide(&self) -> bool {
+    pub fn has_host_mce_override(&self) -> bool {
         self.edx.contains(SvmFeaturesEdx::HOST_MCE_OVERRIDE)
     }
 
