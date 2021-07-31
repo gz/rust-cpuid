@@ -1,5 +1,5 @@
 //! Data-structures / interpretation for extended leafs (>= 0x8000_0000)
-use core::fmt::{Debug, Formatter};
+use core::fmt::{self, Debug, Display, Formatter};
 use core::mem::size_of;
 use core::slice;
 use core::str;
@@ -771,6 +771,21 @@ pub enum Associativity {
     NWay(u8),
     FullyAssociative,
     Unknown,
+}
+
+impl Display for Associativity {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let s = match self {
+            Associativity::Disabled => "Disabled",
+            Associativity::DirectMapped => "Direct mapped",
+            Associativity::NWay(n) => {
+                return write!(f, "NWay({})", n);
+            }
+            Associativity::FullyAssociative => "Fully associative",
+            Associativity::Unknown => "Unknown (check leaf 0x8000_001D)",
+        };
+        f.write_str(s)
+    }
 }
 
 impl Associativity {
