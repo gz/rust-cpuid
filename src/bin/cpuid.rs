@@ -1212,6 +1212,36 @@ ${feature-rows
         ]);
     }
 
+    if let Some(info) = cpuid.get_svm_info() {
+        print_title("SVM Secure Virtual Machine (0x8000_000a/eax):");
+        print_attr("Revision", info.revision());
+
+        print_title("SVM Secure Virtual Machine (0x8000_000a/edx):");
+        simple_table(&[
+            RowGen::make_row("nested paging", info.has_nested_paging()),
+            RowGen::make_row("LBR virtualization", info.has_lbr_virtualization()),
+            RowGen::make_row("SVM lock", info.has_svm_lock()),
+            RowGen::make_row("NRIP", info.has_nrip()),
+            RowGen::make_row("MSR based TSC rate control", info.has_tsc_rate_msr()),
+            RowGen::make_row("VMCB clean bits support", info.has_vmcb_clean_bits()),
+            RowGen::make_row("flush by ASID", info.has_flush_by_asid()),
+            RowGen::make_row("decode assists", info.has_decode_assists()),
+            RowGen::make_row("pause intercept filter", info.has_pause_filter()),
+            RowGen::make_row("pause filter threshold", info.has_pause_filter_threshold()),
+            RowGen::make_row("AVIC: virtual interrupt controller", info.has_avic()),
+            RowGen::make_row(
+                "virtualized VMLOAD/VMSAVE",
+                info.has_vmsave_virtualization(),
+            ),
+            RowGen::make_row("GIF: virtual global interrupt flag", info.has_gif()),
+            RowGen::make_row("GMET: guest mode execute trap", info.has_gmet()),
+            RowGen::make_row("SPEC_CTRL virtualization", info.has_spec_ctrl()),
+            RowGen::make_row("Supervisor shadow-stack restrictions", info.has_sss_check()),
+            RowGen::make_row("#MC intercept", info.has_host_mce_override()),
+            RowGen::make_row("INVLPGB/TLBSYNC virtualization", info.has_tlb_ctrl()),
+        ]);
+    }
+
     if let Some(info) = cpuid.get_memory_encryption_info() {
         print_title("Memory Encryption Support (0x8000_001f):");
         simple_table(&[
