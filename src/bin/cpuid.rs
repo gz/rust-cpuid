@@ -1129,6 +1129,40 @@ ${feature-rows
         ]);
     }
 
+    if let Some(info) = cpuid.get_advanced_power_mgmt_info() {
+        print_title("RAS Capability (0x8000_0007/ebx):");
+        simple_table(&[
+            RowGen::make_row("MCA overflow recovery", info.has_mca_overflow_recovery()),
+            RowGen::make_row("SUCCOR", info.has_succor()),
+            RowGen::make_row("HWA: hardware assert", info.has_hwa()),
+        ]);
+
+        print_title("Advanced Power Management (0x8000_0007/ecx):");
+        print_attr(
+            "Ratio of Compute Unit Power Acc. sample period to TSC",
+            info.cpu_pwr_sample_time_ratio(),
+        );
+
+        print_title("Advanced Power Management (0x8000_0007/edx):");
+        simple_table(&[
+            RowGen::make_row("TS: temperature sensing diode", info.has_ts()),
+            RowGen::make_row("FID: frequency ID control", info.has_freq_id_ctrl()),
+            RowGen::make_row("VID: voltage ID control", info.has_volt_id_ctrl()),
+            RowGen::make_row("TTP: thermal trip", info.has_thermtrip()),
+            RowGen::make_row("TM: thermal monitor", info.has_tm()),
+            RowGen::make_row("100 MHz multiplier control", info.has_100mhz_steps()),
+            RowGen::make_row("hardware P-State control", info.has_hw_pstate()),
+            RowGen::make_row("Invariant TSC", info.has_invariant_tsc()),
+            RowGen::make_row("CPB: core performance boost", info.has_cpb()),
+            RowGen::make_row(
+                "read-only effective frequency interface",
+                info.has_ro_effective_freq_iface(),
+            ),
+            RowGen::make_row("processor feedback interface", info.has_feedback_iface()),
+            RowGen::make_row("APM power reporting", info.has_power_reporting_iface()),
+        ]);
+    }
+
     if let Some(info) = cpuid.get_memory_encryption_info() {
         print_title("Memory Encryption Support (0x8000_001f):");
         simple_table(&[
