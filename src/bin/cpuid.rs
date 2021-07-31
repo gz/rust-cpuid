@@ -322,8 +322,16 @@ fn main() {
     }
 
     if let Some(info) = cpuid.get_cache_info() {
-        println!("Cache");
-        println!("{:?}", info);
+        print_title("Cache and TLB information (0x02):");
+        let attrs: Vec<(&str, String)> = info
+            .map(|cache| {
+                RowGen::tuple(
+                    string_to_static_str(format!("{:#x}", cache.num)),
+                    cache.desc().to_string(),
+                )
+            })
+            .collect();
+        table2(&attrs);
     }
 
     if let Some(info) = cpuid.get_processor_serial() {
