@@ -4164,9 +4164,9 @@ impl ExtendedState {
 
     pub fn location(&self) -> ExtendedRegisterStateLocation {
         if self.is_in_xcr0() {
-            return ExtendedRegisterStateLocation::Xcr0;
+            ExtendedRegisterStateLocation::Xcr0
         } else {
-            return ExtendedRegisterStateLocation::Ia32Xss;
+            ExtendedRegisterStateLocation::Ia32Xss
         }
     }
 
