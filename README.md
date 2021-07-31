@@ -30,6 +30,20 @@ if let Some(cparams) = cpuid.get_cache_parameters() {
 }
 ```
 
+## `cpuid` binary
+
+The `raw-cpuid` ships with a cpuid binary that can be installed to inspect the
+CPUID instruction on a host system.
+
+To install, use:
+
+```bash
+cargo install raw-cpuid --features cli
+```
+
+The `cli` feature is currently required to build the binary version due to
+[cargo limitations](https://github.com/rust-lang/cargo/issues/1982).
+
 ## Documentation
 
 * [API Documentation](https://docs.rs/raw-cpuid/)
