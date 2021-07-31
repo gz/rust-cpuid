@@ -1163,6 +1163,55 @@ ${feature-rows
         ]);
     }
 
+    if let Some(info) = cpuid.get_processor_capacity_feature_info() {
+        print_title("Physical Address and Linear Address Size (0x8000_0008/eax):");
+        simple_table(&[
+            RowGen::make_row(
+                "maximum physical address [Bits]",
+                info.physical_address_bits(),
+            ),
+            RowGen::make_row(
+                "maximum linear (virtual) address [Bits]",
+                info.linear_address_bits(),
+            ),
+            RowGen::make_row(
+                "maximum guest physical address [Bits]",
+                info.guest_physical_address_bits(),
+            ),
+        ]);
+
+        print_title("Extended Feature Extensions ID (0x8000_0008/ebx):");
+        simple_table(&[
+            RowGen::make_row("CLZERO", info.has_cl_zero()),
+            RowGen::make_row("instructions retired count", info.has_inst_ret_cntr_msr()),
+            RowGen::make_row(
+                "always save/restore error pointers",
+                info.has_restore_fp_error_ptrs(),
+            ),
+            RowGen::make_row("RDPRU", info.has_rdpru()),
+            RowGen::make_row("INVLPGB", info.has_invlpgb()),
+            RowGen::make_row("MCOMMIT", info.has_mcommit()),
+            RowGen::make_row("WBNOINVD", info.has_wbnoinvd()),
+            RowGen::make_row("WBNOINVD/WBINVD interruptible", info.has_int_wbinvd()),
+            RowGen::make_row("EFER.LMSLE unsupported", info.has_unsupported_efer_lmsle()),
+            RowGen::make_row("INVLPGB with nested paging", info.has_invlpgb_nested()),
+        ]);
+
+        print_title("Size Identifiers (0x8000_0008/ecx):");
+        simple_table(&[
+            RowGen::make_row("Logical processors", info.num_phys_threads()),
+            RowGen::make_row("APIC core ID size", info.apic_id_size()),
+            RowGen::make_row("Max. logical processors", info.maximum_logical_processors()),
+            RowGen::make_row("Perf. TSC size [Bits]", info.perf_tsc_size()),
+        ]);
+
+        print_title("Size Identifiers (0x8000_0008/edx):");
+        simple_table(&[
+            RowGen::make_row("RDPRU max. input value", info.max_rdpru_id()),
+            RowGen::make_row("INVLPGB max. #pages", info.invlpgb_max_pages()),
+        ]);
+    }
+
     if let Some(info) = cpuid.get_memory_encryption_info() {
         print_title("Memory Encryption Support (0x8000_001f):");
         simple_table(&[
