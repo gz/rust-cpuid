@@ -5074,6 +5074,19 @@ pub enum DatType {
     Unknown,
 }
 
+impl fmt::Display for DatType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let t = match self {
+            DatType::Null => "invalid (0)",
+            DatType::DataTLB => "Data TLB",
+            DatType::InstructionTLB => "Instruction TLB",
+            DatType::UnifiedTLB => "Unified TLB",
+            DatType::Unknown => "Unknown",
+        };
+        f.write_str(t)
+    }
+}
+
 /// SoC vendor specific information (LEAF=0x17).
 ///
 /// # Platforms

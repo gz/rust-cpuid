@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added methods to display upper 64-96 bits of processor serial number (`serial_all`, `serial_upper`)
 - Implement `Display` for `CacheType`
 - Implement `Display` for `TopologyType`
+- Implement `Display` for `DatType`
 - Added `location()` method for `ExtendedState` as an alternative for
   `is_in_ia32_xss` and `is_in_xcr0`.
 - Added new `register()` method for `ExtendedState` to identify which register
