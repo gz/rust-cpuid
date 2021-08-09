@@ -7,6 +7,7 @@ extern crate raw_cpuid;
 
 use raw_cpuid::{CpuId, ExtendedTopologyLevel, TopologyType};
 use std::thread;
+use std::convert::TryInto;
 
 /// Runs CPU ID on every core in the system (to gather all APIC IDs).
 ///
@@ -63,7 +64,7 @@ fn gather_all_x2apic_ids() -> Vec<u32> {
         .collect::<Vec<_>>()
 }
 
-fn enumerate_with_extended_topology_info() {
+fn enumerate_with_x2apic_ids() {
     let cpuid = CpuId::new();
     let mut smt_x2apic_shift: u32 = 0;
     let mut core_x2apic_shift: u32 = 0;
@@ -117,23 +118,37 @@ fn cpuid_bits_needed(count: u8) -> u8 {
     cnt
 }
 
-fn enumerate_with_legacy_leaf_1_4() {
+fn get_processor_limits() -> (u8, u8) {
     let cpuid = CpuId::new();
-    let max_logical_processor_ids = cpuid
-        .get_feature_info()
-        .map_or_else(|| 0, |finfo| finfo.max_logical_processor_ids());
 
-    let mut smt_max_cores_for_package: u8 = 0;
-    cpuid.get_cache_parameters().map_or_else(
-        || println!("No cache parameter information available"),
-        |cparams| {
-            for (ecx, cache) in cparams.enumerate() {
-                if ecx == 0 {
-                    smt_max_cores_for_package = cache.max_cores_for_package() as u8;
-                }
+    // This is for AMD processors:
+    if let Some(info) = cpuid.get_processor_capacity_feature_info() {
+        let max_logical_processor_ids = info.num_phys_threads();
+        let smt_max_cores_for_package = info.apic_id_size();
+
+        return (max_logical_processor_ids.try_into().unwrap(), smt_max_cores_for_package.try_into().unwrap());
+    }
+    // This is for Intel processors:
+    else if let Some(cparams) = cpuid.get_cache_parameters() {
+        let max_logical_processor_ids = cpuid
+            .get_feature_info()
+            .map_or_else(|| 1, |finfo| finfo.max_logical_processor_ids());
+
+        let mut smt_max_cores_for_package: u8 = 1;
+        for (ecx, cache) in cparams.enumerate() {
+            if ecx == 0 {
+                smt_max_cores_for_package = cache.max_cores_for_package() as u8;
             }
-        },
-    );
+        }
+
+        return (max_logical_processor_ids as u8, smt_max_cores_for_package as u8);
+    }
+
+    unreachable!("Example doesn't support this CPU")
+}
+
+fn enumerate_with_xapic_id() {
+    let (max_logical_processor_ids, smt_max_cores_for_package) = get_processor_limits();
 
     let smt_mask_width: u8 = cpuid_bits_needed(
         (max_logical_processor_ids.next_power_of_two() / smt_max_cores_for_package) - 1,
@@ -191,8 +206,8 @@ fn main() {
     );
 
     println!();
-    enumerate_with_legacy_leaf_1_4();
+    enumerate_with_xapic_id();
 
     println!();
-    enumerate_with_extended_topology_info();
+    enumerate_with_x2apic_ids();
 }
