@@ -6,8 +6,8 @@ extern crate core_affinity;
 extern crate raw_cpuid;
 
 use raw_cpuid::{CpuId, ExtendedTopologyLevel, TopologyType};
-use std::thread;
 use std::convert::TryInto;
+use std::thread;
 
 /// Runs CPU ID on every core in the system (to gather all APIC IDs).
 ///
@@ -126,7 +126,10 @@ fn get_processor_limits() -> (u8, u8) {
         let max_logical_processor_ids = info.num_phys_threads();
         let smt_max_cores_for_package = info.apic_id_size();
 
-        return (max_logical_processor_ids.try_into().unwrap(), smt_max_cores_for_package.try_into().unwrap());
+        return (
+            max_logical_processor_ids.try_into().unwrap(),
+            smt_max_cores_for_package.try_into().unwrap(),
+        );
     }
     // This is for Intel processors:
     else if let Some(cparams) = cpuid.get_cache_parameters() {
@@ -141,7 +144,10 @@ fn get_processor_limits() -> (u8, u8) {
             }
         }
 
-        return (max_logical_processor_ids as u8, smt_max_cores_for_package as u8);
+        return (
+            max_logical_processor_ids as u8,
+            smt_max_cores_for_package as u8,
+        );
     }
 
     unreachable!("Example doesn't support this CPU")
