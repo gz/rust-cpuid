@@ -147,7 +147,7 @@ fn get_processor_limits() -> (u8, u8) {
     unreachable!("Example doesn't support this CPU")
 }
 
-fn enumerate_with_xapic_id() {
+fn enumerate_with_xapic_ids() {
     let (max_logical_processor_ids, smt_max_cores_for_package) = get_processor_limits();
 
     let smt_mask_width: u8 = cpuid_bits_needed(
@@ -206,7 +206,7 @@ fn main() {
     );
 
     println!();
-    enumerate_with_xapic_id();
+    enumerate_with_xapic_ids();
 
     println!();
     enumerate_with_x2apic_ids();
