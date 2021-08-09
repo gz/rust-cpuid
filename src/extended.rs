@@ -1218,18 +1218,7 @@ impl ProcessorCapacityAndFeatureInfo {
         usize::pow(2, self.apic_id_size() as u32)
     }
 
-    /// Number of physical threads.
-    ///
-    /// The number of bits in the initial `APIC20[ApicId]` value that indicate
-    /// logical processor ID within a package. The size of this field determines
-    /// the maximum number of logical processors (MNLP) that the package could
-    /// theoretically support, and not the actual number of logical processors
-    /// that are implemented or enabled in the package, as indicated by CPUID
-    /// `Fn8000_0008_ECX[NC]`. A value of zero indicates that legacy methods must
-    /// be used to determine the maximum number of logical processors, as
-    /// indicated by CPUID `Fn8000_0008_ECX[NC]`.
-    ///
-    /// `MNLP = (2 raised to the power of ApicIdSize[3:0])` (if not 0)
+    /// Number of physical threads in the processor.
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=0)
