@@ -3366,6 +3366,14 @@ impl ExtendedFeatures {
         self.ecx.contains(ExtendedFeaturesEcx::OSPKE)
     }
 
+    /// AVX512VNNI
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    pub fn has_avx512vnni(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::AVX512VNNI)
+    }
+
     /// RDPID and IA32_TSC_AUX are available.
     ///
     /// # Bug
@@ -3492,6 +3500,9 @@ bitflags! {
 
         /// Bit 04: OSPKE. If 1, OS has set CR4.PKE to enable protection keys (and the RDPKRU/WRPKRU instruc-tions).
         const OSPKE = 1 << 4;
+
+        /// Bit 11: AVX512_VNNI
+        const AVX512VNNI = 1 << 11;
 
         // Bits 16 - 5: Reserved.
         // Bits 21 - 17: The value of MAWAU used by the BNDLDX and BNDSTX instructions in 64-bit mode.
