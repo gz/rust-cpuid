@@ -746,6 +746,10 @@ fn markdown(_opts: Opts) {
                 RowGen::tuple("PKU protection keys for user-mode", info.has_pku()),
                 RowGen::tuple("OSPKE CR4.PKE and RDPKRU/WRPKRU", info.has_ospke()),
                 RowGen::tuple(
+                    "AVX512VNNI: vector neural network instructions",
+                    info.has_avx512vnni(),
+                ),
+                RowGen::tuple(
                     "BNDLDX/BNDSTX MAWAU value in 64-bit mode",
                     info.mawau_value(),
                 ),
