@@ -65,7 +65,10 @@ extern crate serde;
 #[macro_use]
 extern crate bitflags;
 
+#[cfg_attr(any(all(target_arch = "x86", not(target_env = "sgx"), target_feature = "sse"), all(target_arch = "x86_64", not(target_env = "sgx"))), has_native_cpuid)]
+
 /// Uses Rust's `cpuid` function from the `arch` module.
+#[cfg(has_native_cpuid)]
 pub mod native_cpuid {
     use crate::CpuIdResult;
 
@@ -105,6 +108,7 @@ mod std {
 ///
 /// First parameter is cpuid leaf (EAX register value),
 /// second optional parameter is the subleaf (ECX register value).
+#[cfg(has_native_cpuid)]
 #[macro_export]
 macro_rules! cpuid {
     ($eax:expr) => {
@@ -175,6 +179,7 @@ impl CpuIdReader {
     }
 }
 
+#[cfg(has_native_cpuid)]
 impl Default for CpuIdReader {
     fn default() -> Self {
         Self {
@@ -223,6 +228,7 @@ pub struct CpuId {
     supported_extended_leafs: u32,
 }
 
+#[cfg(has_native_cpuid)]
 impl Default for CpuId {
     fn default() -> CpuId {
         CpuId::with_cpuid_fn(native_cpuid::cpuid_count)
@@ -304,6 +310,7 @@ const EAX_SVM_FEATURES: u32 = 0x8000_000A;
 
 impl CpuId {
     /// Return new CpuId struct.
+    #[cfg(has_native_cpuid)]
     pub fn new() -> Self {
         Self::default()
     }
@@ -5129,9 +5136,9 @@ impl SoCVendorInfo {
     pub fn get_vendor_brand(&self) -> Option<SoCVendorBrand> {
         // Leaf 17H is valid if MaxSOCID_Index >= 3.
         if self.eax >= 3 {
-            let r1 = cpuid!(EAX_SOC_VENDOR_INFO, 1);
-            let r2 = cpuid!(EAX_SOC_VENDOR_INFO, 2);
-            let r3 = cpuid!(EAX_SOC_VENDOR_INFO, 3);
+            let r1 = self.read.cpuid2(EAX_SOC_VENDOR_INFO, 1);
+            let r2 = self.read.cpuid2(EAX_SOC_VENDOR_INFO, 2);
+            let r3 = self.read.cpuid2(EAX_SOC_VENDOR_INFO, 3);
             Some(SoCVendorBrand { data: [r1, r2, r3] })
         } else {
             None
