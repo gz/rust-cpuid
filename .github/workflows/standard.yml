@@ -24,6 +24,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
           components: rustfmt, clippy
+          target: aarch64-unknown-linux-gnu
 
       - uses: actions-rs/cargo@v1.0.3
         with:
@@ -33,6 +34,12 @@ jobs:
         with:
           command: build
           args: --all-features
+
+      - name: Build on target without native cpuid
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: build
+          args: --target aarch64-unknown-linux-gnu
 
       - uses: actions-rs/cargo@v1.0.3
         with:
