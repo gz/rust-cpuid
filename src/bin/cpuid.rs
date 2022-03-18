@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use clap::{Parser};
+use clap::Parser;
 use raw_cpuid::{
     cpuid, Associativity, CacheType, CpuId, CpuIdResult, DatType, ExtendedRegisterStateLocation,
     SgxSectionInfo, SoCVendorBrand, TopologyType,
