@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use clap::{AppSettings, Clap};
+use clap::{Parser};
 use raw_cpuid::{
     cpuid, Associativity, CacheType, CpuId, CpuIdResult, DatType, ExtendedRegisterStateLocation,
     SgxSectionInfo, SoCVendorBrand, TopologyType,
@@ -28,9 +28,9 @@ impl FromStr for OutputFormat {
 }
 
 /// Prints information about the current x86 CPU to stdout using the cpuid instruction.
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(version = "10.2", author = "Gerd Zellweger <mail@gerdzellweger.com>")]
-#[clap(setting = AppSettings::ColoredHelp)]
+#[clap(disable_colored_help(true))]
 struct Opts {
     /// Configures the output format.
     #[clap(short, long, default_value = "cli", possible_values = &["raw", "json", "cli", ])]
