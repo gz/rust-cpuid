@@ -7,9 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+## [10.3.0] - 2022-03-15
+
 ### Added
 
 - Added ExtendedFeatures::has_avx512vnni().
+- Allow to build/use the crate even if `native_cpuid` is not available on the target (one can still instantiate CpuId using `with_cpuid_fn` in this case).
+
+## Changed
+
+- Updated clap dependency.
+
 
 ## [10.2.0] - 2021-07-30
 
