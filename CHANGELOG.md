@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+- Improved debug formatting for `ProcessorCapacityAndFeatureInfo`
+
 ## [10.3.0] - 2022-03-15
 
 ### Added
