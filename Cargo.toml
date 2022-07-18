@@ -34,5 +34,5 @@ clap = {version = "3.1.6", features = ["derive"], optional = true}
 [target.'cfg(unix)'.dev-dependencies]
 core_affinity = "0.5.10"
 libc = {version = "0.2", default-features = false}
-phf = {version = "0.10", features = ["macros"]}
+phf = {version = "0.11", features = ["macros"]}
 rustversion = "1.0"
