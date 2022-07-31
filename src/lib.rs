@@ -573,7 +573,7 @@ impl CpuId {
     /// Extended information about topology (LEAF=0x1F).
     ///
     /// # Platforms
-    /// ❓AMD ❓Intel
+    /// ❓AMD ✅Intel
     pub fn get_extended_topology_info_v2(&self) -> Option<ExtendedTopologyIter> {
         if self.leaf_is_supported(EAX_EXTENDED_TOPOLOGY_INFO_V2) {
             Some(ExtendedTopologyIter {
