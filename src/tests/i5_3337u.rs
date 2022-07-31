@@ -369,6 +369,35 @@ fn extended_topology_info() {
     assert!(l2.shift_right_for_next_apic_id() == 4);
 }
 
+#[cfg(test)]
+#[test]
+fn extended_topology_info_v2() {
+    let l1 = ExtendedTopologyLevel {
+        eax: 1,
+        ebx: 2,
+        ecx: 256,
+        edx: 3,
+    };
+    let l2 = ExtendedTopologyLevel {
+        eax: 4,
+        ebx: 4,
+        ecx: 513,
+        edx: 3,
+    };
+
+    assert!(l1.processors() == 2);
+    assert!(l1.level_number() == 0);
+    assert!(l1.level_type() == TopologyType::SMT);
+    assert!(l1.x2apic_id() == 3);
+    assert!(l1.shift_right_for_next_apic_id() == 1);
+
+    assert!(l2.processors() == 4);
+    assert!(l2.level_number() == 1);
+    assert!(l2.level_type() == TopologyType::Core);
+    assert!(l2.x2apic_id() == 3);
+    assert!(l2.shift_right_for_next_apic_id() == 4);
+}
+
 #[test]
 fn extended_state_info() {
     let es = ExtendedStateInfo {
