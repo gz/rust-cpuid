@@ -553,7 +553,7 @@ impl CpuId {
 
     /// Information about topology (LEAF=0x0B).
     /// 
-    /// Intel SDM suggests software should check support for leaf 0x1F ([`crate::get_extended_topology_info_v2()`]), and
+    /// Intel SDM suggests software should check support for leaf 0x1F ([get_extended_topology_info_v2()`]), and
     /// if supported, enumerate that leaf instead.
     ///
     /// # Platforms
@@ -5146,6 +5146,8 @@ pub enum DatType {
     /// Please see the Intel® 64 and IA-32 Architectures Optimization Reference Manual
     /// for details of a particular product.
     UnifiedTLB = 0b00011,
+    LoadOnly = 0b0100,
+    StoreOnly = 0b0101,
     Unknown,
 }
 
