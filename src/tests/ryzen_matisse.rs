@@ -909,28 +909,6 @@ fn extended_topology_info() {
 }
 
 #[test]
-fn extended_topology_info_v2() {
-    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
-    let mut e = cpuid
-        .get_extended_topology_info_v2()
-        .expect("Leaf is supported");
-
-    let t = e.next().expect("Have level 0");
-    assert_eq!(t.processors(), 2);
-    assert_eq!(t.level_number(), 0);
-    assert_eq!(t.level_type(), TopologyType::SMT);
-    assert_eq!(t.x2apic_id(), 0x0);
-    assert_eq!(t.shift_right_for_next_apic_id(), 0x1);
-
-    let t = e.next().expect("Have level 1");
-    assert_eq!(t.processors(), 12);
-    assert_eq!(t.level_number(), 1);
-    assert_eq!(t.level_type(), TopologyType::Core);
-    assert_eq!(t.x2apic_id(), 0x0);
-    assert_eq!(t.shift_right_for_next_apic_id(), 0x7);
-}
-
-#[test]
 fn extended_state_info() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
     let e = cpuid.get_extended_state_info().expect("Leaf is supported");
@@ -1247,4 +1225,5 @@ fn remaining_unsupported_leafs() {
     assert!(cpuid.get_processor_frequency_info().is_none());
     assert!(cpuid.get_deterministic_address_translation_info().is_none());
     assert!(cpuid.get_soc_vendor_info().is_none());
+    assert!(cpuid.get_extended_topology_info_v2().is_none());
 }
