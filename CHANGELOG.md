@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+
+## [10.4.0] 2022-08-01
+
+- Added support for cpuid leaf 0x1f (Extended Topology Information v2)
 - Improved debug formatting for `ProcessorCapacityAndFeatureInfo`
 
 ## [10.3.0] - 2022-03-15
