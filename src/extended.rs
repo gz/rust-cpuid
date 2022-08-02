@@ -808,6 +808,7 @@ impl Associativity {
             0x4 => Associativity::NWay(4),
             0x5 => Associativity::NWay(6), // Reserved on Intel
             0x6 => Associativity::NWay(8),
+            // 0x7 => SDM states: "See CPUID leaf 04H, sub-leaf 2"
             0x8 => Associativity::NWay(16),
             0x9 => Associativity::Unknown, // Intel: Reserved, AMD: Value for all fields should be determined from Fn8000_001D
             0xa => Associativity::NWay(32),
