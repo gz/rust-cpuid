@@ -2,7 +2,7 @@
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 edition = "2018"
 name = "raw-cpuid"
-version = "10.3.0"
+version = "10.4.0"
 
 description = "A library to parse the x86 CPUID instruction, written in rust with no external dependencies. The implementation closely resembles the Intel CPUID manual description. The library does only depend on libcore."
 documentation = "https://docs.rs/raw-cpuid/"
