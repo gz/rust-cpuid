@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+- Updated phf to 0.11 (only affects `cfg(test)`)
 
 ## [10.4.0] 2022-08-01
 
