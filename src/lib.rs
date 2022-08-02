@@ -553,8 +553,9 @@ impl CpuId {
 
     /// Information about topology (LEAF=0x0B).
     ///
-    /// Intel SDM suggests software should check support for leaf 0x1F ([`get_extended_topology_info_v2()`]), and
-    /// if supported, enumerate that leaf instead.
+    /// Intel SDM suggests software should check support for leaf 0x1F
+    /// ([`CpuId::get_extended_topology_info_v2`]), and if supported, enumerate
+    /// that leaf instead.
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
