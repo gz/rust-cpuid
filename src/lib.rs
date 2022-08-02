@@ -5104,6 +5104,8 @@ impl DatInfo {
             0b00010 => DatType::InstructionTLB,
             0b00011 => DatType::UnifiedTLB,
             0b00000 => DatType::Null, // should never be returned as this indicates invalid struct!
+            0b00100 => DatType::LoadOnly,
+            0b00101 => DatType::StoreOnly,
             _ => DatType::Unknown,
         }
     }
@@ -5158,6 +5160,8 @@ impl fmt::Display for DatType {
             DatType::DataTLB => "Data TLB",
             DatType::InstructionTLB => "Instruction TLB",
             DatType::UnifiedTLB => "Unified TLB",
+            DatType::LoadOnly => "Load Only",
+            DatType::StoreOnly => "Store Only",
             DatType::Unknown => "Unknown",
         };
         f.write_str(t)
