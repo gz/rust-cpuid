@@ -325,6 +325,7 @@ const EAX_L1_CACHE_INFO: u32 = 0x8000_0005;
 const EAX_L2_L3_CACHE_INFO: u32 = 0x8000_0006;
 const EAX_ADVANCED_POWER_MGMT_INFO: u32 = 0x8000_0007;
 const EAX_PROCESSOR_CAPACITY_INFO: u32 = 0x8000_0008;
+const EAX_CACHE_PARAMETERS_AMD: u32 = 0x8000_001D;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 const EAX_SVM_FEATURES: u32 = 0x8000_000A;
 
@@ -454,11 +455,16 @@ impl CpuId {
     /// hierarchy.
     ///
     /// # Platforms
-    /// ❌ AMD ✅ Intel
+    /// ✅ AMD ✅ Intel
     pub fn get_cache_parameters(&self) -> Option<CacheParametersIter> {
-        if self.leaf_is_supported(EAX_CACHE_PARAMETERS) {
+        if self.leaf_is_supported(EAX_CACHE_PARAMETERS) || (self.vendor == Vendor::Amd && self.leaf_is_supported(EAX_CACHE_PARAMETERS_AMD)) {
             Some(CacheParametersIter {
                 read: self.read,
+                leaf: if self.vendor == Vendor::Amd {
+                    EAX_CACHE_PARAMETERS_AMD
+                } else {
+                    EAX_CACHE_PARAMETERS
+                },
                 current: 0,
             })
         } else {
@@ -2506,6 +2512,7 @@ bitflags! {
 pub struct CacheParametersIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
+    leaf: u32,
     current: u32,
 }
 
@@ -2518,7 +2525,7 @@ impl Iterator for CacheParametersIter {
     /// cpuid is called every-time we advance the iterator to get information
     /// about the next cache.
     fn next(&mut self) -> Option<CacheParameter> {
-        let res = self.read.cpuid2(EAX_CACHE_PARAMETERS, self.current);
+        let res = self.read.cpuid2(self.leaf, self.current);
         let cp = CacheParameter {
             eax: res.eax,
             ebx: res.ebx,
