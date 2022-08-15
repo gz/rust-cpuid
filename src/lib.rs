@@ -448,7 +448,7 @@ impl CpuId {
         }
     }
 
-    /// Retrieve more elaborate information about caches (LEAF=0x04).
+    /// Retrieve more elaborate information about caches (LEAF=0x04 or 0x8000_001D).
     ///
     /// As opposed to [get_cache_info](CpuId::get_cache_info), this will tell us
     /// about associativity, set size, line size of each level in the cache
