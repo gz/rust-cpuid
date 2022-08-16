@@ -1216,6 +1216,18 @@ fn svm() {
 }
 
 #[test]
+fn performance_optimization_info() {
+    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
+    let e = cpuid
+        .get_performance_optimization_info()
+        .expect("Leaf is supported");
+
+    assert!(!e.has_fp128());
+    assert!(e.has_movu());
+    assert!(e.has_fp256());
+}
+
+#[test]
 fn remaining_unsupported_leafs() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
 
