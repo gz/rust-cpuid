@@ -1583,3 +1583,57 @@ bitflags! {
         const TLB_CTL = 1 << 24;
     }
 }
+
+/// Performance Optimization Identifier (LEAF=0x8000_001A).
+///
+/// # Note
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct PerformanceOptimizationInfo {
+    eax: PerformanceOptimizationInfoEax,
+    /// Reserved
+    _ebx: u32,
+    /// Reserved
+    _ecx: u32,
+    /// Reserved
+    _edx: u32,
+}
+
+impl PerformanceOptimizationInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: PerformanceOptimizationInfoEax::from_bits_truncate(data.eax),
+            _ebx: data.ebx,
+            _ecx: data.ecx,
+            _edx: data.edx,
+        }
+    }
+
+    /// The internal FP/SIMD execution datapath is 128 bits wide if set.
+    pub fn has_fp128(&self) -> bool {
+        self.eax.contains(PerformanceOptimizationInfoEax::FP128)
+    }
+
+    /// MOVU (Move Unaligned) SSE instructions are efficient more than
+    /// SSE MOVL/MOVH if set.
+    pub fn has_movu(&self) -> bool {
+        self.eax.contains(PerformanceOptimizationInfoEax::MOVU)
+    }
+
+    /// The internal FP/SIMD execution datapath is 256 bits wide if set.
+    pub fn has_fp256(&self) -> bool {
+        self.eax.contains(PerformanceOptimizationInfoEax::FP256)
+    }
+}
+
+bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    struct PerformanceOptimizationInfoEax: u32 {
+        const FP128 = 1 << 0;
+        const MOVU = 1 << 1;
+        const FP256 = 1 << 2;
+    }
+}
