@@ -916,7 +916,7 @@ impl CpuId {
             None
         }
     }
-    /// Informations about memory encryption support (LEAF=0x8000_001A)
+    /// Informations about performance optimization (LEAF=0x8000_001A)
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved)
