@@ -325,6 +325,7 @@ const EAX_L1_CACHE_INFO: u32 = 0x8000_0005;
 const EAX_L2_L3_CACHE_INFO: u32 = 0x8000_0006;
 const EAX_ADVANCED_POWER_MGMT_INFO: u32 = 0x8000_0007;
 const EAX_PROCESSOR_CAPACITY_INFO: u32 = 0x8000_0008;
+const EAX_PERFORMANCE_OPTIMIZATION_INFO: u32 = 0x8000_001A;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 const EAX_SVM_FEATURES: u32 = 0x8000_000A;
 
@@ -910,6 +911,19 @@ impl CpuId {
         if self.leaf_is_supported(EAX_MEMORY_ENCRYPTION_INFO) {
             Some(MemoryEncryptionInfo::new(
                 self.read.cpuid1(EAX_MEMORY_ENCRYPTION_INFO),
+            ))
+        } else {
+            None
+        }
+    }
+    /// Informations about memory encryption support (LEAF=0x8000_001A)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn get_performance_optimization_info(&self) -> Option<PerformanceOptimizationInfo> {
+        if self.leaf_is_supported(EAX_PERFORMANCE_OPTIMIZATION_INFO) {
+            Some(PerformanceOptimizationInfo::new(
+                self.read.cpuid1(EAX_PERFORMANCE_OPTIMIZATION_INFO),
             ))
         } else {
             None
