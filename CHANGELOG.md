@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+- Updated termimad to 0.20 (only affects `cpuid` binary version)
 
 ## [10.5.0] - 2022-08-17
 
@@ -29,7 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Changed
 
 - Updated clap dependency.
-
 
 ## [10.2.0] - 2021-07-30
 
