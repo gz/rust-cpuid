@@ -2571,7 +2571,7 @@ impl Debug for CacheParametersIter {
 /// Information about an individual cache in the hierarchy.
 ///
 /// # Platforms
-/// ❌ AMD ✅ Intel
+/// 🟡 AMD ✅ Intel
 #[derive(Copy, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParameter {
@@ -2613,6 +2613,9 @@ impl fmt::Display for CacheType {
 
 impl CacheParameter {
     /// Cache Type
+    ///
+    /// # Availability
+    /// ✅ AMD ✅ Intel
     pub fn cache_type(&self) -> CacheType {
         let typ = get_bits(self.eax, 0, 4) as u8;
         match typ {
@@ -2625,21 +2628,33 @@ impl CacheParameter {
     }
 
     /// Cache Level (starts at 1)
+    ///
+    /// # Availability
+    /// ✅ AMD ✅ Intel
     pub fn level(&self) -> u8 {
         get_bits(self.eax, 5, 7) as u8
     }
 
     /// Self Initializing cache level (does not need SW initialization).
+    ///
+    /// # Availability
+    /// ✅ AMD ✅ Intel
     pub fn is_self_initializing(&self) -> bool {
         get_bits(self.eax, 8, 8) == 1
     }
 
     /// Fully Associative cache
+    ///
+    /// # Availability
+    /// ✅ AMD ✅ Intel
     pub fn is_fully_associative(&self) -> bool {
         get_bits(self.eax, 9, 9) == 1
     }
 
     /// Maximum number of addressable IDs for logical processors sharing this cache
+    ///
+    /// # Availability
+    /// ✅ AMD ✅ Intel
     pub fn max_cores_for_cache(&self) -> usize {
         (get_bits(self.eax, 14, 25) + 1) as usize
     }
@@ -2653,21 +2668,33 @@ impl CacheParameter {
     }
 
     /// System Coherency Line Size (Bits 11-00)
+    ///
+    /// # Availability
+    /// ✅ AMD ✅ Intel
     pub fn coherency_line_size(&self) -> usize {
         (get_bits(self.ebx, 0, 11) + 1) as usize
     }
 
     /// Physical Line partitions (Bits 21-12)
+    ///
+    /// # Availability
+    /// ✅ AMD ✅ Intel
     pub fn physical_line_partitions(&self) -> usize {
         (get_bits(self.ebx, 12, 21) + 1) as usize
     }
 
     /// Ways of associativity (Bits 31-22)
+    ///
+    /// # Availability
+    /// ✅ AMD ✅ Intel
     pub fn associativity(&self) -> usize {
         (get_bits(self.ebx, 22, 31) + 1) as usize
     }
 
     /// Number of Sets (Bits 31-00)
+    ///
+    /// # Availability
+    /// ✅ AMD ✅ Intel
     pub fn sets(&self) -> usize {
         (self.ecx + 1) as usize
     }
@@ -2675,6 +2702,9 @@ impl CacheParameter {
     /// Write-Back Invalidate/Invalidate (Bit 0)
     /// False: WBINVD/INVD from threads sharing this cache acts upon lower level caches for threads sharing this cache.
     /// True: WBINVD/INVD is not guaranteed to act upon lower level caches of non-originating threads sharing this cache.
+    ///
+    /// # Availability
+    /// ✅ AMD ✅ Intel
     pub fn is_write_back_invalidate(&self) -> bool {
         get_bits(self.edx, 0, 0) == 1
     }
@@ -2682,6 +2712,9 @@ impl CacheParameter {
     /// Cache Inclusiveness (Bit 1)
     /// False: Cache is not inclusive of lower cache levels.
     /// True: Cache is inclusive of lower cache levels.
+    ///
+    /// # Availability
+    /// ✅ AMD ✅ Intel
     pub fn is_inclusive(&self) -> bool {
         get_bits(self.edx, 1, 1) == 1
     }
