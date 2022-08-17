@@ -457,7 +457,9 @@ impl CpuId {
     /// # Platforms
     /// 🟡 AMD ✅ Intel
     pub fn get_cache_parameters(&self) -> Option<CacheParametersIter> {
-        if self.leaf_is_supported(EAX_CACHE_PARAMETERS) || (self.vendor == Vendor::Amd && self.leaf_is_supported(EAX_CACHE_PARAMETERS_AMD)) {
+        if self.leaf_is_supported(EAX_CACHE_PARAMETERS)
+            || (self.vendor == Vendor::Amd && self.leaf_is_supported(EAX_CACHE_PARAMETERS_AMD))
+        {
             Some(CacheParametersIter {
                 read: self.read,
                 leaf: if self.vendor == Vendor::Amd {
