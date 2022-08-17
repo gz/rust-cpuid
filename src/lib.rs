@@ -2670,10 +2670,10 @@ impl CacheParameter {
     }
 
     /// Complex Cache Indexing (Bit 2)
-    /// False: Direct mapped cache.
+    /// False: Direct mapped cache. (1-way)
     /// True: A complex function is used to index the cache, potentially using all address bits.
     pub fn has_complex_indexing(&self) -> bool {
-        get_bits(self.edx, 2, 2) == 1
+        get_bits(self.edx, 2, 2) == 1 || get_bits(self.ebx, 22, 31) != 0
     }
 }
 
