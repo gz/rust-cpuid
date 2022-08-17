@@ -1586,8 +1586,6 @@ bitflags! {
 
 /// Performance Optimization Identifier (LEAF=0x8000_001A).
 ///
-/// # Note
-///
 /// # Platforms
 /// ✅ AMD ❌ Intel
 #[derive(PartialEq, Eq, Debug)]
@@ -1618,7 +1616,7 @@ impl PerformanceOptimizationInfo {
     }
 
     /// MOVU (Move Unaligned) SSE instructions are efficient more than
-    /// SSE MOVL/MOVH if set.
+    /// MOVL/MOVH SSE if set.
     pub fn has_movu(&self) -> bool {
         self.eax.contains(PerformanceOptimizationInfoEax::MOVU)
     }
