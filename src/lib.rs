@@ -456,7 +456,7 @@ impl CpuId {
     /// hierarchy.
     ///
     /// # Platforms
-    /// ✅ AMD ✅ Intel
+    /// 🟡 AMD ✅ Intel
     pub fn get_cache_parameters(&self) -> Option<CacheParametersIter> {
         if self.leaf_is_supported(EAX_CACHE_PARAMETERS) || (self.vendor == Vendor::Amd && self.leaf_is_supported(EAX_CACHE_PARAMETERS_AMD)) {
             Some(CacheParametersIter {
@@ -2520,7 +2520,7 @@ bitflags! {
 /// Yields a [CacheParameter] for each cache.
 ///
 /// # Platforms
-/// ❌ AMD ✅ Intel
+/// 🟡 AMD ✅ Intel
 #[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParametersIter {
