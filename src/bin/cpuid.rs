@@ -1440,6 +1440,21 @@ fn markdown(_opts: Opts) {
         );
     }
 
+    if let Some(info) = cpuid.get_performance_optimization_info() {
+        print_title(&skin, "Performance Optimization Info (0x8000_001a):");
+        table2(
+            &skin,
+            &[
+                RowGen::tuple("128-bits width the internal FP/SIMD", info.has_fp128()),
+                RowGen::tuple(
+                    "MOVU SSE are efficient more than MOVL/MOVH",
+                    info.has_movu(),
+                ),
+                RowGen::tuple("256-bits width the internal FP/SIMD", info.has_fp256()),
+            ],
+        );
+    }
+
     if let Some(info) = cpuid.get_memory_encryption_info() {
         print_title(&skin, "Memory Encryption Support (0x8000_001f):");
         table2(
