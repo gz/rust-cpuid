@@ -2631,6 +2631,9 @@ impl CacheParameter {
     }
 
     /// Maximum number of addressable IDs for processor cores in the physical package
+    ///
+    /// # Availability
+    /// ❌ AMD ✅ Intel
     pub fn max_cores_for_package(&self) -> usize {
         (get_bits(self.eax, 26, 31) + 1) as usize
     }
@@ -2672,6 +2675,9 @@ impl CacheParameter {
     /// Complex Cache Indexing (Bit 2)
     /// False: Direct mapped cache.
     /// True: A complex function is used to index the cache, potentially using all address bits.
+    ///
+    /// # Availability
+    /// ❌ AMD ✅ Intel
     pub fn has_complex_indexing(&self) -> bool {
         get_bits(self.edx, 2, 2) == 1
     }
