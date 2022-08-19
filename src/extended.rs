@@ -1538,11 +1538,17 @@ impl ProcessorTopologyInfo {
     }
 
     /// Core ID
+    ///
+    /// # Note
+    /// `Core ID` means `Compute Unit ID` if AMD Family 15h-16h Processors.
     pub fn core_id(&self) -> u8 {
         get_bits(self.ebx, 0, 7) as u8
     }
 
     /// Threads per core
+    ///
+    /// # Note
+    /// `Threads per Core` means `Cores per Compute Unit` if AMD Family 15h-16h Processors.
     pub fn threads_per_core(&self) -> u8 {
         get_bits(self.ebx, 8, 15) as u8 + 1
     }
