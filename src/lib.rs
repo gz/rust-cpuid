@@ -326,6 +326,7 @@ const EAX_ADVANCED_POWER_MGMT_INFO: u32 = 0x8000_0007;
 const EAX_PROCESSOR_CAPACITY_INFO: u32 = 0x8000_0008;
 const EAX_PERFORMANCE_OPTIMIZATION_INFO: u32 = 0x8000_001A;
 const EAX_CACHE_PARAMETERS_AMD: u32 = 0x8000_001D;
+const EAX_PROCESSOR_TOPOLOGY_INFO: u32 = 0x8000_001E;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 const EAX_SVM_FEATURES: u32 = 0x8000_000A;
 
@@ -923,6 +924,7 @@ impl CpuId {
             None
         }
     }
+
     /// Informations about performance optimization (LEAF=0x8000_001A)
     ///
     /// # Platforms
@@ -931,6 +933,20 @@ impl CpuId {
         if self.leaf_is_supported(EAX_PERFORMANCE_OPTIMIZATION_INFO) {
             Some(PerformanceOptimizationInfo::new(
                 self.read.cpuid1(EAX_PERFORMANCE_OPTIMIZATION_INFO),
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Informations about processor topology (LEAF=0x8000_001E)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn get_processor_topology_info(&self) -> Option<ProcessorTopologyInfo> {
+        if self.leaf_is_supported(EAX_PROCESSOR_TOPOLOGY_INFO) {
+            Some(ProcessorTopologyInfo::new(
+                self.read.cpuid1(EAX_PROCESSOR_TOPOLOGY_INFO),
             ))
         } else {
             None
