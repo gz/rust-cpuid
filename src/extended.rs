@@ -1298,134 +1298,6 @@ bitflags! {
     }
 }
 
-/// Encrypted Memory Capabilities
-///
-/// # Platforms
-/// ✅ AMD ❌ Intel
-#[derive(Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-pub struct MemoryEncryptionInfo {
-    eax: MemoryEncryptionInfoEax,
-    ebx: u32,
-    ecx: u32,
-    edx: u32,
-}
-
-impl MemoryEncryptionInfo {
-    pub(crate) fn new(data: CpuIdResult) -> Self {
-        Self {
-            eax: MemoryEncryptionInfoEax::from_bits_truncate(data.eax),
-            ebx: data.ebx,
-            ecx: data.ecx,
-            edx: data.edx,
-        }
-    }
-
-    /// Secure Memory Encryption is supported if set.
-    pub fn has_sme(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::SME)
-    }
-
-    /// Secure Encrypted Virtualization is supported if set.
-    pub fn has_sev(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::SEV)
-    }
-
-    /// The Page Flush MSR is available if set.
-    pub fn has_page_flush_msr(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::PAGE_FLUSH_MSR)
-    }
-
-    /// SEV Encrypted State is supported if set.
-    pub fn has_sev_es(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::SEV_ES)
-    }
-
-    /// SEV Secure Nested Paging supported if set.
-    pub fn has_sev_snp(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::SEV_SNP)
-    }
-
-    /// VM Permission Levels supported if set.
-    pub fn has_vmpl(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::VMPL)
-    }
-
-    /// Hardware cache coherency across encryption domains enforced if set.
-    pub fn has_hw_enforced_cache_coh(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::HWENFCACHECOH)
-    }
-
-    /// SEV guest execution only allowed from a 64-bit host if set.
-    pub fn has_64bit_mode(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::HOST64)
-    }
-
-    /// Restricted Injection supported if set.
-    pub fn has_restricted_injection(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::RESTINJECT)
-    }
-
-    /// Alternate Injection supported if set.
-    pub fn has_alternate_injection(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::ALTINJECT)
-    }
-
-    /// Full debug state swap supported for SEV-ES guests.
-    pub fn has_debug_swap(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::DBGSWP)
-    }
-
-    /// Disallowing IBS use by the host supported if set.
-    pub fn has_prevent_host_ibs(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::PREVHOSTIBS)
-    }
-
-    /// Virtual Transparent Encryption supported if set.
-    pub fn has_vte(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::VTE)
-    }
-
-    /// C-bit location in page table entry
-    pub fn c_bit_position(&self) -> u8 {
-        get_bits(self.ebx, 0, 5) as u8
-    }
-
-    /// Physical Address bit reduction
-    pub fn physical_address_reduction(&self) -> u8 {
-        get_bits(self.ebx, 6, 11) as u8
-    }
-
-    /// Number of encrypted guests supported simultaneouslys
-    pub fn max_encrypted_guests(&self) -> u32 {
-        self.ecx
-    }
-
-    /// Minimum ASID value for an SEV enabled, SEV-ES disabled guest
-    pub fn min_sev_no_es_asid(&self) -> u32 {
-        self.edx
-    }
-}
-
-bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-    struct MemoryEncryptionInfoEax: u32 {
-        const SME = 1 << 0;
-        const SEV = 1 << 1;
-        const PAGE_FLUSH_MSR = 1 << 2;
-        const SEV_ES = 1 << 3;
-        const SEV_SNP = 1 << 4;
-        const VMPL = 1 << 5;
-        const HWENFCACHECOH = 1 << 10;
-        const HOST64 = 1 << 11;
-        const RESTINJECT = 1 << 12;
-        const ALTINJECT = 1 << 13;
-        const DBGSWP = 1 << 14;
-        const PREVHOSTIBS = 1 << 15;
-        const VTE = 1 << 16;
-    }
-}
-
 /// Information about the SVM features that the processory supports (LEAF=0x8000_000A).
 ///
 /// # Note
@@ -1695,5 +1567,133 @@ impl Debug for ProcessorTopologyInfo {
             .field("node_id", &self.node_id())
             .field("nodes_per_processor", &self.nodes_per_processor())
             .finish()
+    }
+}
+
+/// Encrypted Memory Capabilities (LEAF=0x8000_001F).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct MemoryEncryptionInfo {
+    eax: MemoryEncryptionInfoEax,
+    ebx: u32,
+    ecx: u32,
+    edx: u32,
+}
+
+impl MemoryEncryptionInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: MemoryEncryptionInfoEax::from_bits_truncate(data.eax),
+            ebx: data.ebx,
+            ecx: data.ecx,
+            edx: data.edx,
+        }
+    }
+
+    /// Secure Memory Encryption is supported if set.
+    pub fn has_sme(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::SME)
+    }
+
+    /// Secure Encrypted Virtualization is supported if set.
+    pub fn has_sev(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::SEV)
+    }
+
+    /// The Page Flush MSR is available if set.
+    pub fn has_page_flush_msr(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::PAGE_FLUSH_MSR)
+    }
+
+    /// SEV Encrypted State is supported if set.
+    pub fn has_sev_es(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::SEV_ES)
+    }
+
+    /// SEV Secure Nested Paging supported if set.
+    pub fn has_sev_snp(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::SEV_SNP)
+    }
+
+    /// VM Permission Levels supported if set.
+    pub fn has_vmpl(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::VMPL)
+    }
+
+    /// Hardware cache coherency across encryption domains enforced if set.
+    pub fn has_hw_enforced_cache_coh(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::HWENFCACHECOH)
+    }
+
+    /// SEV guest execution only allowed from a 64-bit host if set.
+    pub fn has_64bit_mode(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::HOST64)
+    }
+
+    /// Restricted Injection supported if set.
+    pub fn has_restricted_injection(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::RESTINJECT)
+    }
+
+    /// Alternate Injection supported if set.
+    pub fn has_alternate_injection(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::ALTINJECT)
+    }
+
+    /// Full debug state swap supported for SEV-ES guests.
+    pub fn has_debug_swap(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::DBGSWP)
+    }
+
+    /// Disallowing IBS use by the host supported if set.
+    pub fn has_prevent_host_ibs(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::PREVHOSTIBS)
+    }
+
+    /// Virtual Transparent Encryption supported if set.
+    pub fn has_vte(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::VTE)
+    }
+
+    /// C-bit location in page table entry
+    pub fn c_bit_position(&self) -> u8 {
+        get_bits(self.ebx, 0, 5) as u8
+    }
+
+    /// Physical Address bit reduction
+    pub fn physical_address_reduction(&self) -> u8 {
+        get_bits(self.ebx, 6, 11) as u8
+    }
+
+    /// Number of encrypted guests supported simultaneouslys
+    pub fn max_encrypted_guests(&self) -> u32 {
+        self.ecx
+    }
+
+    /// Minimum ASID value for an SEV enabled, SEV-ES disabled guest
+    pub fn min_sev_no_es_asid(&self) -> u32 {
+        self.edx
+    }
+}
+
+bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    struct MemoryEncryptionInfoEax: u32 {
+        const SME = 1 << 0;
+        const SEV = 1 << 1;
+        const PAGE_FLUSH_MSR = 1 << 2;
+        const SEV_ES = 1 << 3;
+        const SEV_SNP = 1 << 4;
+        const VMPL = 1 << 5;
+        const HWENFCACHECOH = 1 << 10;
+        const HOST64 = 1 << 11;
+        const RESTINJECT = 1 << 12;
+        const ALTINJECT = 1 << 13;
+        const DBGSWP = 1 << 14;
+        const PREVHOSTIBS = 1 << 15;
+        const VTE = 1 << 16;
     }
 }
