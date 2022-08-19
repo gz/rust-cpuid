@@ -1635,3 +1635,65 @@ bitflags! {
         const FP256 = 1 << 2;
     }
 }
+
+/// Processor Topology Information (LEAF=0x8000_001E).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct ProcessorTopologyInfo {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    /// Reserved
+    _edx: u32,
+}
+
+impl ProcessorTopologyInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: data.eax,
+            ebx: data.ebx,
+            ecx: data.ecx,
+            _edx: data.edx,
+        }
+    }
+
+    /// x2APIC ID
+    pub fn x2apic_id(&self) -> u32 {
+        self.eax
+    }
+
+    /// Core ID
+    pub fn core_id(&self) -> u8 {
+        get_bits(self.ebx, 0, 7) as u8
+    }
+
+    /// Threads per core
+    pub fn threads_per_core(&self) -> u8 {
+        get_bits(self.ebx, 8, 15) as u8 + 1
+    }
+
+    /// Node ID
+    pub fn node_id(&self) -> u8 {
+        get_bits(self.ecx, 0, 7) as u8
+    }
+
+    /// Nodes per processor
+    pub fn nodes_per_processor(&self) -> u8 {
+        get_bits(self.ecx, 8, 10) as u8 + 1
+    }
+}
+
+impl Debug for ProcessorTopologyInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ProcessorTopologyInfo")
+            .field("x2apic_id", &self.x2apic_id())
+            .field("core_id", &self.core_id())
+            .field("threads_per_core", &self.threads_per_core())
+            .field("node_id", &self.node_id())
+            .field("nodes_per_processor", &self.nodes_per_processor())
+            .finish()
+    }
+}
