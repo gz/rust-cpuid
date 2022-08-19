@@ -1198,4 +1198,7 @@ fn remaining_unsupported_leafs() {
     assert!(cpuid.get_deterministic_address_translation_info().is_none());
     assert!(cpuid.get_soc_vendor_info().is_none());
     assert!(cpuid.get_extended_topology_info_v2().is_none());
+    assert!(cpuid.get_performance_optimization_info().is_none());
+    assert!(cpuid.get_processor_topology_info().is_none());
+    assert!(cpuid.get_memory_encryption_info().is_none());
 }
