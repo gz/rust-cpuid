@@ -893,7 +893,7 @@ impl CpuId {
     }
 
     /// This function provides information about the SVM features that the processory
-    /// supports.
+    /// supports. (LEAF=0x8000_000A)
     ///
     /// If SVM is not supported if [ExtendedProcessorFeatureIdentifiers::has_svm] is
     /// false, this function is reserved then.
@@ -906,20 +906,6 @@ impl CpuId {
             .map_or(false, |f| f.has_svm());
         if has_svm && self.leaf_is_supported(EAX_SVM_FEATURES) {
             Some(SvmFeatures::new(self.read.cpuid1(EAX_SVM_FEATURES)))
-        } else {
-            None
-        }
-    }
-
-    /// Informations about memory encryption support (LEAF=0x8000_001F)
-    ///
-    /// # Platforms
-    /// ✅ AMD ❌ Intel (reserved)
-    pub fn get_memory_encryption_info(&self) -> Option<MemoryEncryptionInfo> {
-        if self.leaf_is_supported(EAX_MEMORY_ENCRYPTION_INFO) {
-            Some(MemoryEncryptionInfo::new(
-                self.read.cpuid1(EAX_MEMORY_ENCRYPTION_INFO),
-            ))
         } else {
             None
         }
@@ -947,6 +933,20 @@ impl CpuId {
         if self.leaf_is_supported(EAX_PROCESSOR_TOPOLOGY_INFO) {
             Some(ProcessorTopologyInfo::new(
                 self.read.cpuid1(EAX_PROCESSOR_TOPOLOGY_INFO),
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Informations about memory encryption support (LEAF=0x8000_001F)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn get_memory_encryption_info(&self) -> Option<MemoryEncryptionInfo> {
+        if self.leaf_is_supported(EAX_MEMORY_ENCRYPTION_INFO) {
+            Some(MemoryEncryptionInfo::new(
+                self.read.cpuid1(EAX_MEMORY_ENCRYPTION_INFO),
             ))
         } else {
             None
