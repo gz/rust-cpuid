@@ -1455,6 +1455,20 @@ fn markdown(_opts: Opts) {
         );
     }
 
+    if let Some(info) = cpuid.get_processor_topology_info() {
+        print_title(&skin, "Processor Topology Info (0x8000_001e):");
+        table2(
+            &skin,
+            &[
+                RowGen::tuple("x2APIC ID", info.x2apic_id()),
+                RowGen::tuple("Core ID", info.core_id()),
+                RowGen::tuple("Threads per core", info.threads_per_core()),
+                RowGen::tuple("Node ID", info.node_id()),
+                RowGen::tuple("Nodes per processor", info.nodes_per_processor()),
+            ],
+        );
+    }
+
     if let Some(info) = cpuid.get_memory_encryption_info() {
         print_title(&skin, "Memory Encryption Support (0x8000_001f):");
         table2(
