@@ -1215,9 +1215,9 @@ fn markdown(_opts: Opts) {
         table2(
             &skin,
             &[
-                RowGen::tuple("iTLB #entries", info.dtlb_2m_4m_size()),
+                RowGen::tuple("iTLB #entries", info.itlb_2m_4m_size()),
                 RowGen::tuple("iTLB associativity", info.itlb_2m_4m_associativity()),
-                RowGen::tuple("dTLB #entries", info.itlb_2m_4m_size()),
+                RowGen::tuple("dTLB #entries", info.dtlb_2m_4m_size()),
                 RowGen::tuple("dTLB associativity", info.dtlb_2m_4m_associativity()),
             ],
         );
@@ -1261,9 +1261,9 @@ fn markdown(_opts: Opts) {
         table2(
             &skin,
             &[
-                RowGen::tuple("iTLB #entries", info.dtlb_2m_4m_size()),
+                RowGen::tuple("iTLB #entries", info.itlb_2m_4m_size()),
                 RowGen::tuple("iTLB associativity", info.itlb_2m_4m_associativity()),
-                RowGen::tuple("dTLB #entries", info.itlb_2m_4m_size()),
+                RowGen::tuple("dTLB #entries", info.dtlb_2m_4m_size()),
                 RowGen::tuple("dTLB associativity", info.dtlb_2m_4m_associativity()),
             ],
         );
