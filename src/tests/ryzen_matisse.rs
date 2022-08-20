@@ -1216,6 +1216,21 @@ fn svm() {
 }
 
 #[test]
+fn tlb_1gb_page_info() {
+    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
+    let e = cpuid.get_tlb_1gb_page_info().expect("Leaf is supported");
+
+    assert!(e.dtlb_l1_1gb_associativity() == Associativity::FullyAssociative);
+    assert!(e.dtlb_l1_1gb_size() == 64);
+    assert!(e.itlb_l1_1gb_associativity() == Associativity::FullyAssociative);
+    assert!(e.itlb_l1_1gb_size() == 64);
+    assert!(e.dtlb_l2_1gb_associativity() == Associativity::Disabled);
+    assert!(e.dtlb_l2_1gb_size() == 0);
+    assert!(e.itlb_l2_1gb_associativity() == Associativity::Disabled);
+    assert!(e.itlb_l2_1gb_size() == 0);
+}
+
+#[test]
 fn performance_optimization_info() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
     let e = cpuid
