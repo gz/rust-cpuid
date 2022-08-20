@@ -324,6 +324,7 @@ const EAX_L1_CACHE_INFO: u32 = 0x8000_0005;
 const EAX_L2_L3_CACHE_INFO: u32 = 0x8000_0006;
 const EAX_ADVANCED_POWER_MGMT_INFO: u32 = 0x8000_0007;
 const EAX_PROCESSOR_CAPACITY_INFO: u32 = 0x8000_0008;
+const EAX_TLB_1GB_PAGE_INFO: u32 = 0x8000_0019;
 const EAX_PERFORMANCE_OPTIMIZATION_INFO: u32 = 0x8000_001A;
 const EAX_CACHE_PARAMETERS_AMD: u32 = 0x8000_001D;
 const EAX_PROCESSOR_TOPOLOGY_INFO: u32 = 0x8000_001E;
@@ -906,6 +907,18 @@ impl CpuId {
             .map_or(false, |f| f.has_svm());
         if has_svm && self.leaf_is_supported(EAX_SVM_FEATURES) {
             Some(SvmFeatures::new(self.read.cpuid1(EAX_SVM_FEATURES)))
+        } else {
+            None
+        }
+    }
+
+    /// TLB 1-GiB Pages Information (LEAF=0x8000_0019)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel
+    pub fn get_tlb_1gb_page_info(&self) -> Option<Tlb1gbPageInfo> {
+        if self.leaf_is_supported(EAX_TLB_1GB_PAGE_INFO) {
+            Some(Tlb1gbPageInfo::new(self.read.cpuid1(EAX_TLB_1GB_PAGE_INFO)))
         } else {
             None
         }
