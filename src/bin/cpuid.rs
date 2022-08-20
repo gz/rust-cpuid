@@ -1440,6 +1440,23 @@ fn markdown(_opts: Opts) {
         );
     }
 
+    if let Some(info) = cpuid.get_tlb_1gb_page_info() {
+        print_title(&skin, "TLB 1-GiB Pages Info (0x8000_0019):");
+        table2(
+            &skin,
+            &[
+                RowGen::tuple("L1 iTLB #entries", info.itlb_l1_1gb_size()),
+                RowGen::tuple("L1 iTLB associativity", info.itlb_l1_1gb_associativity()),
+                RowGen::tuple("L1 dTLB #entries", info.dtlb_l1_1gb_size()),
+                RowGen::tuple("L1 dTLB associativity", info.dtlb_l1_1gb_associativity()),
+                RowGen::tuple("L2 iTLB #entries", info.itlb_l2_1gb_size()),
+                RowGen::tuple("L2 iTLB associativity", info.itlb_l2_1gb_associativity()),
+                RowGen::tuple("L2 dTLB #entries", info.dtlb_l2_1gb_size()),
+                RowGen::tuple("L2 dTLB associativity", info.dtlb_l2_1gb_associativity()),
+            ],
+        );
+    }
+
     if let Some(info) = cpuid.get_performance_optimization_info() {
         print_title(&skin, "Performance Optimization Info (0x8000_001a):");
         table2(

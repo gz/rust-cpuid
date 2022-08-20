@@ -1456,6 +1456,76 @@ bitflags! {
     }
 }
 
+/// TLB 1-GiB Pages Information (LEAF=0x8000_0019).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct Tlb1gbPageInfo {
+    eax: u32,
+    ebx: u32,
+    /// Reserved
+    _ecx: u32,
+    /// Reserved
+    _edx: u32,
+}
+
+impl Tlb1gbPageInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: data.eax,
+            ebx: data.ebx,
+            _ecx: data.ecx,
+            _edx: data.edx,
+        }
+    }
+
+    /// L1 Data TLB associativity for 1-GB pages.
+    pub fn dtlb_l1_1gb_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.eax, 28, 31) as u8;
+        Associativity::for_l2(assoc_bits)
+    }
+
+    /// L1 Data TLB number of entries for 1-GB pages.
+    pub fn dtlb_l1_1gb_size(&self) -> u8 {
+        get_bits(self.eax, 16, 27) as u8
+    }
+
+    /// L1 Instruction TLB associativity for 1-GB pages.
+    pub fn itlb_l1_1gb_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.eax, 12, 15) as u8;
+        Associativity::for_l2(assoc_bits)
+    }
+
+    /// L1 Instruction TLB number of entries for 1-GB pages.
+    pub fn itlb_l1_1gb_size(&self) -> u8 {
+        get_bits(self.eax, 0, 11) as u8
+    }
+
+    /// L2 Data TLB associativity for 1-GB pages.
+    pub fn dtlb_l2_1gb_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.ebx, 28, 31) as u8;
+        Associativity::for_l2(assoc_bits)
+    }
+
+    /// L2 Data TLB number of entries for 1-GB pages.
+    pub fn dtlb_l2_1gb_size(&self) -> u8 {
+        get_bits(self.ebx, 16, 27) as u8
+    }
+
+    /// L2 Instruction TLB associativity for 1-GB pages.
+    pub fn itlb_l2_1gb_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.ebx, 12, 15) as u8;
+        Associativity::for_l2(assoc_bits)
+    }
+
+    /// L2 Instruction TLB number of entries for 1-GB pages.
+    pub fn itlb_l2_1gb_size(&self) -> u8 {
+        get_bits(self.ebx, 0, 11) as u8
+    }
+}
+
 /// Performance Optimization Identifier (LEAF=0x8000_001A).
 ///
 /// # Platforms
