@@ -1011,6 +1011,29 @@ impl Debug for CpuId {
                 &self.get_extended_processor_and_feature_identifiers(),
             )
             .field("processor_brand_string", &self.get_processor_brand_string())
+            .field("l1_cache_and_tlb_info", &self.get_l1_cache_and_tlb_info())
+            .field(
+                "l2_l3_cache_and_tlb_info",
+                &self.get_l2_l3_cache_and_tlb_info(),
+            )
+            .field(
+                "advanced_power_mgmt_info",
+                &self.get_advanced_power_mgmt_info(),
+            )
+            .field(
+                "processor_capacity_feature_info",
+                &self.get_processor_capacity_feature_info(),
+            )
+            .field("svm_info", &self.get_svm_info())
+            .field("tlb_1gb_page_info", &self.get_tlb_1gb_page_info())
+            .field(
+                "performance_optimization_info",
+                &self.get_performance_optimization_info(),
+            )
+            .field(
+                "processor_topology_info",
+                &self.get_processor_topology_info(),
+            )
             .field("memory_encryption_info", &self.get_memory_encryption_info())
             .finish()
     }
