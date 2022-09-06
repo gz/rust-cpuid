@@ -1216,6 +1216,47 @@ fn svm() {
 }
 
 #[test]
+fn tlb_1gb_page_info() {
+    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
+    let e = cpuid.get_tlb_1gb_page_info().expect("Leaf is supported");
+
+    assert!(e.dtlb_l1_1gb_associativity() == Associativity::FullyAssociative);
+    assert!(e.dtlb_l1_1gb_size() == 64);
+    assert!(e.itlb_l1_1gb_associativity() == Associativity::FullyAssociative);
+    assert!(e.itlb_l1_1gb_size() == 64);
+    assert!(e.dtlb_l2_1gb_associativity() == Associativity::Disabled);
+    assert!(e.dtlb_l2_1gb_size() == 0);
+    assert!(e.itlb_l2_1gb_associativity() == Associativity::Disabled);
+    assert!(e.itlb_l2_1gb_size() == 0);
+}
+
+#[test]
+fn performance_optimization_info() {
+    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
+    let e = cpuid
+        .get_performance_optimization_info()
+        .expect("Leaf is supported");
+
+    assert!(!e.has_fp128());
+    assert!(e.has_movu());
+    assert!(e.has_fp256());
+}
+
+#[test]
+fn processor_topology_info() {
+    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
+    let e = cpuid
+        .get_processor_topology_info()
+        .expect("Leaf is supported");
+
+    assert!(e.x2apic_id() == 0);
+    assert!(e.core_id() == 0);
+    assert!(e.threads_per_core() == 2);
+    assert!(e.node_id() == 0);
+    assert!(e.nodes_per_processor() == 1);
+}
+
+#[test]
 fn remaining_unsupported_leafs() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
 

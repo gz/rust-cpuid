@@ -3,7 +3,7 @@
 A library to parse the x86 CPUID instruction, written in rust with no external dependencies. The implementation closely resembles the Intel CPUID manual description. The library does only depend on libcore.
 
 - For Intel platforms: The code should be in sync with the March 2018 revision of the Intel Architectures SDM.
-- For AMD platforms it should be in sync with the AMD64 systems manual no. 24594,  Revision 3.32 (March 2021).
+- For AMD platforms it should be in sync with the [AMD64 systems manual no. 24594](https://www.amd.com/system/files/TechDocs/24594.pdf),  Revision 3.32 (March 2021).
 
 ## Library usage
 

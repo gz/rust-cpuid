@@ -1298,134 +1298,6 @@ bitflags! {
     }
 }
 
-/// Encrypted Memory Capabilities
-///
-/// # Platforms
-/// ✅ AMD ❌ Intel
-#[derive(Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-pub struct MemoryEncryptionInfo {
-    eax: MemoryEncryptionInfoEax,
-    ebx: u32,
-    ecx: u32,
-    edx: u32,
-}
-
-impl MemoryEncryptionInfo {
-    pub(crate) fn new(data: CpuIdResult) -> Self {
-        Self {
-            eax: MemoryEncryptionInfoEax::from_bits_truncate(data.eax),
-            ebx: data.ebx,
-            ecx: data.ecx,
-            edx: data.edx,
-        }
-    }
-
-    /// Secure Memory Encryption is supported if set.
-    pub fn has_sme(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::SME)
-    }
-
-    /// Secure Encrypted Virtualization is supported if set.
-    pub fn has_sev(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::SEV)
-    }
-
-    /// The Page Flush MSR is available if set.
-    pub fn has_page_flush_msr(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::PAGE_FLUSH_MSR)
-    }
-
-    /// SEV Encrypted State is supported if set.
-    pub fn has_sev_es(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::SEV_ES)
-    }
-
-    /// SEV Secure Nested Paging supported if set.
-    pub fn has_sev_snp(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::SEV_SNP)
-    }
-
-    /// VM Permission Levels supported if set.
-    pub fn has_vmpl(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::VMPL)
-    }
-
-    /// Hardware cache coherency across encryption domains enforced if set.
-    pub fn has_hw_enforced_cache_coh(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::HWENFCACHECOH)
-    }
-
-    /// SEV guest execution only allowed from a 64-bit host if set.
-    pub fn has_64bit_mode(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::HOST64)
-    }
-
-    /// Restricted Injection supported if set.
-    pub fn has_restricted_injection(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::RESTINJECT)
-    }
-
-    /// Alternate Injection supported if set.
-    pub fn has_alternate_injection(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::ALTINJECT)
-    }
-
-    /// Full debug state swap supported for SEV-ES guests.
-    pub fn has_debug_swap(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::DBGSWP)
-    }
-
-    /// Disallowing IBS use by the host supported if set.
-    pub fn has_prevent_host_ibs(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::PREVHOSTIBS)
-    }
-
-    /// Virtual Transparent Encryption supported if set.
-    pub fn has_vte(&self) -> bool {
-        self.eax.contains(MemoryEncryptionInfoEax::VTE)
-    }
-
-    /// C-bit location in page table entry
-    pub fn c_bit_position(&self) -> u8 {
-        get_bits(self.ebx, 0, 5) as u8
-    }
-
-    /// Physical Address bit reduction
-    pub fn physical_address_reduction(&self) -> u8 {
-        get_bits(self.ebx, 6, 11) as u8
-    }
-
-    /// Number of encrypted guests supported simultaneouslys
-    pub fn max_encrypted_guests(&self) -> u32 {
-        self.ecx
-    }
-
-    /// Minimum ASID value for an SEV enabled, SEV-ES disabled guest
-    pub fn min_sev_no_es_asid(&self) -> u32 {
-        self.edx
-    }
-}
-
-bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-    struct MemoryEncryptionInfoEax: u32 {
-        const SME = 1 << 0;
-        const SEV = 1 << 1;
-        const PAGE_FLUSH_MSR = 1 << 2;
-        const SEV_ES = 1 << 3;
-        const SEV_SNP = 1 << 4;
-        const VMPL = 1 << 5;
-        const HWENFCACHECOH = 1 << 10;
-        const HOST64 = 1 << 11;
-        const RESTINJECT = 1 << 12;
-        const ALTINJECT = 1 << 13;
-        const DBGSWP = 1 << 14;
-        const PREVHOSTIBS = 1 << 15;
-        const VTE = 1 << 16;
-    }
-}
-
 /// Information about the SVM features that the processory supports (LEAF=0x8000_000A).
 ///
 /// # Note
@@ -1581,5 +1453,323 @@ bitflags! {
         const SPEC_CTRL = 1 << 20;
         const HOST_MCE_OVERRIDE = 1 << 23;
         const TLB_CTL = 1 << 24;
+    }
+}
+
+/// TLB 1-GiB Pages Information (LEAF=0x8000_0019).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct Tlb1gbPageInfo {
+    eax: u32,
+    ebx: u32,
+    /// Reserved
+    _ecx: u32,
+    /// Reserved
+    _edx: u32,
+}
+
+impl Tlb1gbPageInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: data.eax,
+            ebx: data.ebx,
+            _ecx: data.ecx,
+            _edx: data.edx,
+        }
+    }
+
+    /// L1 Data TLB associativity for 1-GB pages.
+    pub fn dtlb_l1_1gb_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.eax, 28, 31) as u8;
+        Associativity::for_l2(assoc_bits)
+    }
+
+    /// L1 Data TLB number of entries for 1-GB pages.
+    pub fn dtlb_l1_1gb_size(&self) -> u8 {
+        get_bits(self.eax, 16, 27) as u8
+    }
+
+    /// L1 Instruction TLB associativity for 1-GB pages.
+    pub fn itlb_l1_1gb_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.eax, 12, 15) as u8;
+        Associativity::for_l2(assoc_bits)
+    }
+
+    /// L1 Instruction TLB number of entries for 1-GB pages.
+    pub fn itlb_l1_1gb_size(&self) -> u8 {
+        get_bits(self.eax, 0, 11) as u8
+    }
+
+    /// L2 Data TLB associativity for 1-GB pages.
+    pub fn dtlb_l2_1gb_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.ebx, 28, 31) as u8;
+        Associativity::for_l2(assoc_bits)
+    }
+
+    /// L2 Data TLB number of entries for 1-GB pages.
+    pub fn dtlb_l2_1gb_size(&self) -> u8 {
+        get_bits(self.ebx, 16, 27) as u8
+    }
+
+    /// L2 Instruction TLB associativity for 1-GB pages.
+    pub fn itlb_l2_1gb_associativity(&self) -> Associativity {
+        let assoc_bits = get_bits(self.ebx, 12, 15) as u8;
+        Associativity::for_l2(assoc_bits)
+    }
+
+    /// L2 Instruction TLB number of entries for 1-GB pages.
+    pub fn itlb_l2_1gb_size(&self) -> u8 {
+        get_bits(self.ebx, 0, 11) as u8
+    }
+}
+
+/// Performance Optimization Identifier (LEAF=0x8000_001A).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct PerformanceOptimizationInfo {
+    eax: PerformanceOptimizationInfoEax,
+    /// Reserved
+    _ebx: u32,
+    /// Reserved
+    _ecx: u32,
+    /// Reserved
+    _edx: u32,
+}
+
+impl PerformanceOptimizationInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: PerformanceOptimizationInfoEax::from_bits_truncate(data.eax),
+            _ebx: data.ebx,
+            _ecx: data.ecx,
+            _edx: data.edx,
+        }
+    }
+
+    /// The internal FP/SIMD execution datapath is 128 bits wide if set.
+    pub fn has_fp128(&self) -> bool {
+        self.eax.contains(PerformanceOptimizationInfoEax::FP128)
+    }
+
+    /// MOVU (Move Unaligned) SSE instructions are efficient more than
+    /// MOVL/MOVH SSE if set.
+    pub fn has_movu(&self) -> bool {
+        self.eax.contains(PerformanceOptimizationInfoEax::MOVU)
+    }
+
+    /// The internal FP/SIMD execution datapath is 256 bits wide if set.
+    pub fn has_fp256(&self) -> bool {
+        self.eax.contains(PerformanceOptimizationInfoEax::FP256)
+    }
+}
+
+bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    struct PerformanceOptimizationInfoEax: u32 {
+        const FP128 = 1 << 0;
+        const MOVU = 1 << 1;
+        const FP256 = 1 << 2;
+    }
+}
+
+/// Processor Topology Information (LEAF=0x8000_001E).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct ProcessorTopologyInfo {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    /// Reserved
+    _edx: u32,
+}
+
+impl ProcessorTopologyInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: data.eax,
+            ebx: data.ebx,
+            ecx: data.ecx,
+            _edx: data.edx,
+        }
+    }
+
+    /// x2APIC ID
+    pub fn x2apic_id(&self) -> u32 {
+        self.eax
+    }
+
+    /// Core ID
+    ///
+    /// # Note
+    /// `Core ID` means `Compute Unit ID` if AMD Family 15h-16h Processors.
+    pub fn core_id(&self) -> u8 {
+        get_bits(self.ebx, 0, 7) as u8
+    }
+
+    /// Threads per core
+    ///
+    /// # Note
+    /// `Threads per Core` means `Cores per Compute Unit` if AMD Family 15h-16h Processors.
+    pub fn threads_per_core(&self) -> u8 {
+        get_bits(self.ebx, 8, 15) as u8 + 1
+    }
+
+    /// Node ID
+    pub fn node_id(&self) -> u8 {
+        get_bits(self.ecx, 0, 7) as u8
+    }
+
+    /// Nodes per processor
+    pub fn nodes_per_processor(&self) -> u8 {
+        get_bits(self.ecx, 8, 10) as u8 + 1
+    }
+}
+
+impl Debug for ProcessorTopologyInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ProcessorTopologyInfo")
+            .field("x2apic_id", &self.x2apic_id())
+            .field("core_id", &self.core_id())
+            .field("threads_per_core", &self.threads_per_core())
+            .field("node_id", &self.node_id())
+            .field("nodes_per_processor", &self.nodes_per_processor())
+            .finish()
+    }
+}
+
+/// Encrypted Memory Capabilities (LEAF=0x8000_001F).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub struct MemoryEncryptionInfo {
+    eax: MemoryEncryptionInfoEax,
+    ebx: u32,
+    ecx: u32,
+    edx: u32,
+}
+
+impl MemoryEncryptionInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: MemoryEncryptionInfoEax::from_bits_truncate(data.eax),
+            ebx: data.ebx,
+            ecx: data.ecx,
+            edx: data.edx,
+        }
+    }
+
+    /// Secure Memory Encryption is supported if set.
+    pub fn has_sme(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::SME)
+    }
+
+    /// Secure Encrypted Virtualization is supported if set.
+    pub fn has_sev(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::SEV)
+    }
+
+    /// The Page Flush MSR is available if set.
+    pub fn has_page_flush_msr(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::PAGE_FLUSH_MSR)
+    }
+
+    /// SEV Encrypted State is supported if set.
+    pub fn has_sev_es(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::SEV_ES)
+    }
+
+    /// SEV Secure Nested Paging supported if set.
+    pub fn has_sev_snp(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::SEV_SNP)
+    }
+
+    /// VM Permission Levels supported if set.
+    pub fn has_vmpl(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::VMPL)
+    }
+
+    /// Hardware cache coherency across encryption domains enforced if set.
+    pub fn has_hw_enforced_cache_coh(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::HWENFCACHECOH)
+    }
+
+    /// SEV guest execution only allowed from a 64-bit host if set.
+    pub fn has_64bit_mode(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::HOST64)
+    }
+
+    /// Restricted Injection supported if set.
+    pub fn has_restricted_injection(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::RESTINJECT)
+    }
+
+    /// Alternate Injection supported if set.
+    pub fn has_alternate_injection(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::ALTINJECT)
+    }
+
+    /// Full debug state swap supported for SEV-ES guests.
+    pub fn has_debug_swap(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::DBGSWP)
+    }
+
+    /// Disallowing IBS use by the host supported if set.
+    pub fn has_prevent_host_ibs(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::PREVHOSTIBS)
+    }
+
+    /// Virtual Transparent Encryption supported if set.
+    pub fn has_vte(&self) -> bool {
+        self.eax.contains(MemoryEncryptionInfoEax::VTE)
+    }
+
+    /// C-bit location in page table entry
+    pub fn c_bit_position(&self) -> u8 {
+        get_bits(self.ebx, 0, 5) as u8
+    }
+
+    /// Physical Address bit reduction
+    pub fn physical_address_reduction(&self) -> u8 {
+        get_bits(self.ebx, 6, 11) as u8
+    }
+
+    /// Number of encrypted guests supported simultaneouslys
+    pub fn max_encrypted_guests(&self) -> u32 {
+        self.ecx
+    }
+
+    /// Minimum ASID value for an SEV enabled, SEV-ES disabled guest
+    pub fn min_sev_no_es_asid(&self) -> u32 {
+        self.edx
+    }
+}
+
+bitflags! {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    struct MemoryEncryptionInfoEax: u32 {
+        const SME = 1 << 0;
+        const SEV = 1 << 1;
+        const PAGE_FLUSH_MSR = 1 << 2;
+        const SEV_ES = 1 << 3;
+        const SEV_SNP = 1 << 4;
+        const VMPL = 1 << 5;
+        const HWENFCACHECOH = 1 << 10;
+        const HOST64 = 1 << 11;
+        const RESTINJECT = 1 << 12;
+        const ALTINJECT = 1 << 13;
+        const DBGSWP = 1 << 14;
+        const PREVHOSTIBS = 1 << 15;
+        const VTE = 1 << 16;
     }
 }

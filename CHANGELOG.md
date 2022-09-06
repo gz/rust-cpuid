@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+- Updated termimad to 0.20 (only affects `cpuid` binary version)
+- Add support for AMD leaf `0x8000_001E`
+- Add support for AMD leaf `0x8000_0019`
+
+## [10.5.0] - 2022-08-17
+
+- Updated phf to 0.11 (only affects `cfg(test)`)
+- Add support for AMD leaf `0x8000_001D`
+- Add support for AMD leaf `0x8000_001A`
+
+## [10.4.0] - 2022-08-01
+
+- Added support for cpuid leaf 0x1f (Extended Topology Information v2)
 - Improved debug formatting for `ProcessorCapacityAndFeatureInfo`
 
 ## [10.3.0] - 2022-03-15
@@ -19,7 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Changed
 
 - Updated clap dependency.
-
 
 ## [10.2.0] - 2021-07-30
 

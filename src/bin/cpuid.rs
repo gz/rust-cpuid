@@ -1215,9 +1215,9 @@ fn markdown(_opts: Opts) {
         table2(
             &skin,
             &[
-                RowGen::tuple("iTLB #entries", info.dtlb_2m_4m_size()),
+                RowGen::tuple("iTLB #entries", info.itlb_2m_4m_size()),
                 RowGen::tuple("iTLB associativity", info.itlb_2m_4m_associativity()),
-                RowGen::tuple("dTLB #entries", info.itlb_2m_4m_size()),
+                RowGen::tuple("dTLB #entries", info.dtlb_2m_4m_size()),
                 RowGen::tuple("dTLB associativity", info.dtlb_2m_4m_associativity()),
             ],
         );
@@ -1261,9 +1261,9 @@ fn markdown(_opts: Opts) {
         table2(
             &skin,
             &[
-                RowGen::tuple("iTLB #entries", info.dtlb_2m_4m_size()),
+                RowGen::tuple("iTLB #entries", info.itlb_2m_4m_size()),
                 RowGen::tuple("iTLB associativity", info.itlb_2m_4m_associativity()),
-                RowGen::tuple("dTLB #entries", info.itlb_2m_4m_size()),
+                RowGen::tuple("dTLB #entries", info.dtlb_2m_4m_size()),
                 RowGen::tuple("dTLB associativity", info.dtlb_2m_4m_associativity()),
             ],
         );
@@ -1436,6 +1436,52 @@ fn markdown(_opts: Opts) {
                 RowGen::tuple("Supervisor shadow-stack restrictions", info.has_sss_check()),
                 RowGen::tuple("#MC intercept", info.has_host_mce_override()),
                 RowGen::tuple("INVLPGB/TLBSYNC virtualization", info.has_tlb_ctrl()),
+            ],
+        );
+    }
+
+    if let Some(info) = cpuid.get_tlb_1gb_page_info() {
+        print_title(&skin, "TLB 1-GiB Pages Info (0x8000_0019):");
+        table2(
+            &skin,
+            &[
+                RowGen::tuple("L1 iTLB #entries", info.itlb_l1_1gb_size()),
+                RowGen::tuple("L1 iTLB associativity", info.itlb_l1_1gb_associativity()),
+                RowGen::tuple("L1 dTLB #entries", info.dtlb_l1_1gb_size()),
+                RowGen::tuple("L1 dTLB associativity", info.dtlb_l1_1gb_associativity()),
+                RowGen::tuple("L2 iTLB #entries", info.itlb_l2_1gb_size()),
+                RowGen::tuple("L2 iTLB associativity", info.itlb_l2_1gb_associativity()),
+                RowGen::tuple("L2 dTLB #entries", info.dtlb_l2_1gb_size()),
+                RowGen::tuple("L2 dTLB associativity", info.dtlb_l2_1gb_associativity()),
+            ],
+        );
+    }
+
+    if let Some(info) = cpuid.get_performance_optimization_info() {
+        print_title(&skin, "Performance Optimization Info (0x8000_001a):");
+        table2(
+            &skin,
+            &[
+                RowGen::tuple("128-bits width the internal FP/SIMD", info.has_fp128()),
+                RowGen::tuple(
+                    "MOVU SSE are efficient more than MOVL/MOVH",
+                    info.has_movu(),
+                ),
+                RowGen::tuple("256-bits width the internal FP/SIMD", info.has_fp256()),
+            ],
+        );
+    }
+
+    if let Some(info) = cpuid.get_processor_topology_info() {
+        print_title(&skin, "Processor Topology Info (0x8000_001e):");
+        table2(
+            &skin,
+            &[
+                RowGen::tuple("x2APIC ID", info.x2apic_id()),
+                RowGen::tuple("Core ID", info.core_id()),
+                RowGen::tuple("Threads per core", info.threads_per_core()),
+                RowGen::tuple("Node ID", info.node_id()),
+                RowGen::tuple("Nodes per processor", info.nodes_per_processor()),
             ],
         );
     }
