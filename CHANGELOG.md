@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated termimad to 0.20 (only affects `cpuid` binary version)
 - Add support for AMD leaf `0x8000_001E`
 - Add support for AMD leaf `0x8000_0019`
+- Updated `ExtendedFeatures` to include new features
 
 ## [10.5.0] - 2022-08-17
 
