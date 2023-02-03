@@ -1297,7 +1297,7 @@ fn markdown(_opts: Opts) {
                 RowGen::tuple("line size [Bytes]", info.l3cache_line_size()),
                 RowGen::tuple("lines per tag", info.l3cache_lines_per_tag()),
                 RowGen::tuple("associativity", info.l3cache_associativity()),
-                RowGen::tuple("size [KiB]", info.l3cache_size() * 512),
+                RowGen::tuple("size [KiB]", info.l3cache_size() as usize * 512),
             ],
         );
     }

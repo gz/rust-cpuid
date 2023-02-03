@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+## [10.6.1] - 2023-02-03
+
+- Fix potential overflow during formatting when using the in cpuid binary to display cache information. (#123)
+
 ## [10.6.0] - 2022-09-12
 
 - Updated termimad to 0.20 (only affects `cpuid` binary version)
