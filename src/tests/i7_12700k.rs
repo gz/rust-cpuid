@@ -1531,7 +1531,7 @@ fn get_soc_vendor() {
     assert_eq!(e.get_soc_vendor_id(), 0);
     assert_eq!(e.get_stepping_id(), 0);
 
-    for attr_iter in e.get_vendor_attributes() {
+    if let Some(attr_iter) = e.get_vendor_attributes() {
         for attr in attr_iter {
             println!("{:?}", attr);
         }
