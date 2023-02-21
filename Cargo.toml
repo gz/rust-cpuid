@@ -19,9 +19,11 @@ path = "src/bin/cpuid.rs"
 required-features = ["cli"]
 
 [features]
+std = []
+display = ["std", "termimad", "serde_json", "serialize"]
 serialize = ["serde", "serde_derive"]
 # This is not a library feature and should only be used to install the cpuid binary:
-cli = ["termimad", "clap", "serde_json", "serialize"]
+cli = ["display", "clap", "serde_json", "serialize"]
 
 [dependencies]
 bitflags = "1.2"
