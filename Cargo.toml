@@ -23,7 +23,7 @@ std = []
 display = ["std", "termimad", "serde_json", "serialize"]
 serialize = ["serde", "serde_derive"]
 # This is not a library feature and should only be used to install the cpuid binary:
-cli = ["display", "clap", "serde_json", "serialize"]
+cli = ["display", "clap"]
 
 [dependencies]
 bitflags = "1.2"
