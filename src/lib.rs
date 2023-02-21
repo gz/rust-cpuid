@@ -44,7 +44,7 @@
 //! will exist for your CPU -- just that it is potentially supported by the
 //! vendor on some of its chips. You will still have to query it at runtime.
 
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 #![crate_name = "raw_cpuid"]
 #![crate_type = "lib"]
 
@@ -52,6 +52,8 @@
 #[macro_use]
 extern crate std;
 
+#[cfg(feature = "display")]
+pub mod display;
 mod extended;
 #[cfg(test)]
 mod tests;
