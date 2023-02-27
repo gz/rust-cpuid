@@ -1,10 +1,3 @@
-use std::fmt::Display;
-
-use crate::{
-    Associativity, CacheType, CpuId, CpuIdResult, DatType, ExtendedRegisterStateLocation,
-    SgxSectionInfo, SoCVendorBrand, TopologyType,
-};
-
 #[cfg(feature = "display-raw")]
 pub fn raw() {
     use crate::cpuid;
@@ -174,7 +167,13 @@ pub fn json(cpuid: CpuId) {
 
 #[cfg(feature = "display-markdown")]
 pub fn markdown(cpuid: CpuId) {
+    use std::fmt::Display;
     use termimad::{minimad::TextTemplate, minimad::TextTemplateExpander, MadSkin};
+
+    use crate::{
+        Associativity, CacheType, CpuId, CpuIdResult, DatType, ExtendedRegisterStateLocation,
+        SgxSectionInfo, SoCVendorBrand, TopologyType,
+    };
 
     fn string_to_static_str(s: String) -> &'static str {
         Box::leak(s.into_boxed_str())
