@@ -52,7 +52,11 @@
 #[macro_use]
 extern crate std;
 
-#[cfg(feature = "display")]
+#[cfg(any(
+    feature = "display-raw",
+    feature = "display-json",
+    feature = "display-markdown"
+))]
 pub mod display;
 mod extended;
 #[cfg(test)]
