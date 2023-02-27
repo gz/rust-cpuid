@@ -20,10 +20,12 @@ required-features = ["cli"]
 
 [features]
 std = []
-display = ["std", "termimad", "serde_json", "serialize"]
+display-raw = ["std"]
+display-markdown = ["std", "termimad"]
+display-json = ["std", "serde_json", "serialize"]
 serialize = ["serde", "serde_derive"]
 # This is not a library feature and should only be used to install the cpuid binary:
-cli = ["display", "clap"]
+cli = ["clap", "display-json", "display-markdown", "display-raw"]
 
 [dependencies]
 bitflags = "1.2"
