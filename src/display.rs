@@ -166,12 +166,12 @@ pub fn json(cpuid: crate::CpuId) {
 }
 
 #[cfg(feature = "display-markdown")]
-pub fn markdown(cpuid: CpuId) {
+pub fn markdown(cpuid: crate::CpuId) {
     use std::fmt::Display;
     use termimad::{minimad::TextTemplate, minimad::TextTemplateExpander, MadSkin};
 
     use crate::{
-        Associativity, CacheType, CpuId, CpuIdResult, DatType, ExtendedRegisterStateLocation,
+        Associativity, CacheType, CpuIdResult, DatType, ExtendedRegisterStateLocation,
         SgxSectionInfo, SoCVendorBrand, TopologyType,
     };
 
