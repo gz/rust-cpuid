@@ -21,7 +21,7 @@ pub fn raw() {
 }
 
 #[cfg(feature = "display-json")]
-pub fn json(cpuid: CpuId) {
+pub fn json(cpuid: crate::CpuId) {
     if let Some(info) = cpuid.get_vendor_info() {
         println!("VendorInfo {}", serde_json::to_string(&info).unwrap());
     }
