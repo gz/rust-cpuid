@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [10.7.0] - 2023-02-27
 
-- Include the pretty printing code in the library (instead of only in the binary) ([#137](https://github.com/gz/rust-cpuid/pull/137))
+- Include the pretty printing code in the library (instead of only having it in
+  the binary) ([#137](https://github.com/gz/rust-cpuid/pull/137)) This
+  introduces a new (optional) `display` feature. `display` will also enable
+  `std` so it can't be used in `no_std` environments.
 
 ## [10.6.1] - 2023-02-03
 
