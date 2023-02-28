@@ -1,3 +1,12 @@
+use std::fmt::Display;
+
+use crate::{
+    cpuid, Associativity, CacheType, CpuId, CpuIdResult, DatType, ExtendedRegisterStateLocation,
+    SgxSectionInfo, SoCVendorBrand, TopologyType,
+};
+
+use termimad::{minimad::TextTemplate, minimad::TextTemplateExpander, MadSkin};
+
 pub fn raw<R: crate::CpuIdReader>(cpuid: R) {
     let _leafs_with_subleafs = &[0x04, 0x0d, 0x0f, 0x10, 0x12];
 
@@ -162,231 +171,219 @@ pub fn json<R: crate::CpuIdReader>(cpuid: crate::CpuId<R>) {
     }
 }
 
-pub fn markdown<R: crate::CpuIdReader>(cpuid: crate::CpuId<R>) {
-    use std::fmt::Display;
-    use termimad::{minimad::TextTemplate, minimad::TextTemplateExpander, MadSkin};
+fn string_to_static_str(s: String) -> &'static str {
+    Box::leak(s.into_boxed_str())
+}
 
-    use crate::{
-        Associativity, CacheType, CpuIdResult, DatType, ExtendedRegisterStateLocation,
-        SgxSectionInfo, SoCVendorBrand, TopologyType,
-    };
-
-    fn string_to_static_str(s: String) -> &'static str {
-        Box::leak(s.into_boxed_str())
-    }
-
-    fn table2(skin: &MadSkin, attrs: &[(&'static str, String)]) {
-        let table_template = TextTemplate::from(
-            r#"
+fn table2(skin: &MadSkin, attrs: &[(&'static str, String)]) {
+    let table_template = TextTemplate::from(
+        r#"
 |-:|-:|
 ${feature-rows
 |**${attr-name}**|${attr-avail}|
 }
 |-|-|
     "#,
-        );
+    );
 
-        fn make_table_display<'a, 'b, D: Display>(
-            text_template: &'a TextTemplate<'b>,
-            attrs: &[(&'b str, D)],
-        ) -> TextTemplateExpander<'a, 'b> {
-            let mut expander = text_template.expander();
+    fn make_table_display<'a, 'b, D: Display>(
+        text_template: &'a TextTemplate<'b>,
+        attrs: &[(&'b str, D)],
+    ) -> TextTemplateExpander<'a, 'b> {
+        let mut expander = text_template.expander();
 
-            for (attr, desc) in attrs {
-                let sdesc = string_to_static_str(format!("{}", desc));
-                expander
-                    .sub("feature-rows")
-                    .set("attr-name", attr)
-                    .set("attr-avail", sdesc);
-            }
-
+        for (attr, desc) in attrs {
+            let sdesc = string_to_static_str(format!("{}", desc));
             expander
+                .sub("feature-rows")
+                .set("attr-name", attr)
+                .set("attr-avail", sdesc);
         }
 
-        let table = make_table_display(&table_template, &attrs);
-        skin.print_expander(table);
+        expander
     }
 
-    fn table3(skin: &MadSkin, attrs: &[(&'static str, &'static str, String)]) {
-        let table_template3 = TextTemplate::from(
-            r#"
+    let table = make_table_display(&table_template, &attrs);
+    skin.print_expander(table);
+}
+
+fn table3(skin: &MadSkin, attrs: &[(&'static str, &'static str, String)]) {
+    let table_template3 = TextTemplate::from(
+        r#"
 |:-|-:|-:|
 ${feature-rows
 |**${category-name}**|**${attr-name}**|${attr-avail}|
 }
 |-|-|
     "#,
-        );
+    );
 
-        fn make_table_display3<'a, 'b, D: Display>(
-            text_template: &'a TextTemplate<'b>,
-            attrs: &[(&'b str, &'b str, D)],
-        ) -> TextTemplateExpander<'a, 'b> {
-            let mut expander = text_template.expander();
+    fn make_table_display3<'a, 'b, D: Display>(
+        text_template: &'a TextTemplate<'b>,
+        attrs: &[(&'b str, &'b str, D)],
+    ) -> TextTemplateExpander<'a, 'b> {
+        let mut expander = text_template.expander();
 
-            for (cat, attr, desc) in attrs {
-                let sdesc = string_to_static_str(format!("{}", desc));
-                expander
-                    .sub("feature-rows")
-                    .set("category-name", cat)
-                    .set("attr-name", attr)
-                    .set("attr-avail", sdesc);
-            }
-
+        for (cat, attr, desc) in attrs {
+            let sdesc = string_to_static_str(format!("{}", desc));
             expander
+                .sub("feature-rows")
+                .set("category-name", cat)
+                .set("attr-name", attr)
+                .set("attr-avail", sdesc);
         }
 
-        let table = make_table_display3(&table_template3, &attrs);
-        skin.print_expander(table);
+        expander
     }
 
-    fn print_title_line(skin: &MadSkin, title: &str, attr: Option<&str>) {
-        if let Some(opt) = attr {
-            skin.print_text(format!("## {} = \"{}\"\n", title, opt).as_str());
-        } else {
-            skin.print_text(format!("## {}\n", title).as_str());
-        }
+    let table = make_table_display3(&table_template3, &attrs);
+    skin.print_expander(table);
+}
+
+fn print_title_line(skin: &MadSkin, title: &str, attr: Option<&str>) {
+    if let Some(opt) = attr {
+        skin.print_text(format!("## {} = \"{}\"\n", title, opt).as_str());
+    } else {
+        skin.print_text(format!("## {}\n", title).as_str());
+    }
+}
+
+fn print_title_attr(skin: &MadSkin, title: &str, attr: &str) {
+    print_title_line(skin, title, Some(attr));
+}
+
+fn print_title(skin: &MadSkin, title: &str) {
+    print_title_line(skin, title, None)
+}
+
+fn print_subtitle(skin: &MadSkin, title: &str) {
+    skin.print_text(format!("### {}\n", title).as_str());
+}
+
+fn print_attr<T: Display, A: Display>(skin: &MadSkin, name: T, attr: A) {
+    skin.print_text(format!("{} = {}", name, attr).as_str());
+}
+
+fn print_cpuid_result<T: Display>(skin: &MadSkin, name: T, attr: CpuIdResult) {
+    skin.print_text(
+        format!(
+            "{}: eax = {:#x} ebx = {:#x} ecx = {:#x} edx = {:#x}",
+            name, attr.eax, attr.ebx, attr.ecx, attr.edx,
+        )
+        .as_str(),
+    );
+}
+
+fn bool_repr(x: bool) -> String {
+    if x {
+        "✅".to_string()
+    } else {
+        "❌".to_string()
+    }
+}
+
+trait RowGen {
+    fn fmt(attr: &Self) -> String;
+
+    fn tuple(t: &'static str, attr: Self) -> (&'static str, String)
+    where
+        Self: Sized,
+    {
+        (t, RowGen::fmt(&attr))
     }
 
-    fn print_title_attr(skin: &MadSkin, title: &str, attr: &str) {
-        print_title_line(skin, title, Some(attr));
+    fn triple(c: &'static str, t: &'static str, attr: Self) -> (&'static str, &'static str, String)
+    where
+        Self: Sized,
+    {
+        (c, t, RowGen::fmt(&attr))
     }
+}
 
-    fn print_title(skin: &MadSkin, title: &str) {
-        print_title_line(skin, title, None)
+impl RowGen for bool {
+    fn fmt(attr: &Self) -> String {
+        bool_repr(*attr)
     }
+}
 
-    fn print_subtitle(skin: &MadSkin, title: &str) {
-        skin.print_text(format!("### {}\n", title).as_str());
+impl RowGen for u64 {
+    fn fmt(attr: &Self) -> String {
+        format!("{}", attr)
     }
+}
 
-    fn print_attr<T: Display, A: Display>(skin: &MadSkin, name: T, attr: A) {
-        skin.print_text(format!("{} = {}", name, attr).as_str());
+impl RowGen for usize {
+    fn fmt(attr: &Self) -> String {
+        format!("{}", attr)
     }
+}
 
-    fn print_cpuid_result<T: Display>(skin: &MadSkin, name: T, attr: CpuIdResult) {
-        skin.print_text(
-            format!(
-                "{}: eax = {:#x} ebx = {:#x} ecx = {:#x} edx = {:#x}",
-                name, attr.eax, attr.ebx, attr.ecx, attr.edx,
-            )
-            .as_str(),
-        );
+impl RowGen for u32 {
+    fn fmt(attr: &Self) -> String {
+        format!("{}", attr)
     }
+}
 
-    fn bool_repr(x: bool) -> String {
-        if x {
-            "✅".to_string()
-        } else {
-            "❌".to_string()
-        }
+impl RowGen for u16 {
+    fn fmt(attr: &Self) -> String {
+        format!("{}", attr)
     }
+}
 
-    trait RowGen {
-        fn fmt(attr: &Self) -> String;
-
-        fn tuple(t: &'static str, attr: Self) -> (&'static str, String)
-        where
-            Self: Sized,
-        {
-            (t, RowGen::fmt(&attr))
-        }
-
-        fn triple(
-            c: &'static str,
-            t: &'static str,
-            attr: Self,
-        ) -> (&'static str, &'static str, String)
-        where
-            Self: Sized,
-        {
-            (c, t, RowGen::fmt(&attr))
-        }
+impl RowGen for u8 {
+    fn fmt(attr: &Self) -> String {
+        format!("{}", attr)
     }
+}
 
-    impl RowGen for bool {
-        fn fmt(attr: &Self) -> String {
-            bool_repr(*attr)
-        }
+impl RowGen for String {
+    fn fmt(attr: &Self) -> String {
+        format!("{}", attr)
     }
+}
 
-    impl RowGen for u64 {
-        fn fmt(attr: &Self) -> String {
-            format!("{}", attr)
-        }
+impl RowGen for Associativity {
+    fn fmt(attr: &Self) -> String {
+        format!("{}", attr)
     }
+}
 
-    impl RowGen for usize {
-        fn fmt(attr: &Self) -> String {
-            format!("{}", attr)
-        }
+impl RowGen for CacheType {
+    fn fmt(attr: &Self) -> String {
+        format!("{}", attr)
     }
+}
 
-    impl RowGen for u32 {
-        fn fmt(attr: &Self) -> String {
-            format!("{}", attr)
-        }
+impl RowGen for TopologyType {
+    fn fmt(attr: &Self) -> String {
+        format!("{}", attr)
     }
+}
 
-    impl RowGen for u16 {
-        fn fmt(attr: &Self) -> String {
-            format!("{}", attr)
-        }
+impl RowGen for ExtendedRegisterStateLocation {
+    fn fmt(attr: &Self) -> String {
+        format!("{}", attr)
     }
+}
 
-    impl RowGen for u8 {
-        fn fmt(attr: &Self) -> String {
-            format!("{}", attr)
-        }
+impl RowGen for DatType {
+    fn fmt(attr: &Self) -> String {
+        format!("{}", attr)
     }
+}
 
-    impl RowGen for String {
-        fn fmt(attr: &Self) -> String {
-            format!("{}", attr)
-        }
+impl RowGen for Option<SoCVendorBrand> {
+    fn fmt(attr: &Self) -> String {
+        format!(
+            "{}",
+            attr.as_ref()
+                .map(|v| v.as_str().to_string())
+                .unwrap_or(String::from(""))
+        )
     }
+}
 
-    impl RowGen for Associativity {
-        fn fmt(attr: &Self) -> String {
-            format!("{}", attr)
-        }
-    }
-
-    impl RowGen for CacheType {
-        fn fmt(attr: &Self) -> String {
-            format!("{}", attr)
-        }
-    }
-
-    impl RowGen for TopologyType {
-        fn fmt(attr: &Self) -> String {
-            format!("{}", attr)
-        }
-    }
-
-    impl RowGen for ExtendedRegisterStateLocation {
-        fn fmt(attr: &Self) -> String {
-            format!("{}", attr)
-        }
-    }
-
-    impl RowGen for DatType {
-        fn fmt(attr: &Self) -> String {
-            format!("{}", attr)
-        }
-    }
-
-    impl RowGen for Option<SoCVendorBrand> {
-        fn fmt(attr: &Self) -> String {
-            format!(
-                "{}",
-                attr.as_ref()
-                    .map(|v| v.as_str().to_string())
-                    .unwrap_or(String::from(""))
-            )
-        }
-    }
-
+pub fn markdown<R: crate::CpuIdReader>(cpuid: crate::CpuId<R>) {
     let skin = MadSkin::default();
     skin.print_text("# CpuId\n");
 

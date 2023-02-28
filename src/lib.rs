@@ -52,7 +52,7 @@
 #[macro_use]
 extern crate std;
 
-#[cfg(any(feature = "display",))]
+#[cfg(feature = "display")]
 pub mod display;
 mod extended;
 #[cfg(test)]
@@ -218,16 +218,6 @@ pub struct CpuId<R: CpuIdReader> {
     supported_leafs: u32,
     /// How many extended leafs are supported (e.g., leafs with EAX > EAX_EXTENDED_FUNCTION_INFO)
     supported_extended_leafs: u32,
-}
-
-#[cfg(any(
-    all(target_arch = "x86", not(target_env = "sgx"), target_feature = "sse"),
-    all(target_arch = "x86_64", not(target_env = "sgx"))
-))]
-impl<F> Default for CpuId<F> {
-    fn default() -> CpuId {
-        CpuId::with_cpuid_fn(native_cpuid::cpuid_count)
-    }
 }
 
 /// Low-level data-structure to store result of cpuid instruction.
