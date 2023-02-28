@@ -1,27 +1,24 @@
-#[cfg(feature = "display-raw")]
-pub fn raw() {
-    use crate::cpuid;
+pub fn raw<R: crate::CpuIdReader>(cpuid: R) {
     let _leafs_with_subleafs = &[0x04, 0x0d, 0x0f, 0x10, 0x12];
 
-    let max_leafs = cpuid!(0x0).eax;
+    let max_leafs = cpuid.cpuid1(0x0).eax;
     for idx in 0..max_leafs {
-        let res = cpuid!(idx);
+        let res = cpuid.cpuid1(idx);
         println!("({:#x}, {:#x}) => {:?}", idx, 0x0, res);
     }
 
-    let max_hypervisor_leafs = cpuid!(0x4000_0000).eax;
+    let max_hypervisor_leafs = cpuid.cpuid1(0x4000_0000).eax;
     for idx in 0x4000_0000..max_hypervisor_leafs {
-        println!("({:#x}, {:#x}) => {:?}", idx, 0x0, cpuid!(idx));
+        println!("({:#x}, {:#x}) => {:?}", idx, 0x0, cpuid.cpuid1(idx));
     }
 
-    let max_extended_leafs = cpuid!(0x8000_0000).eax;
+    let max_extended_leafs = cpuid.cpuid1(0x8000_0000).eax;
     for idx in 0x8000_0000..max_extended_leafs {
-        println!("({:#x}, {:#x}) => {:?}", idx, 0x0, cpuid!(idx));
+        println!("({:#x}, {:#x}) => {:?}", idx, 0x0, cpuid.cpuid1(idx));
     }
 }
 
-#[cfg(feature = "display-json")]
-pub fn json(cpuid: crate::CpuId) {
+pub fn json<R: crate::CpuIdReader>(cpuid: crate::CpuId<R>) {
     if let Some(info) = cpuid.get_vendor_info() {
         println!("VendorInfo {}", serde_json::to_string(&info).unwrap());
     }
@@ -165,8 +162,7 @@ pub fn json(cpuid: crate::CpuId) {
     }
 }
 
-#[cfg(feature = "display-markdown")]
-pub fn markdown(cpuid: crate::CpuId) {
+pub fn markdown<R: crate::CpuIdReader>(cpuid: crate::CpuId<R>) {
     use std::fmt::Display;
     use termimad::{minimad::TextTemplate, minimad::TextTemplateExpander, MadSkin};
 
