@@ -27,11 +27,7 @@ pub fn raw<R: crate::CpuIdReader>(cpuid: R) {
     }
 }
 
-fn string_to_static_str(s: String) -> &'static str {
-    Box::leak(s.into_boxed_str())
-}
-
-fn table2(skin: &MadSkin, attrs: &[(&'static str, String)]) {
+fn table2(skin: &MadSkin, attrs: &[(&str, String)]) {
     let table_template = TextTemplate::from(
         r#"
 |-:|-:|
@@ -42,18 +38,17 @@ ${feature-rows
     "#,
     );
 
-    fn make_table_display<'a, 'b, D: Display>(
+    fn make_table_display<'a, 'b>(
         text_template: &'a TextTemplate<'b>,
-        attrs: &[(&'b str, D)],
+        attrs: &'b [(&'b str, String)],
     ) -> TextTemplateExpander<'a, 'b> {
         let mut expander = text_template.expander();
 
         for (attr, desc) in attrs {
-            let sdesc = string_to_static_str(format!("{}", desc));
             expander
                 .sub("feature-rows")
                 .set("attr-name", attr)
-                .set("attr-avail", sdesc);
+                .set("attr-avail", desc);
         }
 
         expander
@@ -74,19 +69,18 @@ ${feature-rows
     "#,
     );
 
-    fn make_table_display3<'a, 'b, D: Display>(
+    fn make_table_display3<'a, 'b>(
         text_template: &'a TextTemplate<'b>,
-        attrs: &[(&'b str, &'b str, D)],
+        attrs: &'b [(&'b str, &'b str, String)],
     ) -> TextTemplateExpander<'a, 'b> {
         let mut expander = text_template.expander();
 
         for (cat, attr, desc) in attrs {
-            let sdesc = string_to_static_str(format!("{}", desc));
             expander
                 .sub("feature-rows")
                 .set("category-name", cat)
                 .set("attr-name", attr)
-                .set("attr-avail", sdesc);
+                .set("attr-avail", desc);
         }
 
         expander
@@ -141,14 +135,14 @@ fn bool_repr(x: bool) -> String {
 trait RowGen {
     fn fmt(attr: &Self) -> String;
 
-    fn tuple(t: &'static str, attr: Self) -> (&'static str, String)
+    fn tuple<'a>(t: &'a str, attr: Self) -> (&'a str, String)
     where
         Self: Sized,
     {
         (t, RowGen::fmt(&attr))
     }
 
-    fn triple(c: &'static str, t: &'static str, attr: Self) -> (&'static str, &'static str, String)
+    fn triple<'a>(c: &'a str, t: &'a str, attr: Self) -> (&'a str, &'a str, String)
     where
         Self: Sized,
     {
@@ -348,13 +342,13 @@ pub fn markdown<R: crate::CpuIdReader>(cpuid: crate::CpuId<R>) {
 
     if let Some(info) = cpuid.get_cache_info() {
         print_title(&skin, "Cache and TLB information (0x02):");
+        let nums: Vec<String> = info
+            .clone()
+            .map(|cache| format!("{:#x}", cache.num))
+            .collect();
         let attrs: Vec<(&str, String)> = info
-            .map(|cache| {
-                RowGen::tuple(
-                    string_to_static_str(format!("{:#x}", cache.num)),
-                    cache.desc().to_string(),
-                )
-            })
+            .zip(nums.iter())
+            .map(|(cache, n)| RowGen::tuple(n, cache.desc().to_string()))
             .collect();
         table2(&skin, &attrs);
     }
