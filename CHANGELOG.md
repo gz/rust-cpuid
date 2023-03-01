@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [11.0.0] - XXXX-XX-XX
+
+### Breaking changes
+
+- The `CpuId` type now takes a generic reader argument `CpuId<R: CpuIdReader>`:
+  the generic allows for more flexibility. This is a breaking change for users
+  of `with_cpuid_fn` and potentially when specifying `CpuId` as a type argument
+  somewhere. To make existing code compile again, whenever a generic type
+  argument for CpuId is needed, you can use the `cpuid::NativeCpuIdReader` type
+  which provides the default behavior of reading the CPUID registers.
+
+  Although we do specify a default generic type for CpuId to be
+  `cpuid::NativeCpuIdReader` there might be cases where you need to specify the
+  generic type of CpuId: e.g., `fn take_cpuid(cpuid: CpuId)` would become:
+  `fn take_cpuid(cpuid: CpuId<NativeCpuIdReader>)`
+
+- If you're using the `serialization` feature: It go revamped by fixing some
+  long-standing problems with it that made it difficult to use
+  [#87](https://github.com/gz/rust-cpuid/issues/87). All types except
+  `CpuIdResult` types lost their `Serialize` and `Deserialize` derives. Check
+  the [new example](examples/serialize_deserialize.rs) on how to serialize and
+  deserialize cpuid information.
+
 ## [10.7.0] - 2023-02-27
 
 - Include the pretty printing code in the library (instead of only having it in
