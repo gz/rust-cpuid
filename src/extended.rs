@@ -1,4 +1,5 @@
 //! Data-structures / interpretation for extended leafs (>= 0x8000_0000)
+use bitflags::bitflags;
 use core::fmt::{self, Debug, Display, Formatter};
 use core::mem::size_of;
 use core::slice;
@@ -10,7 +11,6 @@ use crate::{get_bits, CpuIdResult, Vendor};
 ///
 /// # Platforms
 /// ✅ AMD 🟡 Intel
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedProcessorFeatureIdentifiers {
     vendor: Vendor,
     eax: u32,
@@ -385,8 +385,7 @@ impl Debug for ExtendedProcessorFeatureIdentifiers {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-    struct ExtendedFunctionInfoEcx: u32 {
+        struct ExtendedFunctionInfoEcx: u32 {
         const LAHF_SAHF = 1 << 0;
         const CMP_LEGACY =  1 << 1;
         const SVM = 1 << 2;
@@ -416,8 +415,7 @@ bitflags! {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-    struct ExtendedFunctionInfoEdx: u32 {
+        struct ExtendedFunctionInfoEdx: u32 {
         const SYSCALL_SYSRET = 1 << 11;
         const EXECUTE_DISABLE = 1 << 20;
         const MMXEXT = 1 << 22;
@@ -436,7 +434,6 @@ bitflags! {
 ///
 /// # Platforms
 /// ✅ AMD ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorBrandString {
     data: [CpuIdResult; 3],
 }
@@ -481,7 +478,6 @@ impl Debug for ProcessorBrandString {
 /// # Availability
 /// ✅ AMD ❌ Intel (reserved=0)
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L1CacheTlbInfo {
     eax: u32,
     ebx: u32,
@@ -599,7 +595,6 @@ impl L1CacheTlbInfo {
 /// # Availability
 /// ✅ AMD 🟡 Intel
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L2And3CacheTlbInfo {
     eax: u32,
     ebx: u32,
@@ -764,7 +759,6 @@ impl L2And3CacheTlbInfo {
 
 /// Info about cache Associativity.
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum Associativity {
     Disabled,
     DirectMapped,
@@ -832,7 +826,6 @@ impl Associativity {
 /// # Platforms
 /// ✅ AMD 🟡 Intel
 #[derive(Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ApmInfo {
     /// Reserved on AMD and Intel.
     _eax: u32,
@@ -1010,8 +1003,7 @@ impl ApmInfo {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-    struct ApmInfoEdx: u32 {
+        struct ApmInfoEdx: u32 {
         const TS = 1 << 0;
         const FID = 1 << 1;
         const VID = 1 << 2;
@@ -1028,8 +1020,7 @@ bitflags! {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-    struct RasCapabilities: u32 {
+        struct RasCapabilities: u32 {
         const MCAOVFLRECOV = 1 << 0;
         const SUCCOR = 1 << 1;
         const HWA = 1 << 2;
@@ -1046,7 +1037,6 @@ bitflags! {
 /// # Platforms
 /// ✅ AMD 🟡 Intel
 #[derive(PartialEq, Eq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorCapacityAndFeatureInfo {
     eax: u32,
     ebx: ProcessorCapacityAndFeatureEbx,
@@ -1283,8 +1273,7 @@ impl Debug for ProcessorCapacityAndFeatureInfo {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-    struct ProcessorCapacityAndFeatureEbx: u32 {
+        struct ProcessorCapacityAndFeatureEbx: u32 {
         const CLZERO = 1 << 0;
         const INST_RETCNT_MSR = 1 << 1;
         const RSTR_FP_ERR_PTRS = 1 << 2;
@@ -1307,7 +1296,6 @@ bitflags! {
 /// # Platforms
 /// ✅ AMD ❌ Intel
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SvmFeatures {
     eax: u32,
     ebx: u32,
@@ -1433,8 +1421,7 @@ impl SvmFeatures {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-    struct SvmFeaturesEdx: u32 {
+        struct SvmFeaturesEdx: u32 {
         const NP = 1 << 0;
         const LBR_VIRT = 1 << 1;
         const SVML = 1 << 2;
@@ -1461,7 +1448,6 @@ bitflags! {
 /// # Platforms
 /// ✅ AMD ❌ Intel
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Tlb1gbPageInfo {
     eax: u32,
     ebx: u32,
@@ -1531,7 +1517,6 @@ impl Tlb1gbPageInfo {
 /// # Platforms
 /// ✅ AMD ❌ Intel
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct PerformanceOptimizationInfo {
     eax: PerformanceOptimizationInfoEax,
     /// Reserved
@@ -1570,8 +1555,7 @@ impl PerformanceOptimizationInfo {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-    struct PerformanceOptimizationInfoEax: u32 {
+        struct PerformanceOptimizationInfoEax: u32 {
         const FP128 = 1 << 0;
         const MOVU = 1 << 1;
         const FP256 = 1 << 2;
@@ -1583,7 +1567,6 @@ bitflags! {
 /// # Platforms
 /// ✅ AMD ❌ Intel
 #[derive(PartialEq, Eq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorTopologyInfo {
     eax: u32,
     ebx: u32,
@@ -1651,7 +1634,6 @@ impl Debug for ProcessorTopologyInfo {
 /// # Platforms
 /// ✅ AMD ❌ Intel
 #[derive(Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct MemoryEncryptionInfo {
     eax: MemoryEncryptionInfoEax,
     ebx: u32,
@@ -1756,8 +1738,7 @@ impl MemoryEncryptionInfo {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-    struct MemoryEncryptionInfoEax: u32 {
+        struct MemoryEncryptionInfoEax: u32 {
         const SME = 1 << 0;
         const SEV = 1 << 1;
         const PAGE_FLUSH_MSR = 1 << 2;

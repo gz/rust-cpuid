@@ -57,20 +57,15 @@ pub mod display;
 mod extended;
 #[cfg(test)]
 mod tests;
-#[cfg(feature = "serialize")]
-#[macro_use]
-extern crate serde_derive;
 
-#[cfg(feature = "serialize")]
-extern crate serde;
-
-#[macro_use]
-extern crate bitflags;
-
+use bitflags::bitflags;
 use core::fmt::{self, Debug, Formatter};
 use core::mem::size_of;
 use core::slice;
 use core::str;
+
+#[cfg(feature = "serialize")]
+use serde_derive::{Deserialize, Serialize};
 
 pub use extended::*;
 
@@ -199,7 +194,6 @@ where
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 enum Vendor {
     Intel,
     Amd,
@@ -1045,7 +1039,6 @@ impl<R: CpuIdReader + Debug> Debug for CpuId<R> {
 /// # Platforms
 /// ✅ AMD ✅ Intel
 #[derive(PartialEq, Eq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[repr(C)]
 pub struct VendorInfo {
     ebx: u32,
@@ -1097,7 +1090,6 @@ impl fmt::Display for VendorInfo {
 /// # Platforms
 /// ❌ AMD ✅ Intel
 #[derive(PartialEq, Eq, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheInfoIter {
     current: u32,
     eax: u32,
@@ -1164,7 +1156,6 @@ impl Debug for CacheInfoIter {
 
 /// What type of cache are we dealing with?
 #[derive(Copy, Clone, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum CacheInfoType {
     General,
     Cache,
@@ -1176,7 +1167,6 @@ pub enum CacheInfoType {
 
 /// Describes any kind of cache (TLB, Data and Instruction caches plus prefetchers).
 #[derive(Copy, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheInfo {
     /// Number as retrieved from cpuid
     pub num: u8,
@@ -1777,7 +1767,6 @@ pub const CACHE_INFO_TABLE: [CacheInfo; 108] = [
 /// # Platforms
 /// ❌ AMD ✅ Intel
 #[derive(PartialEq, Eq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorSerial {
     /// Lower bits
     ecx: u32,
@@ -1833,7 +1822,6 @@ impl Debug for ProcessorSerial {
 ///
 /// # Platforms
 /// ✅ AMD ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct FeatureInfo {
     vendor: Vendor,
     eax: u32,
@@ -2434,9 +2422,7 @@ impl Debug for FeatureInfo {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct FeatureInfoFlags: u64 {
-
         // ECX flags
 
         /// Streaming SIMD Extensions 3 (SSE3). A value of 1 indicates the processor supports this technology.
@@ -2569,9 +2555,7 @@ bitflags! {
 /// # Platforms
 /// 🟡 AMD ✅ Intel
 #[derive(Clone, Copy)]
-#[cfg_attr(feature = "serialize", derive(Serialize))]
 pub struct CacheParametersIter<R: CpuIdReader> {
-    #[cfg_attr(feature = "serialize", serde(skip))]
     read: R,
     leaf: u32,
     current: u32,
@@ -2620,7 +2604,6 @@ impl<R: CpuIdReader> Debug for CacheParametersIter<R> {
 /// # Platforms
 /// 🟡 AMD ✅ Intel
 #[derive(Copy, Clone, Eq, PartialEq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParameter {
     eax: u32,
     ebx: u32,
@@ -2630,7 +2613,6 @@ pub struct CacheParameter {
 
 /// Info about a what a given cache caches (instructions, data, etc.)
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum CacheType {
     /// Null - No more caches
     Null = 0,
@@ -2802,7 +2784,6 @@ impl Debug for CacheParameter {
 /// # Platforms
 /// 🟡 AMD ✅ Intel
 #[derive(Eq, PartialEq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct MonitorMwaitInfo {
     eax: u32,
     ebx: u32,
@@ -2934,7 +2915,6 @@ impl Debug for MonitorMwaitInfo {
 ///
 /// # Platforms
 /// 🟡 AMD ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ThermalPowerInfo {
     eax: ThermalPowerFeaturesEax,
     ebx: u32,
@@ -3169,7 +3149,6 @@ impl Debug for ThermalPowerInfo {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ThermalPowerFeaturesEax: u32 {
         /// Digital temperature sensor is supported if set. (Bit 00)
         const DTS = 1 << 0;
@@ -3218,7 +3197,6 @@ bitflags! {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ThermalPowerFeaturesEcx: u32 {
         const HW_COORD_FEEDBACK = 1 << 0;
 
@@ -3231,7 +3209,6 @@ bitflags! {
 ///
 /// # Platforms
 /// 🟡 AMD ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedFeatures {
     _eax: u32,
     ebx: ExtendedFeaturesEbx,
@@ -3696,7 +3673,6 @@ impl Debug for ExtendedFeatures {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFeaturesEbx: u32 {
         /// FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1. (Bit 00)
         const FSGSBASE = 1 << 0;
@@ -3765,7 +3741,6 @@ bitflags! {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFeaturesEcx: u32 {
         /// Bit 0: Prefetch WT1. (Intel® Xeon Phi™ only).
         const PREFETCHWT1 = 1 << 0;
@@ -3822,7 +3797,6 @@ bitflags! {
 ///
 /// # Platforms
 /// ❌ AMD (reserved) ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DirectCacheAccessInfo {
     eax: u32,
 }
@@ -3846,7 +3820,6 @@ impl Debug for DirectCacheAccessInfo {
 ///
 /// # Platforms
 /// ❌ AMD ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct PerformanceMonitoringInfo {
     eax: u32,
     ebx: PerformanceMonitoringFeaturesEbx,
@@ -3959,7 +3932,6 @@ impl Debug for PerformanceMonitoringInfo {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct PerformanceMonitoringFeaturesEbx: u32 {
         /// Core cycle event not available if 1. (Bit 0)
         const CORE_CYC_EV_UNAVAILABLE = 1 << 0;
@@ -3987,9 +3959,7 @@ bitflags! {
 /// # Platforms
 /// ✅ AMD ✅ Intel
 #[derive(Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize))]
 pub struct ExtendedTopologyIter<R: CpuIdReader> {
-    #[cfg_attr(feature = "serialize", serde(skip))]
     read: R,
     level: u32,
     is_v2: bool,
@@ -3999,7 +3969,6 @@ pub struct ExtendedTopologyIter<R: CpuIdReader> {
 ///
 /// How many cores, what type etc.
 #[derive(PartialEq, Eq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedTopologyLevel {
     eax: u32,
     ebx: u32,
@@ -4058,7 +4027,6 @@ impl ExtendedTopologyLevel {
 
 /// What type of core we have at this level in the topology (real CPU or hyper-threaded).
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum TopologyType {
     Invalid = 0,
     /// Hyper-thread (Simultaneous multithreading)
@@ -4120,7 +4088,6 @@ impl<R: CpuIdReader> Debug for ExtendedTopologyIter<R> {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedStateInfoXCR0Flags: u32 {
         /// legacy x87 (Bit 00).
         const LEGACY_X87 = 1 << 0;
@@ -4155,7 +4122,6 @@ bitflags! {
 }
 
 bitflags! {
-    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedStateInfoXSSFlags: u32 {
         /// IA32_XSS PT (Trace Packet) State (Bit 08).
         const PT = 1 << 8;
@@ -4169,9 +4135,7 @@ bitflags! {
 ///
 /// # Platforms
 /// ✅ AMD ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize))]
 pub struct ExtendedStateInfo<R: CpuIdReader> {
-    #[cfg_attr(feature = "serialize", serde(skip))]
     read: R,
     eax: ExtendedStateInfoXCR0Flags,
     ebx: u32,
@@ -4385,7 +4349,6 @@ impl<R: CpuIdReader> Debug for ExtendedStateIter<R> {
 
 /// What kidn of extended register state this is.
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[repr(u32)]
 pub enum ExtendedRegisterType {
     Avx,
@@ -4440,7 +4403,6 @@ impl fmt::Display for ExtendedRegisterType {
 
 /// Where the extended register state is stored.
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum ExtendedRegisterStateLocation {
     Xcr0,
     Ia32Xss,
@@ -4458,7 +4420,6 @@ impl fmt::Display for ExtendedRegisterStateLocation {
 }
 
 /// ExtendedState subleaf structure for things that need to be restored.
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ExtendedState {
     pub subleaf: u32,
     eax: u32,
@@ -4536,9 +4497,7 @@ impl Debug for ExtendedState {
 /// Monitoring Enumeration Sub-leaf (EAX = 0FH, ECX = 0 and ECX = 1)
 /// # Platforms
 /// ❌ AMD ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize))]
 pub struct RdtMonitoringInfo<R: CpuIdReader> {
-    #[cfg_attr(feature = "serialize", serde(skip))]
     read: R,
     ebx: u32,
     edx: u32,
@@ -4582,7 +4541,6 @@ impl<R: CpuIdReader> Debug for RdtMonitoringInfo<R> {
 }
 
 /// Information about L3 cache monitoring.
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L3MonitoringInfo {
     ebx: u32,
     ecx: u32,
@@ -4635,9 +4593,7 @@ impl Debug for L3MonitoringInfo {
 ///
 /// # Platforms
 /// ❌ AMD ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize))]
 pub struct RdtAllocationInfo<R: CpuIdReader> {
-    #[cfg_attr(feature = "serialize", serde(skip))]
     read: R,
     ebx: u32,
 }
@@ -4712,7 +4668,6 @@ impl<R: CpuIdReader> Debug for RdtAllocationInfo<R> {
 }
 
 /// L3 Cache Allocation Technology Enumeration Sub-leaf (LEAF=0x10, SUBLEAF=1).
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L3CatInfo {
     eax: u32,
     ebx: u32,
@@ -4756,7 +4711,6 @@ impl Debug for L3CatInfo {
 
 /// L2 Cache Allocation Technology Enumeration Sub-leaf (LEAF=0x10, SUBLEAF=2).
 #[derive(Eq, PartialEq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct L2CatInfo {
     eax: u32,
     ebx: u32,
@@ -4792,7 +4746,6 @@ impl Debug for L2CatInfo {
 
 /// Memory Bandwidth Allocation Enumeration Sub-leaf (LEAF=0x10, SUBLEAF=3).
 #[derive(Eq, PartialEq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct MemBwAllocationInfo {
     eax: u32,
     ecx: u32,
@@ -4837,9 +4790,7 @@ impl Debug for MemBwAllocationInfo {
 ///
 /// # Platforms
 /// ❌ AMD ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize))]
 pub struct SgxInfo<R: CpuIdReader> {
-    #[cfg_attr(feature = "serialize", serde(skip))]
     read: R,
     eax: u32,
     ebx: u32,
@@ -4962,7 +4913,6 @@ impl<R: CpuIdReader> Debug for SgxSectionIter<R> {
 ///
 /// Sub-leaves 2 or higher.
 #[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum SgxSectionInfo {
     // This would be nice: https://github.com/rust-lang/rfcs/pull/1450
     Epc(EpcSection),
@@ -4970,7 +4920,6 @@ pub enum SgxSectionInfo {
 
 /// EBX:EAX and EDX:ECX provide information on the Enclave Page Cache (EPC) section
 #[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct EpcSection {
     eax: u32,
     ebx: u32,
@@ -4998,7 +4947,6 @@ impl EpcSection {
 ///
 /// # Platforms
 /// ❌ AMD ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorTraceInfo {
     _eax: u32,
     ebx: u32,
@@ -5138,7 +5086,6 @@ impl Debug for ProcessorTraceInfo {
 ///
 /// # Platforms
 /// ❌ AMD ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct TscInfo {
     eax: u32,
     ebx: u32,
@@ -5192,7 +5139,6 @@ impl TscInfo {
 ///
 /// # Platforms
 /// ❌ AMD ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorFrequencyInfo {
     eax: u32,
     ebx: u32,
@@ -5231,9 +5177,7 @@ impl fmt::Debug for ProcessorFrequencyInfo {
 /// # Platforms
 /// ❌ AMD ✅ Intel
 #[derive(Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize))]
 pub struct DatIter<R: CpuIdReader> {
-    #[cfg_attr(feature = "serialize", serde(skip))]
     read: R,
     current: u32,
     count: u32,
@@ -5284,7 +5228,6 @@ impl<R: CpuIdReader> Debug for DatIter<R> {
 }
 
 /// Deterministic Address Translation Structure
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct DatInfo {
     _eax: u32,
     ebx: u32,
@@ -5382,7 +5325,6 @@ impl Debug for DatInfo {
 
 /// Deterministic Address Translation cache type (EDX bits 04 -- 00)
 #[derive(Eq, PartialEq, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum DatType {
     /// Null (indicates this sub-leaf is not valid).
     Null = 0b00000,
@@ -5418,9 +5360,7 @@ impl fmt::Display for DatType {
 ///
 /// # Platforms
 /// ❌ AMD ✅ Intel
-#[cfg_attr(feature = "serialize", derive(Serialize))]
 pub struct SoCVendorInfo<R: CpuIdReader> {
-    #[cfg_attr(feature = "serialize", serde(skip))]
     read: R,
     /// MaxSOCID_Index
     eax: u32,
@@ -5480,9 +5420,7 @@ impl<R: CpuIdReader> fmt::Debug for SoCVendorInfo<R> {
 }
 
 /// Iterator for SoC vendor attributes.
-#[cfg_attr(feature = "serialize", derive(Serialize))]
 pub struct SoCVendorAttributesIter<R: CpuIdReader> {
-    #[cfg_attr(feature = "serialize", serde(skip))]
     read: R,
     count: u32,
     current: u32,
@@ -5512,7 +5450,6 @@ impl<R: CpuIdReader> Iterator for SoCVendorAttributesIter<R> {
 
 /// A vendor brand string as queried from the cpuid leaf.
 #[derive(Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[repr(C)]
 pub struct SoCVendorBrand {
     data: [CpuIdResult; 3],
