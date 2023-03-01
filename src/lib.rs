@@ -220,7 +220,7 @@ impl Vendor {
 ///
 /// Other structs can be accessed by going through this type.
 #[derive(Clone, Copy)]
-pub struct CpuId<R: CpuIdReader> {
+pub struct CpuId<R: CpuIdReader=CpuIdReaderNative> {
     /// A generic reader to abstract the cpuid interface.
     read: R,
     /// CPU vendor to differentiate cases where logic needs to differ in code .
