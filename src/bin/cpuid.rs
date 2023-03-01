@@ -1,11 +1,10 @@
 use std::str::FromStr;
 
 use clap::Parser;
-use raw_cpuid::CpuId;
+use raw_cpuid::{CpuId, CpuIdReaderNative};
 
 enum OutputFormat {
     Raw,
-    Json,
     Cli,
 }
 
@@ -15,7 +14,6 @@ impl FromStr for OutputFormat {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "raw" => Ok(OutputFormat::Raw),
-            "json" => Ok(OutputFormat::Json),
             "cli" => Ok(OutputFormat::Cli),
             _ => Err("no match"),
         }
@@ -35,11 +33,7 @@ struct Opts {
 fn main() {
     let opts: Opts = Opts::parse();
     match opts.format {
-        OutputFormat::Raw => raw_cpuid::display::raw(),
-        OutputFormat::Json => {
-            let cpuid = CpuId::new();
-            raw_cpuid::display::json(cpuid);
-        }
+        OutputFormat::Raw => raw_cpuid::display::raw(CpuIdReaderNative),
         OutputFormat::Cli => {
             let cpuid = CpuId::new();
             raw_cpuid::display::markdown(cpuid);
