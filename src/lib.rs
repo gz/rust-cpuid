@@ -220,7 +220,19 @@ impl Vendor {
 ///
 /// Other structs can be accessed by going through this type.
 #[derive(Clone, Copy)]
-pub struct CpuId<R: CpuIdReader=CpuIdReaderNative> {
+pub struct CpuId<
+    #[cfg(any(
+        all(target_arch = "x86", not(target_env = "sgx"), target_feature = "sse"),
+        all(target_arch = "x86_64", not(target_env = "sgx"))
+    ))]
+    R: CpuIdReader=CpuIdReaderNative,
+
+    #[cfg(not(any(
+        all(target_arch = "x86", not(target_env = "sgx"), target_feature = "sse"),
+        all(target_arch = "x86_64", not(target_env = "sgx"))
+    )))]
+    R: CpuIdReader
+> {
     /// A generic reader to abstract the cpuid interface.
     read: R,
     /// CPU vendor to differentiate cases where logic needs to differ in code .
