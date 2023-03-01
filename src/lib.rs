@@ -67,6 +67,13 @@ extern crate serde;
 #[macro_use]
 extern crate bitflags;
 
+use core::fmt::{self, Debug, Formatter};
+use core::mem::size_of;
+use core::slice;
+use core::str;
+
+pub use extended::*;
+
 /// Uses Rust's `cpuid` function from the `arch` module.
 #[cfg(any(
     all(target_arch = "x86", not(target_env = "sgx"), target_feature = "sse"),
@@ -92,14 +99,23 @@ pub mod native_cpuid {
             edx: result.edx,
         }
     }
+    /// The native reader uses the cpuid instruction to read the cpuid data from the
+    /// CPU we're currently running on directly.
+    #[derive(Clone, Copy)]
+    pub struct CpuIdReaderNative;
+
+    impl super::CpuIdReader for CpuIdReaderNative {
+        fn cpuid2(&self, eax: u32, ecx: u32) -> CpuIdResult {
+            cpuid_count(eax, ecx)
+        }
+    }
 }
 
-use core::fmt::{self, Debug, Formatter};
-use core::mem::size_of;
-use core::slice;
-use core::str;
-
-pub use extended::*;
+#[cfg(any(
+    all(target_arch = "x86", not(target_env = "sgx"), target_feature = "sse"),
+    all(target_arch = "x86_64", not(target_env = "sgx"))
+))]
+pub use native_cpuid::CpuIdReaderNative;
 
 #[cfg(not(test))]
 mod std {
@@ -211,13 +227,36 @@ impl Vendor {
 /// Other structs can be accessed by going through this type.
 #[derive(Clone, Copy)]
 pub struct CpuId<R: CpuIdReader> {
+    /// A generic reader to abstract the cpuid interface.
     read: R,
-    /// CPU vendor to differntiate cases where logic needs to differ in code .
+    /// CPU vendor to differentiate cases where logic needs to differ in code .
     vendor: Vendor,
     /// How many basic leafs are supported (EAX < EAX_HYPERVISOR_INFO)
     supported_leafs: u32,
     /// How many extended leafs are supported (e.g., leafs with EAX > EAX_EXTENDED_FUNCTION_INFO)
     supported_extended_leafs: u32,
+}
+
+#[cfg(any(
+    all(target_arch = "x86", not(target_env = "sgx"), target_feature = "sse"),
+    all(target_arch = "x86_64", not(target_env = "sgx"))
+))]
+impl Default for CpuId<CpuIdReaderNative> {
+    /// Create a new `CpuId` instance.
+    fn default() -> Self {
+        CpuId::with_cpuid_fn(CpuIdReaderNative)
+    }
+}
+
+#[cfg(any(
+    all(target_arch = "x86", not(target_env = "sgx"), target_feature = "sse"),
+    all(target_arch = "x86_64", not(target_env = "sgx"))
+))]
+impl CpuId<CpuIdReaderNative> {
+    /// Create a new `CpuId` instance.
+    pub fn new() -> Self {
+        CpuId::default()
+    }
 }
 
 /// Low-level data-structure to store result of cpuid instruction.
@@ -298,15 +337,6 @@ const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 const EAX_SVM_FEATURES: u32 = 0x8000_000A;
 
 impl<R: CpuIdReader> CpuId<R> {
-    /// Return new CpuId struct.
-    #[cfg(any(
-        all(target_arch = "x86", not(target_env = "sgx"), target_feature = "sse"),
-        all(target_arch = "x86_64", not(target_env = "sgx"))
-    ))]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     /// Return new CpuId struct with custom reader function.
     ///
     /// This is useful for example when testing code or if we want to interpose
