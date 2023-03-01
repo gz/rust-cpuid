@@ -347,7 +347,7 @@ impl<R: CpuIdReader> CpuId<R> {
     ///
     /// This is useful for example when testing code or if we want to interpose
     /// on the CPUID calls this library makes.
-    pub fn with_cpuid_fn(cpuid_fn: R) -> Self {
+    pub fn with_cpuid_reader(cpuid_fn: R) -> Self {
         let vendor_leaf = cpuid_fn.cpuid1(EAX_VENDOR_INFO);
         let extended_leaf = cpuid_fn.cpuid1(EAX_EXTENDED_FUNCTION_INFO);
         CpuId {
@@ -356,6 +356,15 @@ impl<R: CpuIdReader> CpuId<R> {
             vendor: Vendor::from_vendor_leaf(vendor_leaf),
             read: cpuid_fn,
         }
+    }
+
+    /// See [`CpuId::with_cpuid_reader`].
+    ///
+    /// # Note
+    /// This function will likely be deprecated in the future. Use the identical
+    /// `with_cpuid_reader` function instead.
+    pub fn with_cpuid_fn(cpuid_fn: R) -> Self {
+        CpuId::with_cpuid_reader(cpuid_fn)
     }
 
     /// Check if a non extended leaf  (`val`) is supported.
