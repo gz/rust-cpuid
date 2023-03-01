@@ -177,7 +177,7 @@ macro_rules! check_bit_fn {
 /// Implements function to read/write cpuid.
 /// This allows to conveniently swap out the underlying cpuid implementation
 /// with one that returns data that is deterministic (for unit-testing).
-pub trait CpuIdReader: Copy {
+pub trait CpuIdReader: Clone {
     fn cpuid1(&self, eax: u32) -> CpuIdResult {
         self.cpuid2(eax, 0)
     }
@@ -186,7 +186,7 @@ pub trait CpuIdReader: Copy {
 
 impl<F> CpuIdReader for F
 where
-    F: Fn(u32, u32) -> CpuIdResult + Copy,
+    F: Fn(u32, u32) -> CpuIdResult + Clone,
 {
     fn cpuid2(&self, eax: u32, ecx: u32) -> CpuIdResult {
         self(eax, ecx)
@@ -464,7 +464,7 @@ impl<R: CpuIdReader> CpuId<R> {
             || (self.vendor == Vendor::Amd && self.leaf_is_supported(EAX_CACHE_PARAMETERS_AMD))
         {
             Some(CacheParametersIter {
-                read: self.read,
+                read: self.read.clone(),
                 leaf: if self.vendor == Vendor::Amd {
                     EAX_CACHE_PARAMETERS_AMD
                 } else {
@@ -573,7 +573,7 @@ impl<R: CpuIdReader> CpuId<R> {
     pub fn get_extended_topology_info(&self) -> Option<ExtendedTopologyIter<R>> {
         if self.leaf_is_supported(EAX_EXTENDED_TOPOLOGY_INFO) {
             Some(ExtendedTopologyIter {
-                read: self.read,
+                read: self.read.clone(),
                 level: 0,
                 is_v2: false,
             })
@@ -589,7 +589,7 @@ impl<R: CpuIdReader> CpuId<R> {
     pub fn get_extended_topology_info_v2(&self) -> Option<ExtendedTopologyIter<R>> {
         if self.leaf_is_supported(EAX_EXTENDED_TOPOLOGY_INFO_V2) {
             Some(ExtendedTopologyIter {
-                read: self.read,
+                read: self.read.clone(),
                 level: 0,
                 is_v2: true,
             })
@@ -607,7 +607,7 @@ impl<R: CpuIdReader> CpuId<R> {
             let res = self.read.cpuid2(EAX_EXTENDED_STATE_INFO, 0);
             let res1 = self.read.cpuid2(EAX_EXTENDED_STATE_INFO, 1);
             Some(ExtendedStateInfo {
-                read: self.read,
+                read: self.read.clone(),
                 eax: ExtendedStateInfoXCR0Flags { bits: res.eax },
                 ebx: res.ebx,
                 ecx: res.ecx,
@@ -631,7 +631,7 @@ impl<R: CpuIdReader> CpuId<R> {
 
         if self.leaf_is_supported(EAX_RDT_MONITORING) {
             Some(RdtMonitoringInfo {
-                read: self.read,
+                read: self.read.clone(),
                 ebx: res.ebx,
                 edx: res.edx,
             })
@@ -649,7 +649,7 @@ impl<R: CpuIdReader> CpuId<R> {
 
         if self.leaf_is_supported(EAX_RDT_ALLOCATION) {
             Some(RdtAllocationInfo {
-                read: self.read,
+                read: self.read.clone(),
                 ebx: res.ebx,
             })
         } else {
@@ -668,7 +668,7 @@ impl<R: CpuIdReader> CpuId<R> {
                 let res = self.read.cpuid2(EAX_SGX, 0);
                 let res1 = self.read.cpuid2(EAX_SGX, 1);
                 Some(SgxInfo {
-                    read: self.read,
+                    read: self.read.clone(),
                     eax: res.eax,
                     ebx: res.ebx,
                     _ecx: res.ecx,
@@ -751,7 +751,7 @@ impl<R: CpuIdReader> CpuId<R> {
         if self.leaf_is_supported(EAX_SOC_VENDOR_INFO) {
             let res = self.read.cpuid1(EAX_SOC_VENDOR_INFO);
             Some(SoCVendorInfo {
-                read: self.read,
+                read: self.read.clone(),
                 eax: res.eax,
                 ebx: res.ebx,
                 ecx: res.ecx,
@@ -772,7 +772,7 @@ impl<R: CpuIdReader> CpuId<R> {
                 .read
                 .cpuid2(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO, 0);
             Some(DatIter {
-                read: self.read,
+                read: self.read.clone(),
                 current: 0,
                 count: res.eax,
             })
@@ -795,7 +795,7 @@ impl<R: CpuIdReader> CpuId<R> {
                 let res = self.read.cpuid1(EAX_HYPERVISOR_INFO);
                 if res.eax > 0 {
                     Some(HypervisorInfo {
-                        read: self.read,
+                        read: self.read.clone(),
                         res,
                     })
                 } else {
@@ -2604,7 +2604,7 @@ impl<R: CpuIdReader> Iterator for CacheParametersIter<R> {
 impl<R: CpuIdReader> Debug for CacheParametersIter<R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         let mut debug = f.debug_list();
-        self.for_each(|ref item| {
+        self.clone().for_each(|ref item| {
             debug.entry(item);
         });
         debug.finish()
@@ -4279,7 +4279,7 @@ impl<F: CpuIdReader> ExtendedStateInfo<F> {
     /// Iterator over extended state enumeration levels >= 2.
     pub fn iter(&self) -> ExtendedStateIter<F> {
         ExtendedStateIter {
-            read: self.read,
+            read: self.read.clone(),
             level: 1,
             supported_xcr0: self.eax.bits(),
             supported_xss: self.ecx1.bits(),
@@ -4856,7 +4856,7 @@ impl<F: CpuIdReader> SgxInfo<F> {
     /// Iterator over SGX sub-leafs.
     pub fn iter(&self) -> SgxSectionIter<F> {
         SgxSectionIter {
-            read: self.read,
+            read: self.read.clone(),
             current: 2,
         }
     }
@@ -5409,7 +5409,7 @@ impl<R: CpuIdReader> SoCVendorInfo<R> {
     pub fn get_vendor_attributes(&self) -> Option<SoCVendorAttributesIter<R>> {
         if self.eax > 3 {
             Some(SoCVendorAttributesIter {
-                read: self.read,
+                read: self.read.clone(),
                 count: self.eax,
                 current: 3,
             })
