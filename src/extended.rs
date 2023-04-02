@@ -385,7 +385,9 @@ impl Debug for ExtendedProcessorFeatureIdentifiers {
 }
 
 bitflags! {
-        struct ExtendedFunctionInfoEcx: u32 {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct ExtendedFunctionInfoEcx: u32 {
         const LAHF_SAHF = 1 << 0;
         const CMP_LEGACY =  1 << 1;
         const SVM = 1 << 2;
@@ -415,7 +417,9 @@ bitflags! {
 }
 
 bitflags! {
-        struct ExtendedFunctionInfoEdx: u32 {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct ExtendedFunctionInfoEdx: u32 {
         const SYSCALL_SYSRET = 1 << 11;
         const EXECUTE_DISABLE = 1 << 20;
         const MMXEXT = 1 << 22;
@@ -1003,7 +1007,9 @@ impl ApmInfo {
 }
 
 bitflags! {
-        struct ApmInfoEdx: u32 {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct ApmInfoEdx: u32 {
         const TS = 1 << 0;
         const FID = 1 << 1;
         const VID = 1 << 2;
@@ -1020,7 +1026,9 @@ bitflags! {
 }
 
 bitflags! {
-        struct RasCapabilities: u32 {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct RasCapabilities: u32 {
         const MCAOVFLRECOV = 1 << 0;
         const SUCCOR = 1 << 1;
         const HWA = 1 << 2;
@@ -1169,7 +1177,7 @@ impl ProcessorCapacityAndFeatureInfo {
 
     /// Performance time-stamp counter size (in bits).
     ///
-    /// Indicates the size of `MSRC001_0280[PTSC]`.  
+    /// Indicates the size of `MSRC001_0280[PTSC]`.
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=false)
@@ -1273,7 +1281,9 @@ impl Debug for ProcessorCapacityAndFeatureInfo {
 }
 
 bitflags! {
-        struct ProcessorCapacityAndFeatureEbx: u32 {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct ProcessorCapacityAndFeatureEbx: u32 {
         const CLZERO = 1 << 0;
         const INST_RETCNT_MSR = 1 << 1;
         const RSTR_FP_ERR_PTRS = 1 << 2;
@@ -1421,7 +1431,9 @@ impl SvmFeatures {
 }
 
 bitflags! {
-        struct SvmFeaturesEdx: u32 {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct SvmFeaturesEdx: u32 {
         const NP = 1 << 0;
         const LBR_VIRT = 1 << 1;
         const SVML = 1 << 2;
@@ -1555,7 +1567,9 @@ impl PerformanceOptimizationInfo {
 }
 
 bitflags! {
-        struct PerformanceOptimizationInfoEax: u32 {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct PerformanceOptimizationInfoEax: u32 {
         const FP128 = 1 << 0;
         const MOVU = 1 << 1;
         const FP256 = 1 << 2;
@@ -1738,7 +1752,9 @@ impl MemoryEncryptionInfo {
 }
 
 bitflags! {
-        struct MemoryEncryptionInfoEax: u32 {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct MemoryEncryptionInfoEax: u32 {
         const SME = 1 << 0;
         const SEV = 1 << 1;
         const PAGE_FLUSH_MSR = 1 << 2;
