@@ -16,9 +16,7 @@ fn feature_info() {
         vendor: Vendor::Intel,
         eax: 198313,
         ebx: 34605056,
-        edx_ecx: FeatureInfoFlags {
-            bits: 2109399999 | 3219913727 << 32,
-        },
+        edx_ecx: FeatureInfoFlags::from_bits_truncate(2109399999 | 3219913727 << 32),
     };
 
     assert!(finfo.base_model_id() == 10);
@@ -177,9 +175,9 @@ fn monitor_mwait_features() {
 #[test]
 fn thermal_power_features() {
     let tpfeatures = ThermalPowerInfo {
-        eax: ThermalPowerFeaturesEax { bits: 119 },
+        eax: ThermalPowerFeaturesEax::from_bits_truncate(119),
         ebx: 2,
-        ecx: ThermalPowerFeaturesEcx { bits: 9 },
+        ecx: ThermalPowerFeaturesEcx::from_bits_truncate(9),
         _edx: 0,
     };
 
@@ -239,8 +237,8 @@ fn thermal_power_features() {
 fn extended_features() {
     let tpfeatures = ExtendedFeatures {
         _eax: 0,
-        ebx: ExtendedFeaturesEbx { bits: 641 },
-        ecx: ExtendedFeaturesEcx { bits: 0 },
+        ebx: ExtendedFeaturesEbx::from_bits_truncate(641),
+        ecx: ExtendedFeaturesEcx::from_bits_truncate(0),
         _edx: 0,
     };
     assert!(tpfeatures._eax == 0);
@@ -274,7 +272,7 @@ fn extended_features() {
             | ExtendedFeaturesEbx::SMAP
             | ExtendedFeaturesEbx::CLFLUSHOPT
             | ExtendedFeaturesEbx::PROCESSOR_TRACE,
-        ecx: ExtendedFeaturesEcx { bits: 0 },
+        ecx: ExtendedFeaturesEcx::from_bits_truncate(0),
         _edx: 201326592,
     };
 
@@ -305,7 +303,7 @@ fn direct_cache_access_info() {
 fn performance_monitoring_info() {
     let pm = PerformanceMonitoringInfo {
         eax: 120587267,
-        ebx: PerformanceMonitoringFeaturesEbx { bits: 0 },
+        ebx: PerformanceMonitoringFeaturesEbx::from_bits_truncate(0),
         _ecx: 0,
         edx: 1539,
     };
@@ -402,13 +400,13 @@ fn extended_topology_info_v2() {
 fn extended_state_info() {
     let es = ExtendedStateInfo {
         read: Default::default(),
-        eax: ExtendedStateInfoXCR0Flags { bits: 7 },
+        eax: ExtendedStateInfoXCR0Flags::from_bits_truncate(7),
         ebx: 832,
         ecx: 832,
         _edx: 0,
         eax1: 1,
         ebx1: 0,
-        ecx1: ExtendedStateInfoXSSFlags { bits: 0 },
+        ecx1: ExtendedStateInfoXSSFlags::from_bits_truncate(0),
         _edx1: 0,
     };
 
@@ -588,13 +586,13 @@ fn extended_state_info3() {
 fn extended_state_info2() {
     let es = ExtendedStateInfo {
         read: Default::default(),
-        eax: ExtendedStateInfoXCR0Flags { bits: 31 },
+        eax: ExtendedStateInfoXCR0Flags::from_bits_truncate(31),
         ebx: 1088,
         ecx: 1088,
         _edx: 0,
         eax1: 15,
         ebx1: 960,
-        ecx1: ExtendedStateInfoXSSFlags { bits: 256 },
+        ecx1: ExtendedStateInfoXSSFlags::from_bits_truncate(256),
         _edx1: 0,
     };
 

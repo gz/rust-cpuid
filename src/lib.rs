@@ -405,9 +405,9 @@ impl CpuId {
                 vendor: self.vendor,
                 eax: res.eax,
                 ebx: res.ebx,
-                edx_ecx: FeatureInfoFlags {
-                    bits: (((res.edx as u64) << 32) | (res.ecx as u64)),
-                },
+                edx_ecx: FeatureInfoFlags::from_bits_truncate(
+                    ((res.edx as u64) << 32) | (res.ecx as u64),
+                ),
             })
         } else {
             None
@@ -504,9 +504,9 @@ impl CpuId {
         if self.leaf_is_supported(EAX_THERMAL_POWER_INFO) {
             let res = self.read.cpuid1(EAX_THERMAL_POWER_INFO);
             Some(ThermalPowerInfo {
-                eax: ThermalPowerFeaturesEax { bits: res.eax },
+                eax: ThermalPowerFeaturesEax::from_bits_truncate(res.eax),
                 ebx: res.ebx,
-                ecx: ThermalPowerFeaturesEcx { bits: res.ecx },
+                ecx: ThermalPowerFeaturesEcx::from_bits_truncate(res.ecx),
                 _edx: res.edx,
             })
         } else {
@@ -523,8 +523,8 @@ impl CpuId {
             let res = self.read.cpuid1(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
             Some(ExtendedFeatures {
                 _eax: res.eax,
-                ebx: ExtendedFeaturesEbx { bits: res.ebx },
-                ecx: ExtendedFeaturesEcx { bits: res.ecx },
+                ebx: ExtendedFeaturesEbx::from_bits_truncate(res.ebx),
+                ecx: ExtendedFeaturesEcx::from_bits_truncate(res.ecx),
                 _edx: res.edx,
             })
         } else {
@@ -554,7 +554,7 @@ impl CpuId {
             let res = self.read.cpuid1(EAX_PERFORMANCE_MONITOR_INFO);
             Some(PerformanceMonitoringInfo {
                 eax: res.eax,
-                ebx: PerformanceMonitoringFeaturesEbx { bits: res.ebx },
+                ebx: PerformanceMonitoringFeaturesEbx::from_bits_truncate(res.ebx),
                 _ecx: res.ecx,
                 edx: res.edx,
             })
@@ -609,13 +609,13 @@ impl CpuId {
             let res1 = self.read.cpuid2(EAX_EXTENDED_STATE_INFO, 1);
             Some(ExtendedStateInfo {
                 read: self.read,
-                eax: ExtendedStateInfoXCR0Flags { bits: res.eax },
+                eax: ExtendedStateInfoXCR0Flags::from_bits_truncate(res.eax),
                 ebx: res.ebx,
                 ecx: res.ecx,
                 _edx: res.edx,
                 eax1: res1.eax,
                 ebx1: res1.ebx,
-                ecx1: ExtendedStateInfoXSSFlags { bits: res1.ecx },
+                ecx1: ExtendedStateInfoXSSFlags::from_bits_truncate(res1.ecx),
                 _edx1: res1.edx,
             })
         } else {
@@ -2442,6 +2442,8 @@ impl Debug for FeatureInfo {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct FeatureInfoFlags: u64 {
 
@@ -3704,6 +3706,8 @@ impl Debug for ExtendedFeatures {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFeaturesEbx: u32 {
         /// FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1. (Bit 00)
@@ -3773,6 +3777,8 @@ bitflags! {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFeaturesEcx: u32 {
         /// Bit 0: Prefetch WT1. (Intel® Xeon Phi™ only).
@@ -3967,6 +3973,8 @@ impl Debug for PerformanceMonitoringInfo {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct PerformanceMonitoringFeaturesEbx: u32 {
         /// Core cycle event not available if 1. (Bit 0)
@@ -4128,6 +4136,8 @@ impl Debug for ExtendedTopologyIter {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedStateInfoXCR0Flags: u32 {
         /// legacy x87 (Bit 00).
@@ -4163,6 +4173,8 @@ bitflags! {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedStateInfoXSSFlags: u32 {
         /// IA32_XSS PT (Trace Packet) State (Bit 08).

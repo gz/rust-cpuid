@@ -385,6 +385,8 @@ impl Debug for ExtendedProcessorFeatureIdentifiers {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFunctionInfoEcx: u32 {
         const LAHF_SAHF = 1 << 0;
@@ -416,6 +418,8 @@ bitflags! {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ExtendedFunctionInfoEdx: u32 {
         const SYSCALL_SYSRET = 1 << 11;
@@ -1010,6 +1014,8 @@ impl ApmInfo {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ApmInfoEdx: u32 {
         const TS = 1 << 0;
@@ -1028,6 +1034,8 @@ bitflags! {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct RasCapabilities: u32 {
         const MCAOVFLRECOV = 1 << 0;
@@ -1283,6 +1291,8 @@ impl Debug for ProcessorCapacityAndFeatureInfo {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct ProcessorCapacityAndFeatureEbx: u32 {
         const CLZERO = 1 << 0;
@@ -1433,6 +1443,8 @@ impl SvmFeatures {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct SvmFeaturesEdx: u32 {
         const NP = 1 << 0;
@@ -1570,6 +1582,8 @@ impl PerformanceOptimizationInfo {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct PerformanceOptimizationInfoEax: u32 {
         const FP128 = 1 << 0;
@@ -1756,6 +1770,8 @@ impl MemoryEncryptionInfo {
 }
 
 bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     struct MemoryEncryptionInfoEax: u32 {
         const SME = 1 << 0;
