@@ -4169,6 +4169,12 @@ bitflags! {
 
         /// IA32_XSS HDC State (Bit 13).
         const IA32_XSS_HDC = 1 << 13;
+
+        /// AMX TILECFG state (Bit 17)
+        const AMX_TILECFG = 1 << 17;
+
+        /// AMX TILEDATA state (Bit 17)
+        const AMX_TILEDATA = 1 << 18;
     }
 }
 
@@ -4180,8 +4186,26 @@ bitflags! {
         /// IA32_XSS PT (Trace Packet) State (Bit 08).
         const PT = 1 << 8;
 
+        /// IA32_XSS PASID state (Bit 10)
+        const PASID = 1 << 10;
+
+        /// IA32_XSS CET user state (Bit 11)
+        const CET_USER = 1 << 11;
+
+        /// IA32_XSS CET supervisor state (Bit 12)
+        const CET_SUPERVISOR = 1 << 12;
+
         /// IA32_XSS HDC State (Bit 13).
         const HDC = 1 << 13;
+
+        /// IA32_XSS UINTR state (Bit 14)
+        const UINTR = 1 << 14;
+
+        /// IA32_XSS LBR state (Bit 15)
+        const LBR = 1 << 15;
+
+        /// IA32_XSS HWP state (Bit 16)
+        const HWP = 1 << 16;
     }
 }
 
