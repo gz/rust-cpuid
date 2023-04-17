@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the [new example](examples/serialize_deserialize.rs) on how to serialize and
   deserialize cpuid information.
 
+## Other changes
+
+- Updated bitflags to v2.
+
 ## [10.7.0] - 2023-02-27
 
 - Include the pretty printing code in the library (instead of only having it in
