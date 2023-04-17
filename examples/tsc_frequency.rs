@@ -1,4 +1,6 @@
-//! An example that determines the time stamp counter frequency (RDTSC, RDTSCP) .
+//! An example that determines the time stamp counter frequency (RDTSC, RDTSCP).
+//!
+//! This example only compiles on x86 platforms.
 extern crate raw_cpuid;
 
 use std::time;

@@ -2,6 +2,8 @@
 //!
 //! Intel Topology is a pretty complicated subject (unfortunately):
 //! https://software.intel.com/en-us/articles/intel-64-architecture-processor-topology-enumeration/
+//!
+//! This example only compiles on x86 platforms.
 extern crate core_affinity;
 extern crate raw_cpuid;
 
