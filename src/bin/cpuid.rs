@@ -1,3 +1,6 @@
+//! The cpuid binary accompanying the library.
+//!
+//! The cpuid binary only compiles/runs on x86 platforms.
 use std::str::FromStr;
 
 use clap::Parser;

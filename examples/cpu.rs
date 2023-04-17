@@ -1,4 +1,6 @@
 //! An example that displays the type/features/configuration of the CPU.
+//!
+//! This example only compiles on x86 platforms.
 extern crate raw_cpuid;
 
 fn main() {
