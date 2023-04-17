@@ -3,11 +3,14 @@
 //! The cpuid binary only compiles/runs on x86 platforms.
 use std::str::FromStr;
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use raw_cpuid::{CpuId, CpuIdReaderNative};
 
+#[derive(ValueEnum, Clone)]
 enum OutputFormat {
+    #[value(alias("raw"))]
     Raw,
+    #[value(alias("cli"))]
     Cli,
 }
 
@@ -29,7 +32,7 @@ impl FromStr for OutputFormat {
 #[clap(disable_colored_help(true))]
 struct Opts {
     /// Configures the output format.
-    #[clap(short, long, default_value = "cli", possible_values = &["raw", "json", "cli", ])]
+    #[clap(short, long, default_value = "cli")]
     format: OutputFormat,
 }
 
