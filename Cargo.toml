@@ -18,6 +18,11 @@ name = "cpuid"
 path = "src/bin/cpuid.rs"
 required-features = ["cli"]
 
+[[example]]
+name = "serialize_deserialize"
+path = "examples/serialize_deserialize.rs"
+required-features = ["serde_json"]
+
 [features]
 std = []
 display = ["std", "termimad", "serde_json", "serialize"]
