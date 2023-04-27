@@ -964,7 +964,7 @@ impl<R: CpuIdReader> CpuId<R> {
     }
 }
 
-impl<R: CpuIdReader + Debug> Debug for CpuId<R> {
+impl<R: CpuIdReader> Debug for CpuId<R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("CpuId")
             .field("vendor", &self.vendor)
