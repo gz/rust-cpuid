@@ -10,6 +10,7 @@ homepage = "https://github.com/gz/rust-cpuid"
 repository = "https://github.com/gz/rust-cpuid"
 
 keywords = ["cpuid", "x86", "amd64", "os", "libcore"]
+categories = ["no-std", "no-std::no-alloc"]
 license = "MIT"
 readme = "README.md"
 
