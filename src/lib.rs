@@ -3768,7 +3768,7 @@ bitflags! {
         /// Bit 04: OSPKE. If 1, OS has set CR4.PKE to enable protection keys (and the RDPKRU/WRPKRU instruc-tions).
         const OSPKE = 1 << 4;
         /// Bit 5: WAITPKG
-        const WAITPKG = 1 >> 5;
+        const WAITPKG = 1 << 5;
         /// Bit 6: AV512_VBMI2
         const AVX512VBMI2 = 1 << 6;
         /// Bit 7: CET_SS. Supports CET shadow stack features if 1. Processors that set this bit define bits 0..2 of the
