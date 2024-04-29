@@ -1023,6 +1023,7 @@ fn extended_features() {
     assert!(e.has_ospke());
     assert!(!e.has_avx512vnni());
     assert!(e.has_rdpid());
+    assert!(e.has_waitpkg());
     assert!(!e.has_sgx_lc());
     assert_eq!(e.mawau_value(), 0x0);
 }
