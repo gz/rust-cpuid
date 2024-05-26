@@ -55,6 +55,7 @@ extern crate std;
 #[cfg(feature = "display")]
 pub mod display;
 mod extended;
+mod uarch;
 #[cfg(test)]
 mod tests;
 
