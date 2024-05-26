@@ -192,7 +192,7 @@ where
         self(eax, ecx)
     }
 }
-
+#[non_exhaustive]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 enum Vendor {
     Intel,
