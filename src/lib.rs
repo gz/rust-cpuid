@@ -55,7 +55,7 @@ extern crate std;
 #[cfg(feature = "display")]
 pub mod display;
 mod extended;
-mod uarch;
+pub mod uarch;
 #[cfg(test)]
 mod tests;
 
@@ -197,7 +197,7 @@ impl<F> CpuIdReader for F
 
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
-enum Vendor {
+pub enum Vendor {
     Intel,
     Amd,
     Unknown(u32, u32, u32),
