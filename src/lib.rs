@@ -3432,7 +3432,7 @@ impl ExtendedFeatures {
     /// Supports AVX512F.
     ///
     /// # Platforms
-    /// ❌ AMD (reserved) ✅ Intel
+    /// ✅ AMD ✅ Intel
     #[inline]
     pub const fn has_avx512f(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512F)
@@ -3441,7 +3441,7 @@ impl ExtendedFeatures {
     /// Supports AVX512DQ.
     ///
     /// # Platforms
-    /// ❌ AMD (reserved) ✅ Intel
+    /// ✅ AMD ✅ Intel
     #[inline]
     pub const fn has_avx512dq(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512DQ)
@@ -3450,7 +3450,7 @@ impl ExtendedFeatures {
     /// AVX512_IFMA
     ///
     /// # Platforms
-    /// ❌ AMD (reserved) ✅ Intel
+    /// ✅ AMD ✅ Intel
     #[inline]
     pub const fn has_avx512_ifma(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512_IFMA)
@@ -3459,7 +3459,7 @@ impl ExtendedFeatures {
     /// AVX512PF
     ///
     /// # Platforms
-    /// ❌ AMD (reserved) ✅ Intel
+    /// ✅ AMD ✅ Intel
     #[inline]
     pub const fn has_avx512pf(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512PF)
@@ -3468,7 +3468,7 @@ impl ExtendedFeatures {
     /// AVX512ER
     ///
     /// # Platforms
-    /// ❌ AMD (reserved) ✅ Intel
+    /// ✅ AMD ✅ Intel
     #[inline]
     pub const fn has_avx512er(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512ER)
@@ -3477,7 +3477,7 @@ impl ExtendedFeatures {
     /// AVX512CD
     ///
     /// # Platforms
-    /// ❌ AMD (reserved) ✅ Intel
+    /// ✅ AMD ✅ Intel
     #[inline]
     pub const fn has_avx512cd(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512CD)
@@ -3486,7 +3486,7 @@ impl ExtendedFeatures {
     /// AVX512BW
     ///
     /// # Platforms
-    /// ❌ AMD (reserved) ✅ Intel
+    /// ✅ AMD ✅ Intel
     #[inline]
     pub const fn has_avx512bw(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512BW)
@@ -3495,7 +3495,7 @@ impl ExtendedFeatures {
     /// AVX512VL
     ///
     /// # Platforms
-    /// ❌ AMD (reserved) ✅ Intel
+    /// ✅ AMD ✅ Intel
     #[inline]
     pub const fn has_avx512vl(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512VL)
@@ -3557,7 +3557,7 @@ impl ExtendedFeatures {
 
     /// AVX512VBMI2
     ///
-    /// ❓ AMD ✅ Intel
+    /// ✅ AMD ✅ Intel
     #[inline]
     pub const fn has_av512vbmi2(&self) -> bool {
         self.ecx.contains(ExtendedFeaturesEcx::AVX512VBMI2)
@@ -3600,7 +3600,7 @@ impl ExtendedFeatures {
     /// AVX512VNNI
     ///
     /// # Platforms
-    /// ❌ AMD (reserved) ✅ Intel
+    /// ✅ AMD ✅ Intel
     #[inline]
     pub const fn has_avx512vnni(&self) -> bool {
         self.ecx.contains(ExtendedFeaturesEcx::AVX512VNNI)
@@ -3608,7 +3608,7 @@ impl ExtendedFeatures {
 
     /// AVX512BITALG
     ///
-    /// ❓ AMD ✅ Intel
+    /// ✅ AMD ✅ Intel
     #[inline]
     pub const fn has_avx512bitalg(&self) -> bool {
         self.ecx.contains(ExtendedFeaturesEcx::AVX512BITALG)
@@ -3625,7 +3625,7 @@ impl ExtendedFeatures {
 
     /// AVX512VPOPCNTDQ
     ///
-    /// ❓ AMD ✅ Intel
+    /// ✅ AMD ✅ Intel
     #[inline]
     pub const fn has_avx512vpopcntdq(&self) -> bool {
         self.ecx.contains(ExtendedFeaturesEcx::AVX512VPOPCNTDQ)
