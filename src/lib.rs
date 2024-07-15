@@ -521,7 +521,7 @@ impl<R: CpuIdReader> CpuId<R> {
                 _eax: res.eax,
                 ebx: ExtendedFeaturesEbx::from_bits_truncate(res.ebx),
                 ecx: ExtendedFeaturesEcx::from_bits_truncate(res.ecx),
-                _edx: res.edx,
+                edx: ExtendedFeaturesEdx::from_bits_truncate(res.edx),
             })
         } else {
             None
@@ -3224,7 +3224,7 @@ pub struct ExtendedFeatures {
     _eax: u32,
     ebx: ExtendedFeaturesEbx,
     ecx: ExtendedFeaturesEcx,
-    _edx: u32,
+    edx: ExtendedFeaturesEdx,
 }
 
 impl ExtendedFeatures {
@@ -3671,6 +3671,42 @@ impl ExtendedFeatures {
     pub fn mawau_value(&self) -> u8 {
         get_bits(self.ecx.bits(), 17, 21) as u8
     }
+
+    /// Supports AVX512_4NNIW.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_avx512_4nniw(&self) -> bool {
+        self.edx.contains(ExtendedFeaturesEdx::AVX512_4VNNIW)
+    }
+
+    /// Supports AVX512_4FMAPS.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_avx512_4fmaps(&self) -> bool {
+        self.edx.contains(ExtendedFeaturesEdx::AVX512_4FMAPS)
+    }
+
+    /// Supports AMX_BF16.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_amx_bf16(&self) -> bool {
+        self.edx.contains(ExtendedFeaturesEdx::AMX_BF16)
+    }
+
+    /// Supports AVX_FP16.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_avx512_fp16(&self) -> bool {
+        self.edx.contains(ExtendedFeaturesEdx::AVX512_FP16)
+    }
 }
 
 impl Debug for ExtendedFeatures {
@@ -3805,6 +3841,25 @@ bitflags! {
 
         /// Bit 30: SGX_LC. Supports SGX Launch Configuration if 1.
         const SGX_LC = 1 << 30;
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct ExtendedFeaturesEdx: u32 {
+        /// Bit 02: AVX512_4VNNIW. (Intel® Xeon Phi™ only).
+        const AVX512_4VNNIW = 1 << 2;
+        /// Bit 03: AVX512_4FMAPS. (Intel® Xeon Phi™ only).
+        const AVX512_4FMAPS = 1 << 3;
+        /// Bit 22: AMX-BF16. If 1, the processor supports tile computational operations on bfloat16 numbers.
+        const AMX_BF16 = 1 << 22;
+        /// Bit 23: AVX512_FP16.
+        const AVX512_FP16 = 1 << 23;
+        /// Bit 24: AMX-TILE. If 1, the processor supports tile architecture
+        const AMX_TILE = 1 << 24;
+        /// Bit 24: AMX-INT8. If 1, the processor supports tile computational operations on 8-bit integers.
+        const AMX_INT8 = 1 << 25;
     }
 }
 

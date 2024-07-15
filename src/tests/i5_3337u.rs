@@ -239,7 +239,7 @@ fn extended_features() {
         _eax: 0,
         ebx: ExtendedFeaturesEbx::from_bits_truncate(641),
         ecx: ExtendedFeaturesEcx::from_bits_truncate(0),
-        _edx: 0,
+        edx: ExtendedFeaturesEdx::from_bits_truncate(0),
     };
     assert!(tpfeatures._eax == 0);
     assert!(tpfeatures.has_fsgsbase());
@@ -273,7 +273,7 @@ fn extended_features() {
             | ExtendedFeaturesEbx::CLFLUSHOPT
             | ExtendedFeaturesEbx::PROCESSOR_TRACE,
         ecx: ExtendedFeaturesEcx::from_bits_truncate(0),
-        _edx: 201326592,
+        edx: ExtendedFeaturesEdx::from_bits_truncate(201326592),
     };
 
     assert!(tpfeatures2.has_fsgsbase());
