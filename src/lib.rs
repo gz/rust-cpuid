@@ -3858,7 +3858,7 @@ bitflags! {
         const AVX512_FP16 = 1 << 23;
         /// Bit 24: AMX-TILE. If 1, the processor supports tile architecture
         const AMX_TILE = 1 << 24;
-        /// Bit 24: AMX-INT8. If 1, the processor supports tile computational operations on 8-bit integers.
+        /// Bit 25: AMX-INT8. If 1, the processor supports tile computational operations on 8-bit integers.
         const AMX_INT8 = 1 << 25;
     }
 }
