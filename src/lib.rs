@@ -3672,12 +3672,12 @@ impl ExtendedFeatures {
         get_bits(self.ecx.bits(), 17, 21) as u8
     }
 
-    /// Supports AVX512_4NNIW.
+    /// Supports AVX512_4VNNIW.
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
     #[inline]
-    pub const fn has_avx512_4nniw(&self) -> bool {
+    pub const fn has_avx512_4vnniw(&self) -> bool {
         self.edx.contains(ExtendedFeaturesEdx::AVX512_4VNNIW)
     }
 

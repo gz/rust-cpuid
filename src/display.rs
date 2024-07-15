@@ -528,7 +528,7 @@ pub fn markdown<R: crate::CpuIdReader>(cpuid: crate::CpuId<R>) {
                     "AVX512F: AVX-512 foundation instructions",
                     info.has_avx512f(),
                 ),
-                RowGen::tuple("AVX512-4NNIW: 4NNIW instructions", info.has_avx512_4nniw()),
+                RowGen::tuple("AVX512-4NNIW: 4NNIW instructions", info.has_avx512_4vnniw()),
                 RowGen::tuple(
                     "AVX512-4FMAPS: 4FMAPS instructions",
                     info.has_avx512_4fmaps(),
