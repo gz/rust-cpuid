@@ -39,7 +39,6 @@ serde_json = { version = "1.0", optional = true }
 termimad = { version = "0.25", optional = true }
 clap = { version = "4.2", features = ["derive"], optional = true }
 
-# [target.'cfg(unix)'.dev-dependencies]
 [dev-dependencies]
 core_affinity = "0.8.0"
 libc = { version = "0.2", default-features = false }
