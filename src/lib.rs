@@ -112,12 +112,6 @@ pub mod native_cpuid {
 ))]
 pub use native_cpuid::CpuIdReaderNative;
 
-#[cfg(not(test))]
-mod std {
-    pub use core::ops;
-    pub use core::option;
-}
-
 /// Macro which queries cpuid directly.
 ///
 /// First parameter is cpuid leaf (EAX register value),
