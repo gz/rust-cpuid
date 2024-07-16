@@ -528,6 +528,25 @@ pub fn markdown<R: crate::CpuIdReader>(cpuid: crate::CpuId<R>) {
                     "AVX512F: AVX-512 foundation instructions",
                     info.has_avx512f(),
                 ),
+                RowGen::tuple("AVX512-4NNIW: 4NNIW instructions", info.has_avx512_4vnniw()),
+                RowGen::tuple(
+                    "AVX512-4FMAPS: 4FMAPS instructions",
+                    info.has_avx512_4fmaps(),
+                ),
+                RowGen::tuple(
+                    "AVX512-VP2INTERSECT: VP2INTERSECT instructions",
+                    info.has_avx512_vp2intersect(),
+                ),
+                RowGen::tuple("AMX_BF16: AMX_BF16 instructions", info.has_amx_bf16()),
+                RowGen::tuple(
+                    "AVX512_FP16: AVX512_FP16 instructions",
+                    info.has_avx512_fp16(),
+                ),
+                RowGen::tuple("AMX_TILE: Tile Architecture support", info.has_amx_tile()),
+                RowGen::tuple(
+                    "AMX_INT8: Tile Computational Operation on 8-bit integers",
+                    info.has_amx_tile(),
+                ),
                 RowGen::tuple(
                     "AVX512DQ: double & quadword instructions",
                     info.has_avx512dq(),

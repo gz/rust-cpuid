@@ -3690,6 +3690,15 @@ impl ExtendedFeatures {
         self.edx.contains(ExtendedFeaturesEdx::AVX512_4FMAPS)
     }
 
+    /// Supports AVX512_VP2INTERSECT.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_avx512_vp2intersect(&self) -> bool {
+        self.edx.contains(ExtendedFeaturesEdx::AVX512_VP2INTERSECT)
+    }
+
     /// Supports AMX_BF16.
     ///
     /// # Platforms
@@ -3699,13 +3708,31 @@ impl ExtendedFeatures {
         self.edx.contains(ExtendedFeaturesEdx::AMX_BF16)
     }
 
-    /// Supports AVX_FP16.
+    /// Supports AVX512_FP16.
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
     #[inline]
     pub const fn has_avx512_fp16(&self) -> bool {
         self.edx.contains(ExtendedFeaturesEdx::AVX512_FP16)
+    }
+
+    /// Supports AMX_TILE.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_amx_tile(&self) -> bool {
+        self.edx.contains(ExtendedFeaturesEdx::AMX_TILE)
+    }
+
+    /// Supports AMX_INT8.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_amx_int8(&self) -> bool {
+        self.edx.contains(ExtendedFeaturesEdx::AMX_INT8)
     }
 }
 
@@ -3852,6 +3879,8 @@ bitflags! {
         const AVX512_4VNNIW = 1 << 2;
         /// Bit 03: AVX512_4FMAPS. (Intel® Xeon Phi™ only).
         const AVX512_4FMAPS = 1 << 3;
+        /// Bit 08: AVX512_VP2INTERSECT.
+        const AVX512_VP2INTERSECT = 1 << 8;
         /// Bit 22: AMX-BF16. If 1, the processor supports tile computational operations on bfloat16 numbers.
         const AMX_BF16 = 1 << 22;
         /// Bit 23: AVX512_FP16.

@@ -291,6 +291,14 @@ fn extended_features() {
     assert!(tpfeatures2.has_smap());
     assert!(tpfeatures2.has_clflushopt());
     assert!(tpfeatures2.has_processor_trace());
+
+    assert!(!tpfeatures2.has_avx512_4vnniw());
+    assert!(!tpfeatures2.has_avx512_4fmaps());
+    assert!(!tpfeatures2.has_avx512_vp2intersect());
+    assert!(!tpfeatures2.has_amx_bf16());
+    assert!(!tpfeatures2.has_avx512_fp16());
+    assert!(!tpfeatures2.has_amx_tile());
+    assert!(!tpfeatures2.has_amx_int8());
 }
 
 #[test]
