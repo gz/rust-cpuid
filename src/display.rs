@@ -581,6 +581,19 @@ pub fn markdown<R: crate::CpuIdReader>(cpuid: crate::CpuId<R>) {
                 ),
                 RowGen::tuple("RDPID: read processor ID", info.has_rdpid()),
                 RowGen::tuple("SGX_LC: SGX launch config", info.has_sgx_lc()),
+                RowGen::tuple(
+                    "AVX_VNNI: AVX vector neural network instructions",
+                    info.has_avx_vnni(),
+                ),
+                RowGen::tuple(
+                    "AVX512_BF16: AVX512 BF16 instructions",
+                    info.has_avx512_bf16(),
+                ),
+                RowGen::tuple("FZRMK: fast zero-length REP MOVSB256", info.has_fzrm()),
+                RowGen::tuple("FSRM: fast short REP STOSB", info.has_fsrs()),
+                RowGen::tuple("FSRCRS: fast short REP CMPSB, REP SCASB", info.has_fsrcrs()),
+                RowGen::tuple("HRESET: HRESET instruction", info.has_hreset()),
+                RowGen::tuple("CET_SSS: CET_SSS support", info.has_cet_sss()),
             ],
         );
     }
