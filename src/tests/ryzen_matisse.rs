@@ -618,6 +618,7 @@ static CPUID_VALUE_MAP: phf::Map<u64, CpuIdResult> = phf_map! {
     0x00000005_00000000u64 => CpuIdResult { eax: 0x00000040, ebx: 0x00000040, ecx: 0x00000003, edx: 0x00000011 },
     0x00000006_00000000u64 => CpuIdResult { eax: 0x00000004, ebx: 0x00000000, ecx: 0x00000001, edx: 0x00000000 },
     0x00000007_00000000u64 => CpuIdResult { eax: 0x00000000, ebx: 0x219c91a9, ecx: 0x00400004, edx: 0x00000000 },
+    0x00000007_00000001u64 => CpuIdResult { eax: 0x00000000, ebx: 0x00000000, ecx: 0x00000000, edx: 0x00000000 },
     0x00000008_00000000u64 => CpuIdResult { eax: 0x00000000, ebx: 0x00000000, ecx: 0x00000000, edx: 0x00000000 },
     0x00000009_00000000u64 => CpuIdResult { eax: 0x00000000, ebx: 0x00000000, ecx: 0x00000000, edx: 0x00000000 },
     0x0000000a_00000000u64 => CpuIdResult { eax: 0x00000000, ebx: 0x00000000, ecx: 0x00000000, edx: 0x00000000 },

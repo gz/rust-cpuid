@@ -511,11 +511,16 @@ impl<R: CpuIdReader> CpuId<R> {
     pub fn get_extended_feature_info(&self) -> Option<ExtendedFeatures> {
         if self.leaf_is_supported(EAX_STRUCTURED_EXTENDED_FEATURE_INFO) {
             let res = self.read.cpuid1(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
+            let res1 = self.read.cpuid2(EAX_STRUCTURED_EXTENDED_FEATURE_INFO, 1);
             Some(ExtendedFeatures {
                 _eax: res.eax,
                 ebx: ExtendedFeaturesEbx::from_bits_truncate(res.ebx),
                 ecx: ExtendedFeaturesEcx::from_bits_truncate(res.ecx),
                 edx: ExtendedFeaturesEdx::from_bits_truncate(res.edx),
+                eax1: ExtendedFeaturesEax1::from_bits_truncate(res1.eax),
+                _ebx1: res1.ebx,
+                _ecx1: res1.ecx,
+                edx1: ExtendedFeaturesEdx1::from_bits_truncate(res1.edx),
             })
         } else {
             None
@@ -3219,6 +3224,10 @@ pub struct ExtendedFeatures {
     ebx: ExtendedFeaturesEbx,
     ecx: ExtendedFeaturesEcx,
     edx: ExtendedFeaturesEdx,
+    eax1: ExtendedFeaturesEax1,
+    _ebx1: u32,
+    _ecx1: u32,
+    edx1: ExtendedFeaturesEdx1,
 }
 
 impl ExtendedFeatures {
@@ -3728,6 +3737,69 @@ impl ExtendedFeatures {
     pub const fn has_amx_int8(&self) -> bool {
         self.edx.contains(ExtendedFeaturesEdx::AMX_INT8)
     }
+
+    /// Supports AVX_VNNI.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_avx_vnni(&self) -> bool {
+        self.eax1.contains(ExtendedFeaturesEax1::AVX_VNNI)
+    }
+
+    /// Supports AVX512_BF16.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_avx512_bf16(&self) -> bool {
+        self.eax1.contains(ExtendedFeaturesEax1::AVX512_BF16)
+    }
+
+    /// Supports Fast zero-length REP MOVSB
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_fzrm(&self) -> bool {
+        self.eax1.contains(ExtendedFeaturesEax1::FZRM)
+    }
+
+    /// Supports Fast Short REP STOSB
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_fsrs(&self) -> bool {
+        self.eax1.contains(ExtendedFeaturesEax1::FSRS)
+    }
+
+    /// Supports Fast Short REP CMPSB, REP SCASB
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_fsrcrs(&self) -> bool {
+        self.eax1.contains(ExtendedFeaturesEax1::FSRCRS)
+    }
+
+    /// Supports HRESET
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_hreset(&self) -> bool {
+        self.eax1.contains(ExtendedFeaturesEax1::HRESET)
+    }
+
+    /// Supports CET_SSS
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_cet_sss(&self) -> bool {
+        self.edx1.contains(ExtendedFeaturesEdx1::CET_SSS)
+    }
 }
 
 impl Debug for ExtendedFeatures {
@@ -3883,6 +3955,36 @@ bitflags! {
         const AMX_TILE = 1 << 24;
         /// Bit 25: AMX-INT8. If 1, the processor supports tile computational operations on 8-bit integers.
         const AMX_INT8 = 1 << 25;
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct ExtendedFeaturesEax1: u32 {
+        // Some of the Unimplemented bits are reserved and maybe release in future CPUs, see Intel SDM for future features (Date of comment: 07.17.2024)
+        /// Bit 04: AVX_VNNI. AVX (VEX-encoded) versions of the Vector Neural Network Instructions.
+        const AVX_VNNI = 1 << 4;
+        /// Bit 05: AVX512_BF16. Vector Neural Network Instructions supporting BFLOAT16 inputs and conversion instructions from IEEE single precision.
+        const AVX512_BF16 = 1 << 5;
+        /// Bit 10: If 1, supports fast zero-length REP MOVSB.
+        const FZRM = 1 << 10;
+        /// Bit 11: If 1, supports fast short REP STOSB.
+        const FSRS = 1 << 11;
+        /// Bit 12: If 1, supports fast short REP CMPSB, REP SCASB.
+        const FSRCRS = 1 << 12;
+        /// Bit 22:  If 1, supports history reset via the HRESET instruction and the IA32_HRESET_ENABLE MSR. When set, indicates that the Processor History Reset Leaf (EAX = 20H) is valid.
+        const HRESET = 1 << 22;
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct ExtendedFeaturesEdx1: u32 {
+        // Some of the Unimplemented bits are reserved and maybe release in future CPUs, see Intel SDM for future features (Date of comment: 07.17.2024)
+        /// Bit 18: CET_SSS. If 1, indicates that an operating system can enable supervisor shadow stacks as long as it ensures that a supervisor shadow stack cannot become prematurely busy due to page faults
+        const CET_SSS = 1 << 18;
     }
 }
 
