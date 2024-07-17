@@ -240,6 +240,10 @@ fn extended_features() {
         ebx: ExtendedFeaturesEbx::from_bits_truncate(641),
         ecx: ExtendedFeaturesEcx::from_bits_truncate(0),
         edx: ExtendedFeaturesEdx::from_bits_truncate(0),
+        eax1: ExtendedFeaturesEax1::from_bits_truncate(0),
+        _ebx1: 0,
+        _ecx1: 0,
+        edx1: ExtendedFeaturesEdx1::from_bits_truncate(0),
     };
     assert!(tpfeatures._eax == 0);
     assert!(tpfeatures.has_fsgsbase());
@@ -274,6 +278,10 @@ fn extended_features() {
             | ExtendedFeaturesEbx::PROCESSOR_TRACE,
         ecx: ExtendedFeaturesEcx::from_bits_truncate(0),
         edx: ExtendedFeaturesEdx::from_bits_truncate(201326592),
+        eax1: ExtendedFeaturesEax1::from_bits_truncate(0),
+        _ebx1: 0,
+        _ecx1: 0,
+        edx1: ExtendedFeaturesEdx1::from_bits_truncate(0),
     };
 
     assert!(tpfeatures2.has_fsgsbase());
@@ -299,6 +307,14 @@ fn extended_features() {
     assert!(!tpfeatures2.has_avx512_fp16());
     assert!(!tpfeatures2.has_amx_tile());
     assert!(!tpfeatures2.has_amx_int8());
+
+    assert!(!tpfeatures2.has_avx_vnni());
+    assert!(!tpfeatures2.has_avx512_bf16());
+    assert!(!tpfeatures2.has_fzrm());
+    assert!(!tpfeatures2.has_fsrs());
+    assert!(!tpfeatures2.has_fsrcrs());
+    assert!(!tpfeatures2.has_hreset());
+    assert!(!tpfeatures2.has_cet_sss());
 }
 
 #[test]
