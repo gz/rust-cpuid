@@ -22,7 +22,7 @@ required-features = ["cli"]
 [[example]]
 name = "serialize_deserialize"
 path = "examples/serialize_deserialize.rs"
-required-features = ["serde_json"]
+required-features = ["serde_json", "serialize"]
 
 [features]
 std = []
