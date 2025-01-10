@@ -3573,7 +3573,7 @@ impl ExtendedFeatures {
     /// ❓ AMD ✅ Intel
     #[inline]
     pub const fn has_cet_ss(&self) -> bool {
-        self.ecx.contains(ExtendedFeaturesEcx::GFNI)
+        self.ecx.contains(ExtendedFeaturesEcx::CETSS)
     }
 
     /// GFNI
