@@ -314,7 +314,17 @@ fn extended_features() {
     assert!(!tpfeatures2.has_fsrs());
     assert!(!tpfeatures2.has_fsrcrs());
     assert!(!tpfeatures2.has_hreset());
+    assert!(!tpfeatures2.has_avx_ifma());
+    assert!(!tpfeatures2.has_lam());
+    assert!(!tpfeatures2.has_msrlist());
+    assert!(!tpfeatures2.has_invd_disable_post_bios_done());
+    assert!(!tpfeatures2.has_avx_vnni_int8());
+    assert!(!tpfeatures2.has_avx_ne_convert());
+    assert!(!tpfeatures2.has_avx_vnni_int16());
+    assert!(!tpfeatures2.has_prefetchi());
+    assert!(!tpfeatures2.has_uiret_uif());
     assert!(!tpfeatures2.has_cet_sss());
+    assert!(!tpfeatures2.has_avx10());
 }
 
 #[test]
