@@ -3792,6 +3792,87 @@ impl ExtendedFeatures {
         self.eax1.contains(ExtendedFeaturesEax1::HRESET)
     }
 
+    /// Supports AVX-IFMA Instructions.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_avx_ifma(&self) -> bool {
+        self.eax1.contains(ExtendedFeaturesEax1::AVX_IFMA)
+    }
+
+    /// Supports Linear Address Masking.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_lam(&self) -> bool {
+        self.eax1.contains(ExtendedFeaturesEax1::LAM)
+    }
+
+    /// Supports RDMSRLIST and WRMSRLIST Instructions and the IA32_BARRIER MSR.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_msrlist(&self) -> bool {
+        self.eax1.contains(ExtendedFeaturesEax1::MSRLIST)
+    }
+
+    /// Supports INVD execution prevention after BIOS Done.
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_invd_disable_post_bios_done(&self) -> bool {
+        self.eax1.contains(ExtendedFeaturesEax1::INVD_DISABLE_POST_BIOS_DONE)
+    }
+
+    /// Supports AVX_VNNI_INT8
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_avx_vnni_int8(&self) -> bool {
+        self.edx1.contains(ExtendedFeaturesEdx1::AVX_VNNI_INT8)
+    }
+
+    /// Supports AVX_NE_CONVERT
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_avx_ne_convert(&self) -> bool {
+        self.edx1.contains(ExtendedFeaturesEdx1::AVX_NE_CONVERT)
+    }
+
+    /// Supports AVX_VNNI_INT16
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_avx_vnni_int16(&self) -> bool {
+        self.edx1.contains(ExtendedFeaturesEdx1::AVX_VNNI_INT16)
+    }
+
+    /// Supports PREFETCHI
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_prefetchi(&self) -> bool {
+        self.edx1.contains(ExtendedFeaturesEdx1::PREFETCHI)
+    }
+
+    /// Supports UIRET_UIF
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_uiret_uif(&self) -> bool {
+        self.edx1.contains(ExtendedFeaturesEdx1::UIRET_UIF)
+    }
+
     /// Supports CET_SSS
     ///
     /// # Platforms
@@ -3799,6 +3880,15 @@ impl ExtendedFeatures {
     #[inline]
     pub const fn has_cet_sss(&self) -> bool {
         self.edx1.contains(ExtendedFeaturesEdx1::CET_SSS)
+    }
+
+    /// Supports AVX10
+    ///
+    /// # Platforms
+    /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
+    pub const fn has_avx10(&self) -> bool {
+        self.edx1.contains(ExtendedFeaturesEdx1::AVX10)
     }
 }
 
@@ -3973,8 +4063,16 @@ bitflags! {
         const FSRS = 1 << 11;
         /// Bit 12: If 1, supports fast short REP CMPSB, REP SCASB.
         const FSRCRS = 1 << 12;
-        /// Bit 22:  If 1, supports history reset via the HRESET instruction and the IA32_HRESET_ENABLE MSR. When set, indicates that the Processor History Reset Leaf (EAX = 20H) is valid.
+        /// Bit 22: If 1, supports history reset via the HRESET instruction and the IA32_HRESET_ENABLE MSR. When set, indicates that the Processor History Reset Leaf (EAX = 20H) is valid.
         const HRESET = 1 << 22;
+        /// Bit 23: If 1, supports the AVX-IFMA instructions.
+        const AVX_IFMA = 1 << 23;
+        /// Bit 26: If 1, supports Linear Address Masking.
+        const LAM = 1 << 26;
+        /// Bit 27: If 1, supports the RDMSRLIST and WRMSRLIST instructions and the IA32_BARRIER MSR.
+        const MSRLIST = 1 << 27;
+        /// Bit 30: If 1, supports INVD execution prevention after BIOS Done.
+        const INVD_DISABLE_POST_BIOS_DONE = 1 << 30;
     }
 }
 
@@ -3983,8 +4081,21 @@ bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     struct ExtendedFeaturesEdx1: u32 {
         // Some of the Unimplemented bits are reserved and maybe release in future CPUs, see Intel SDM for future features (Date of comment: 07.17.2024)
+        /// Bit 4: If 1, supports the AVX-VNNI-INT8 instructions.
+        const AVX_VNNI_INT8 = 1 << 4;
+        /// Bit 5: If 1, supports the AVX-NE-CONVERT instructions.
+        const AVX_NE_CONVERT = 1 << 5;
+        /// Bit 10: If 1, supports the AVX-VNNI-INT16 instructions
+        const AVX_VNNI_INT16 = 1 << 10;
+        /// Bit 14: If 1, supports the PREFETCHIT0/1 instructions
+        const PREFETCHI = 1 << 14;
+        /// Bit 17: If 1, UIRET sets UIF to the value of bit 1 of the RFLAGS image loaded from the stack
+        const UIRET_UIF = 1 << 17;
         /// Bit 18: CET_SSS. If 1, indicates that an operating system can enable supervisor shadow stacks as long as it ensures that a supervisor shadow stack cannot become prematurely busy due to page faults
         const CET_SSS = 1 << 18;
+        /// Bit 19: If 1, supports the Intel® AVX10 instructions and indicates the presence of CPUID Leaf 24H,
+        /// which enumerates version number and supported vector lengths
+        const AVX10 = 1 << 19;
     }
 }
 
