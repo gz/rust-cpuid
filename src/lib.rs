@@ -3522,6 +3522,14 @@ impl ExtendedFeatures {
         self.ecx.contains(ExtendedFeaturesEcx::PREFETCHWT1)
     }
 
+    /// AVX512VBMI
+    ///
+    /// ✅ AMD ✅ Intel
+    #[inline]
+    pub const fn has_avx512vbmi(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::AVX512VBMI)
+    }
+
     /// Supports user-mode instruction prevention if 1.
     ///
     /// # Platforms
@@ -3562,7 +3570,7 @@ impl ExtendedFeatures {
     ///
     /// ✅ AMD ✅ Intel
     #[inline]
-    pub const fn has_av512vbmi2(&self) -> bool {
+    pub const fn has_avx512vbmi2(&self) -> bool {
         self.ecx.contains(ExtendedFeaturesEcx::AVX512VBMI2)
     }
 
