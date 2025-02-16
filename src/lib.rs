@@ -3569,6 +3569,15 @@ impl ExtendedFeatures {
     /// AVX512VBMI2
     ///
     /// ✅ AMD ✅ Intel
+    #[deprecated(since = "11.4.0", note = "Please use `has_avx512vbmi2` instead")]
+    #[inline]
+    pub const fn has_av512vbmi2(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::AVX512VBMI2)
+    }
+
+    /// AVX512VBMI2
+    ///
+    /// ✅ AMD ✅ Intel
     #[inline]
     pub const fn has_avx512vbmi2(&self) -> bool {
         self.ecx.contains(ExtendedFeaturesEcx::AVX512VBMI2)
