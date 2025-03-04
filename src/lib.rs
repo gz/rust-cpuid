@@ -3842,7 +3842,8 @@ impl ExtendedFeatures {
     /// ❌ AMD (reserved) ✅ Intel
     #[inline]
     pub const fn has_invd_disable_post_bios_done(&self) -> bool {
-        self.eax1.contains(ExtendedFeaturesEax1::INVD_DISABLE_POST_BIOS_DONE)
+        self.eax1
+            .contains(ExtendedFeaturesEax1::INVD_DISABLE_POST_BIOS_DONE)
     }
 
     /// Supports AVX_VNNI_INT8
