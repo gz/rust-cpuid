@@ -204,7 +204,7 @@ impl Vendor {
 
         match vi.as_str() {
             "GenuineIntel" => Vendor::Intel,
-            "AuthenticAMD" => Vendor::Amd,
+            "AuthenticAMD" | "HygonGenuine" => Vendor::Amd,
             _ => Vendor::Unknown(res.ebx, res.ecx, res.edx),
         }
     }
