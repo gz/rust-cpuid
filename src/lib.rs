@@ -55,6 +55,7 @@ extern crate std;
 #[cfg(feature = "display")]
 pub mod display;
 mod extended;
+pub mod uarch;
 #[cfg(test)]
 mod tests;
 
@@ -94,6 +95,7 @@ pub mod native_cpuid {
             edx: result.edx,
         }
     }
+
     /// The native reader uses the cpuid instruction to read the cpuid data from the
     /// CPU we're currently running on directly.
     #[derive(Clone, Copy)]
@@ -179,16 +181,17 @@ pub trait CpuIdReader: Clone {
 }
 
 impl<F> CpuIdReader for F
-where
-    F: Fn(u32, u32) -> CpuIdResult + Clone,
+    where
+        F: Fn(u32, u32) -> CpuIdResult + Clone,
 {
     fn cpuid2(&self, eax: u32, ecx: u32) -> CpuIdResult {
         self(eax, ecx)
     }
 }
 
+#[non_exhaustive]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
-enum Vendor {
+pub enum Vendor {
     Intel,
     Amd,
     Unknown(u32, u32, u32),
