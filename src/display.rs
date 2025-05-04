@@ -1411,4 +1411,217 @@ pub fn markdown<R: crate::CpuIdReader>(cpuid: crate::CpuId<R>) {
             ],
         );
     }
+
+    if let Some(info) = cpuid.get_pqos_extended_feature_info() {
+        print_title(&skin, "Platform Quality of Service (0x8000_0020/0):");
+        table2(
+            &skin,
+            &[
+                RowGen::tuple("Memory Bandwidth Enforcement", info.has_l3mbe()),
+                RowGen::tuple("Slow Memory Bandwidth Enforcement", info.has_l3smbe()),
+                RowGen::tuple("Bandwidth Monitoring Event Configuration", info.has_bmec()),
+                RowGen::tuple("L3 Range Reservation", info.has_l3rr()),
+                RowGen::tuple("Assignable Bandwidth Monitoring Counters", info.has_abmc()),
+                RowGen::tuple(
+                    "Smart Data Cache Injection (SDCI) Allocation Enforcement",
+                    info.has_sdciae(),
+                ),
+            ],
+        );
+        if let Some(info) = info.get_l3_memory_bandwidth_enforcement_info() {
+            print_title(
+                &skin,
+                "L3 Memory Bandwidth Enforcement Information (0x8000_0020/1):",
+            );
+            table2(
+                &skin,
+                &[
+                    RowGen::tuple("Bandwidth Length", info.bandwidth_length()),
+                    RowGen::tuple("COS Number", info.cos_max()),
+                ],
+            );
+        }
+        if let Some(info) = info.get_l3_slow_memory_bandwidth_enforcement_info() {
+            print_title(
+                &skin,
+                "L3 Slow Memory Bandwidth Enforcement Information (0x8000_0020/2):",
+            );
+            table2(
+                &skin,
+                &[
+                    RowGen::tuple("Bandwidth Length", info.bandwidth_length()),
+                    RowGen::tuple("COS Number", info.cos_max()),
+                ],
+            );
+        }
+        if let Some(info) = info.get_bandwidth_monitoring_event_counters_info() {
+            print_title(
+                &skin,
+                "Bandwidth Monitoring Event Counters Information (0x8000_0020/3):",
+            );
+            table2(
+                &skin,
+                &[
+                    RowGen::tuple(
+                        "Number of configurable bandwidth events",
+                        info.number_events(),
+                    ),
+                    RowGen::tuple(
+                        "Reads to local DRAM memory",
+                        info.has_l3_cache_lcl_bw_fill_mon(),
+                    ),
+                    RowGen::tuple(
+                        "Reads to remote DRAM memory",
+                        info.has_l3_cache_rmt_bw_fill_mon(),
+                    ),
+                    RowGen::tuple(
+                        "Non-temporal writes to local memory",
+                        info.has_l3_cache_lcl_bw_nt_wr_mon(),
+                    ),
+                    RowGen::tuple(
+                        "Non-temporal writes to remote memory",
+                        info.has_l3_cache_rmt_bw_nt_wr_mon(),
+                    ),
+                    RowGen::tuple(
+                        "Reads to local memory identified as 'Slow Memory'",
+                        info.has_l3_cache_lcl_slow_bw_fill_mon(),
+                    ),
+                    RowGen::tuple(
+                        "Reads to remote memory identified as 'Slow Memory'",
+                        info.has_l3_cache_rmt_slow_bw_fill_mon(),
+                    ),
+                    RowGen::tuple(
+                        "Dirty victim writes to all types of memory”.",
+                        info.has_l3_cache_vic_mon(),
+                    ),
+                ],
+            );
+        }
+        if let Some(info) = info.get_assignable_bandwidth_monitoring_counters_info() {
+            print_title(
+                &skin,
+                "Assignable Bandwidth Monitoring Counters Information (0x8000_0020/5):",
+            );
+            table2(
+                &skin,
+                &[
+                    RowGen::tuple(
+                        "Indicates that QM_CTR bit 61 is an overflow bit",
+                        info.has_overflow_bit(),
+                    ),
+                    RowGen::tuple(
+                        "QM_CTR counter width, offset from 24 bits",
+                        info.counter_size(),
+                    ),
+                    RowGen::tuple("Maximum supported ABMC counter ID", info.max_abmc()),
+                    RowGen::tuple(
+                        "Bandwidth counters can be configured",
+                        info.has_select_cos(),
+                    ),
+                ],
+            );
+        }
+    }
+
+    if let Some(info) = cpuid.get_extended_feature_identification_2() {
+        print_title(&skin, "Extended Feature Identification (0x8000_0021):");
+        table2(
+            &skin,
+            &[
+                RowGen::tuple("Processor ignores nested data breakpoints", info.has_no_nested_data_bp()),
+                RowGen::tuple("LFENCE is always dispatch serializing", info.has_lfence_always_serializing()),
+                RowGen::tuple("SMM paging configuration lock supported", info.has_smm_pg_cfg_lock()),
+                RowGen::tuple("Null segment selector loads also clear the destination segment register base and limit", info.has_null_select_clears_base()),
+                RowGen::tuple("Upper Address Ignore is supported", info.has_upper_address_ignore()),
+                RowGen::tuple("Automatic IBRS", info.has_automatic_ibrs()),
+                RowGen::tuple("SMM_CTL MSR (C001_0116h) is not supporte", info.has_no_smm_ctl_msr()),
+                RowGen::tuple("Prefetch control MSR supporte", info.has_prefetch_ctl_msr()),
+                RowGen::tuple("CPUID disable for non-privileged softwar", info.has_cpuid_user_dis()),
+                RowGen::tuple("The size of the Microcode patch in 16-byte multiples", info.microcode_patch_size()),
+            ],
+        );
+    }
+
+    if let Some(info) = cpuid.get_extended_performance_monitoring_and_debug() {
+        print_title(
+            &skin,
+            "Extended Performance Monitoring and Debug (0x8000_0022):",
+        );
+        table2(
+            &skin,
+            &[
+                RowGen::tuple(
+                    "Performance Monitoring Version 2 supported",
+                    info.has_perf_mon_v2(),
+                ),
+                RowGen::tuple("Last Branch Record Stack supported", info.has_lbr_stack()),
+                RowGen::tuple("LbrAndPmcFreeze", info.has_lbr_and_pmc_freeze()),
+                RowGen::tuple(
+                    "Number of Core Performance Counters",
+                    info.num_perf_ctr_core(),
+                ),
+                RowGen::tuple(
+                    "Number of Last Branch Record Stack entries",
+                    info.num_lbr_stack_size(),
+                ),
+                RowGen::tuple(
+                    "Number of Northbridge Performance Monitor Counters",
+                    info.num_perf_ctr_nb(),
+                ),
+            ],
+        );
+    }
+
+    if let Some(info) = cpuid.get_multi_key_encrypted_memory_capabilities() {
+        print_title(
+            &skin,
+            "Multi-Key Encrypted Memory Capabilities (0x8000_0023):",
+        );
+        table2(
+            &skin,
+            &[
+                RowGen::tuple(
+                    "Secure Host Multi-Key Memory (MEM-HMK) Encryption Mode Supported",
+                    info.has_mem_hmk(),
+                ),
+                RowGen::tuple("MaxMemHmkEncrKeyID", info.max_mem_hmk_encr_key_id()),
+            ],
+        );
+    }
+
+    if let Some(info) = cpuid.get_extended_cpu_topology() {
+        for (level, info) in info.enumerate() {
+            print_title(
+                &skin,
+                &format!("Extended CPU Topology (0x8000_0026/{level}):"),
+            );
+            table2(
+                &skin,
+                &[
+                    RowGen::tuple("Mask Width", info.mask_width()),
+                    RowGen::tuple(
+                        "Efficiency Ranking Available",
+                        info.has_efficiency_ranking_available(),
+                    ),
+                    RowGen::tuple("Heterogeneous Cores", info.has_heterogeneous_cores()),
+                    RowGen::tuple("Asymmetric Topology", info.has_asymmetric_topology()),
+                    RowGen::tuple(
+                        "Number of logical processors at the current hierarchy level",
+                        info.num_logical_processors(),
+                    ),
+                    RowGen::tuple(
+                        "Static efficiency ranking between cores of a specific core type",
+                        info.pwr_efficiency_ranking(),
+                    ),
+                    RowGen::tuple("Native Mode Id", info.native_mode_id()),
+                    RowGen::tuple("Core Type", info.core_type()),
+                    RowGen::tuple("Level Type", info.level_type().to_string()),
+                    RowGen::tuple(
+                        "Extended APIC ID of the logical processo",
+                        info.extended_apic_id(),
+                    ),
+                ],
+            );
+        }
+    }
 }

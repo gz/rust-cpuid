@@ -324,6 +324,11 @@ const EAX_CACHE_PARAMETERS_AMD: u32 = 0x8000_001D;
 const EAX_PROCESSOR_TOPOLOGY_INFO: u32 = 0x8000_001E;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 const EAX_SVM_FEATURES: u32 = 0x8000_000A;
+const EAX_PQOS_EXTENDED_FEATURES: u32 = 0x8000_0020;
+const EAX_EXTENDED_FEATURE_IDENTIFICATION_2: u32 = 0x8000_0021;
+const EAX_EXTENDED_PERFORMANCE_MONITORING_AND_DEBUG: u32 = 0x8000_0022;
+const EAX_MULTI_KEY_ENCRYPTED_MEMORY_CAPABILITIES: u32 = 0x8000_0023;
+const EAX_EXTENDED_CPU_TOPOLOGY: u32 = 0x8000_0026;
 
 impl<R: CpuIdReader> CpuId<R> {
     /// Return new CpuId struct with custom reader function.
@@ -975,6 +980,78 @@ impl<R: CpuIdReader> CpuId<R> {
             Some(MemoryEncryptionInfo::new(
                 self.read.cpuid1(EAX_MEMORY_ENCRYPTION_INFO),
             ))
+        } else {
+            None
+        }
+    }
+
+    /// Informations about Platform Quality of Service (LEAF=0x8000_0020)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn get_pqos_extended_feature_info(&self) -> Option<PqosExtendedFeatureInfo<R>> {
+        if self.leaf_is_supported(EAX_PQOS_EXTENDED_FEATURES) {
+            Some(PqosExtendedFeatureInfo::new(self.read.clone()))
+        } else {
+            None
+        }
+    }
+
+    /// Extended Feature Identification 2 (LEAF=0x8000_0021)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn get_extended_feature_identification_2(&self) -> Option<ExtendedFeatureIdentification2> {
+        if self.leaf_is_supported(EAX_EXTENDED_FEATURE_IDENTIFICATION_2) {
+            Some(ExtendedFeatureIdentification2::new(
+                self.read.cpuid1(EAX_EXTENDED_FEATURE_IDENTIFICATION_2),
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Extended Performance Monitoring and Debug (LEAF=0x8000_0022)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn get_extended_performance_monitoring_and_debug(
+        &self,
+    ) -> Option<ExtendedPerformanceMonitoringDebug> {
+        if self.leaf_is_supported(EAX_EXTENDED_PERFORMANCE_MONITORING_AND_DEBUG) {
+            Some(ExtendedPerformanceMonitoringDebug::new(
+                self.read
+                    .cpuid1(EAX_EXTENDED_PERFORMANCE_MONITORING_AND_DEBUG),
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Multi-Key Encrypted Memory Capabilities (LEAF=0x8000_0023)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn get_multi_key_encrypted_memory_capabilities(
+        &self,
+    ) -> Option<MultiKeyEncryptedMemoryCapabilities> {
+        if self.leaf_is_supported(EAX_MULTI_KEY_ENCRYPTED_MEMORY_CAPABILITIES) {
+            Some(MultiKeyEncryptedMemoryCapabilities::new(
+                self.read
+                    .cpuid1(EAX_MULTI_KEY_ENCRYPTED_MEMORY_CAPABILITIES),
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Extended CPU Topolog (LEAF=0x8000_0026)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn get_extended_cpu_topology(&self) -> Option<ExtendedCpuTopologyIter<R>> {
+        if self.leaf_is_supported(EAX_EXTENDED_CPU_TOPOLOGY) {
+            Some(ExtendedCpuTopologyIter::new(self.read.clone()))
         } else {
             None
         }
