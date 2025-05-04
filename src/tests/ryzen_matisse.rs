@@ -1268,4 +1268,34 @@ fn remaining_unsupported_leafs() {
     assert!(cpuid.get_deterministic_address_translation_info().is_none());
     assert!(cpuid.get_soc_vendor_info().is_none());
     assert!(cpuid.get_extended_topology_info_v2().is_none());
+    assert!(cpuid.get_extended_feature_identification_2().is_none());
+    assert!(cpuid
+        .get_extended_performance_monitoring_and_debug()
+        .is_none());
+    assert!(cpuid
+        .get_multi_key_encrypted_memory_capabilities()
+        .is_none());
+    assert!(cpuid.get_extended_cpu_topology().is_none());
+}
+
+#[test]
+fn platform_quality_service() {
+    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
+    let e = cpuid
+        .get_pqos_extended_feature_info()
+        .expect("Leaf is supported");
+
+    assert!(e.has_l3mbe());
+    assert!(!e.has_l3smbe());
+    assert!(!e.has_abmc());
+    assert!(!e.has_bmec());
+    assert!(!e.has_l3rr());
+    assert!(!e.has_sdciae());
+
+    let f = e
+        .get_l3_memory_bandwidth_enforcement_info()
+        .expect("SubLeaf is supported");
+
+    assert!(f.bandwidth_length() == 0x0000_000b);
+    assert!(f.cos_max() == 0x0000_000f);
 }

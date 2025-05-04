@@ -5,7 +5,10 @@ use core::mem::size_of;
 use core::slice;
 use core::str;
 
-use crate::{get_bits, CpuIdResult, Vendor};
+use crate::{
+    get_bits, CpuIdReader, CpuIdResult, Vendor, EAX_EXTENDED_CPU_TOPOLOGY,
+    EAX_PQOS_EXTENDED_FEATURES,
+};
 
 /// Extended Processor and Processor Feature Identifiers (LEAF=0x8000_0001)
 ///
@@ -1768,5 +1771,696 @@ bitflags! {
         const DBGSWP = 1 << 14;
         const PREVHOSTIBS = 1 << 15;
         const VTE = 1 << 16;
+    }
+}
+
+/// Platform Quality of Service Information (LEAF=0x8000_0020).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq)]
+pub struct PqosExtendedFeatureInfo<R: CpuIdReader> {
+    read: R,
+    _eax: u32,
+    ebx: PqosExtendedFeatureInfoEbx,
+    _ecx: u32,
+    _edx: u32,
+}
+
+impl<R: CpuIdReader> PqosExtendedFeatureInfo<R> {
+    pub(crate) fn new(read: R) -> Self {
+        let data = read.cpuid2(EAX_PQOS_EXTENDED_FEATURES, 0);
+        Self {
+            read,
+            _eax: data.eax,
+            ebx: PqosExtendedFeatureInfoEbx::from_bits_truncate(data.ebx),
+            _ecx: data.ecx,
+            _edx: data.edx,
+        }
+    }
+
+    /// Memory Bandwidth Enforcement is supported if set.
+    pub fn has_l3mbe(&self) -> bool {
+        self.ebx.contains(PqosExtendedFeatureInfoEbx::L3MBE)
+    }
+
+    /// Slow Memory Bandwidth Enforcement is supported if set.
+    pub fn has_l3smbe(&self) -> bool {
+        self.ebx.contains(PqosExtendedFeatureInfoEbx::L3SMBE)
+    }
+
+    /// Bandwidth Monitoring Event Configuration is supported if set.
+    pub fn has_bmec(&self) -> bool {
+        self.ebx.contains(PqosExtendedFeatureInfoEbx::BMEC)
+    }
+
+    /// L3 Range Reservations. See “L3 Range Reservation” in APM
+    /// Volume 2 is supported if set.
+    pub fn has_l3rr(&self) -> bool {
+        self.ebx.contains(PqosExtendedFeatureInfoEbx::L3RR)
+    }
+
+    /// Assignable Bandwidth Monitoring Counters is supported if set.
+    pub fn has_abmc(&self) -> bool {
+        self.ebx.contains(PqosExtendedFeatureInfoEbx::ABMC)
+    }
+
+    /// Smart Data Cache Injection (SDCI) Allocation Enforcement is supported if set.
+    pub fn has_sdciae(&self) -> bool {
+        self.ebx.contains(PqosExtendedFeatureInfoEbx::SDCIAE)
+    }
+
+    /// Get L3 Memory Bandwidth Enforcement Information
+    pub fn get_l3_memory_bandwidth_enforcement_info(
+        &self,
+    ) -> Option<L3MemoryBandwidthEnforcementInformation> {
+        if self.has_l3mbe() {
+            Some(L3MemoryBandwidthEnforcementInformation::new(
+                self.read.cpuid2(EAX_PQOS_EXTENDED_FEATURES, 1),
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Get L3 Slow Memory Bandwidth Enforcement Information
+    pub fn get_l3_slow_memory_bandwidth_enforcement_info(
+        &self,
+    ) -> Option<L3MemoryBandwidthEnforcementInformation> {
+        if self.has_l3smbe() {
+            Some(L3MemoryBandwidthEnforcementInformation::new(
+                self.read.cpuid2(EAX_PQOS_EXTENDED_FEATURES, 2),
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Get Bandwidth Monitoring Event Counters Information
+    pub fn get_bandwidth_monitoring_event_counters_info(
+        &self,
+    ) -> Option<BandwidthMonitoringEventCounters> {
+        if self.has_bmec() {
+            Some(BandwidthMonitoringEventCounters::new(
+                self.read.cpuid2(EAX_PQOS_EXTENDED_FEATURES, 3),
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Get Bandwidth Monitoring Event Counters Information
+    pub fn get_assignable_bandwidth_monitoring_counters_info(
+        &self,
+    ) -> Option<AssignableBandwidthMonitoringCounterInfo> {
+        if self.has_abmc() {
+            Some(AssignableBandwidthMonitoringCounterInfo::new(
+                self.read.cpuid2(EAX_PQOS_EXTENDED_FEATURES, 5),
+            ))
+        } else {
+            None
+        }
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct PqosExtendedFeatureInfoEbx: u32 {
+        const L3MBE = 1 << 1;
+        const L3SMBE = 1 << 2;
+        const BMEC = 1 << 3;
+        const L3RR = 1 << 4;
+        const ABMC = 1 << 5;
+        const SDCIAE = 1 << 6;
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct PqosExtendedFeatureInfoEbx5: u32 {
+        const SELECT_COS = 1 << 0;
+    }
+}
+
+impl<R: CpuIdReader> Debug for PqosExtendedFeatureInfo<R> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("PqosExtendedFeatureInfo")
+            .field("has_l3mbe", &self.has_l3mbe())
+            .field("has_l3smbe", &self.has_l3smbe())
+            .field("has_bmec", &self.has_bmec())
+            .field("has_l3rr", &self.has_l3rr())
+            .field("has_abmc", &self.has_abmc())
+            .field("has_sdciae", &self.has_sdciae())
+            .finish()
+    }
+}
+
+/// L3 Memory Bandwidth Enforcement Information (LEAF=0x8000_0020_x1 and x2).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq, Debug)]
+pub struct L3MemoryBandwidthEnforcementInformation {
+    eax: u32,
+    _ebx: u32,
+    _ecx: u32,
+    edx: u32,
+}
+
+impl L3MemoryBandwidthEnforcementInformation {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: data.eax,
+            _ebx: data.ebx,
+            _ecx: data.ecx,
+            edx: data.edx,
+        }
+    }
+
+    /// Identifies the size of the bandwidth specifier field in the
+    /// L3QOS_BW_Control_n MSRs
+    pub fn bandwidth_length(&self) -> u32 {
+        self.eax
+    }
+
+    /// Maximum COS number supported by the L3MBE feature
+    pub fn cos_max(&self) -> u32 {
+        self.edx
+    }
+}
+
+/// Bandwidth Monitoring Event Counters Information (LEAF=0x8000_0020_x3).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq, Debug)]
+pub struct BandwidthMonitoringEventCounters {
+    _eax: u32,
+    ebx: u32,
+    ecx: BandwidthMonitoringEventCountersEcx,
+    _edx: u32,
+}
+
+impl BandwidthMonitoringEventCounters {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            _eax: data.eax,
+            ebx: data.ebx,
+            ecx: BandwidthMonitoringEventCountersEcx::from_bits_truncate(data.ecx),
+            _edx: data.edx,
+        }
+    }
+
+    /// Get Number of configurable bandwidth events
+    pub fn number_events(&self) -> u32 {
+        get_bits(self.ebx, 0, 7)
+    }
+
+    /// Reads to local DRAM memory is supported if set.
+    pub fn has_l3_cache_lcl_bw_fill_mon(&self) -> bool {
+        self.ecx
+            .contains(BandwidthMonitoringEventCountersEcx::L3_CACHE_LCL_BW_FILL_MON)
+    }
+
+    /// Reads to remote DRAM memory is supported if set.
+    pub fn has_l3_cache_rmt_bw_fill_mon(&self) -> bool {
+        self.ecx
+            .contains(BandwidthMonitoringEventCountersEcx::L3_CACHE_RMT_BW_FILL_MON)
+    }
+
+    /// Non-temporal writes to local memory is supported if set.
+    pub fn has_l3_cache_lcl_bw_nt_wr_mon(&self) -> bool {
+        self.ecx
+            .contains(BandwidthMonitoringEventCountersEcx::L3_CACHE_LCL_BW_NT_WR_MON)
+    }
+
+    /// Non-temporal writes to remote memory is supported if set.
+    pub fn has_l3_cache_rmt_bw_nt_wr_mon(&self) -> bool {
+        self.ecx
+            .contains(BandwidthMonitoringEventCountersEcx::L3_CACHE_RMT_BW_NT_WR_MON)
+    }
+
+    /// Reads to local memory identified as “Slow Memory” is supported if set.
+    pub fn has_l3_cache_lcl_slow_bw_fill_mon(&self) -> bool {
+        self.ecx
+            .contains(BandwidthMonitoringEventCountersEcx::L3_CACHE_LCL_SLOW_BW_FILL_MON)
+    }
+
+    /// Reads to remote memory identified as “Slow Memory” is supported if set.
+    pub fn has_l3_cache_rmt_slow_bw_fill_mon(&self) -> bool {
+        self.ecx
+            .contains(BandwidthMonitoringEventCountersEcx::L3_CACHE_RMT_SLOW_BW_FILL_MON)
+    }
+
+    /// Dirty victim writes to all types of memory is supported if set.
+    pub fn has_l3_cache_vic_mon(&self) -> bool {
+        self.ecx
+            .contains(BandwidthMonitoringEventCountersEcx::L3_CACHE_VIC_MON)
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct BandwidthMonitoringEventCountersEcx: u32 {
+        const L3_CACHE_LCL_BW_FILL_MON = 1 << 0;
+        const L3_CACHE_RMT_BW_FILL_MON = 1 << 1;
+        const L3_CACHE_LCL_BW_NT_WR_MON = 1 << 2;
+        const L3_CACHE_RMT_BW_NT_WR_MON = 1 << 3;
+        const L3_CACHE_LCL_SLOW_BW_FILL_MON = 1 << 4;
+        const L3_CACHE_RMT_SLOW_BW_FILL_MON = 1 << 5;
+        const L3_CACHE_VIC_MON = 1 << 6;
+    }
+}
+
+/// L3 Memory Bandwidth Enforcement Information (LEAF=0x8000_0020_x5).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq, Debug)]
+pub struct AssignableBandwidthMonitoringCounterInfo {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    _edx: u32,
+}
+
+impl AssignableBandwidthMonitoringCounterInfo {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: data.eax,
+            ebx: data.ebx,
+            ecx: data.ecx,
+            _edx: data.edx,
+        }
+    }
+
+    /// Get QM_CTR counter width, offset from 24 bits
+    pub fn counter_size(&self) -> u8 {
+        get_bits(self.eax, 0, 7) as u8
+    }
+
+    /// Indicates that QM_CTR bit 61 is an overflow bit if set
+    pub fn has_overflow_bit(&self) -> bool {
+        (self.eax & (1 << 8)) > 0
+    }
+
+    /// Get Maximum supported ABMC counter ID
+    pub fn max_abmc(&self) -> u16 {
+        get_bits(self.ebx, 0, 15) as u16
+    }
+
+    ///  Bandwidth counters can be configured to measure
+    /// bandwidth consumed by a COS instead of an RMID if set
+    pub fn has_select_cos(&self) -> bool {
+        (self.ecx & 1) > 0
+    }
+}
+
+/// Extended Feature Identification 2 (LEAF=0x8000_0021).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq, Debug)]
+pub struct ExtendedFeatureIdentification2 {
+    eax: ExtendedFeatureIdentification2Eax,
+    ebx: u32,
+    _ecx: u32,
+    _edx: u32,
+}
+
+impl ExtendedFeatureIdentification2 {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: ExtendedFeatureIdentification2Eax::from_bits_truncate(data.eax),
+            ebx: data.ebx,
+            _ecx: data.ecx,
+            _edx: data.edx,
+        }
+    }
+
+    /// Processor ignores nested data breakpoints if set
+    pub fn has_no_nested_data_bp(&self) -> bool {
+        self.eax
+            .contains(ExtendedFeatureIdentification2Eax::NO_NESTED_DATA_BP)
+    }
+
+    /// LFENCE is always dispatch serializing if set
+    pub fn has_lfence_always_serializing(&self) -> bool {
+        self.eax
+            .contains(ExtendedFeatureIdentification2Eax::LFENCE_ALWAYS_SERIALIZING)
+    }
+
+    /// SMM paging configuration lock supported if set
+    pub fn has_smm_pg_cfg_lock(&self) -> bool {
+        self.eax
+            .contains(ExtendedFeatureIdentification2Eax::SMM_PG_CFG_LOCK)
+    }
+
+    /// Null segment selector loads also clear the destination segment register
+    /// base and limit supported if set
+    pub fn has_null_select_clears_base(&self) -> bool {
+        self.eax
+            .contains(ExtendedFeatureIdentification2Eax::NULL_SELECT_CLEARS_BASE)
+    }
+
+    /// Upper Address Ignore is supported if set
+    pub fn has_upper_address_ignore(&self) -> bool {
+        self.eax
+            .contains(ExtendedFeatureIdentification2Eax::UPPER_ADDRESS_IGNORE)
+    }
+
+    /// Automatic IBRS if set
+    pub fn has_automatic_ibrs(&self) -> bool {
+        self.eax
+            .contains(ExtendedFeatureIdentification2Eax::AUTOMATIC_IBRS)
+    }
+
+    /// SMM_CTL MSR (C001_0116h) is not supported if set
+    pub fn has_no_smm_ctl_msr(&self) -> bool {
+        self.eax
+            .contains(ExtendedFeatureIdentification2Eax::NO_SMM_CTL_MSR)
+    }
+
+    /// Prefetch control MSR supported if set
+    pub fn has_prefetch_ctl_msr(&self) -> bool {
+        self.eax
+            .contains(ExtendedFeatureIdentification2Eax::PREFETCH_CTL_MSR)
+    }
+
+    /// CPUID disable for non-privileged software if set
+    pub fn has_cpuid_user_dis(&self) -> bool {
+        self.eax
+            .contains(ExtendedFeatureIdentification2Eax::CPUID_USER_DIS)
+    }
+
+    /// The size of the Microcode patch in 16-byte multiples. If 0, the size of the
+    /// patch is at most 5568 (15C0h) bytes.
+    pub fn microcode_patch_size(&self) -> u16 {
+        get_bits(self.ebx, 0, 11) as u16
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct ExtendedFeatureIdentification2Eax: u32 {
+        const NO_NESTED_DATA_BP = 1 << 0;
+        const LFENCE_ALWAYS_SERIALIZING = 1 << 2;
+        const SMM_PG_CFG_LOCK = 1 << 3;
+        const NULL_SELECT_CLEARS_BASE = 1 << 6;
+        const UPPER_ADDRESS_IGNORE = 1 << 7;
+        const AUTOMATIC_IBRS = 1 << 8;
+        const NO_SMM_CTL_MSR = 1 << 9;
+        const PREFETCH_CTL_MSR = 1 << 13;
+        const CPUID_USER_DIS = 1 << 17;
+    }
+}
+
+/// Extended Feature Identification 2 (LEAF=0x8000_0021).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq, Debug)]
+pub struct ExtendedPerformanceMonitoringDebug {
+    eax: ExtendedPerformanceMonitoringDebugEax,
+    ebx: u32,
+    _ecx: u32,
+    _edx: u32,
+}
+
+impl ExtendedPerformanceMonitoringDebug {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: ExtendedPerformanceMonitoringDebugEax::from_bits_truncate(data.eax),
+            ebx: data.ebx,
+            _ecx: data.ecx,
+            _edx: data.edx,
+        }
+    }
+
+    /// Performance Monitoring Version 2 supported if set
+    pub fn has_perf_mon_v2(&self) -> bool {
+        self.eax
+            .contains(ExtendedPerformanceMonitoringDebugEax::PERF_MON_V2)
+    }
+
+    /// Last Branch Record Stack supported if set
+    pub fn has_lbr_stack(&self) -> bool {
+        self.eax
+            .contains(ExtendedPerformanceMonitoringDebugEax::LBR_STACK)
+    }
+
+    /// Freezing Core Performance Counters and LBR Stack on Core
+    /// Performance Counter overflow supported if set
+    pub fn has_lbr_and_pmc_freeze(&self) -> bool {
+        self.eax
+            .contains(ExtendedPerformanceMonitoringDebugEax::LBR_AND_PMC_FREEZE)
+    }
+
+    /// Number of Core Performance Counters
+    pub fn num_perf_ctr_core(&self) -> u8 {
+        get_bits(self.ebx, 0, 3) as u8
+    }
+
+    /// Number of Last Branch Record Stack entries
+    pub fn num_lbr_stack_size(&self) -> u8 {
+        get_bits(self.ebx, 4, 9) as u8
+    }
+
+    /// Number of Northbridge Performance Monitor Counters
+    pub fn num_perf_ctr_nb(&self) -> u8 {
+        get_bits(self.ebx, 10, 15) as u8
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct ExtendedPerformanceMonitoringDebugEax: u32 {
+        const PERF_MON_V2 = 1 << 0;
+        const LBR_STACK = 1 << 1;
+        const LBR_AND_PMC_FREEZE = 1 << 2;
+    }
+}
+
+/// Extended Feature Identification 2 (LEAF=0x8000_0021).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq, Debug)]
+pub struct MultiKeyEncryptedMemoryCapabilities {
+    eax: MultiKeyEncryptedMemoryCapabilitiesEax,
+    ebx: u32,
+    _ecx: u32,
+    _edx: u32,
+}
+
+impl MultiKeyEncryptedMemoryCapabilities {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: MultiKeyEncryptedMemoryCapabilitiesEax::from_bits_truncate(data.eax),
+            ebx: data.ebx,
+            _ecx: data.ecx,
+            _edx: data.edx,
+        }
+    }
+
+    /// Secure Host Multi-Key Memory (MEM-HMK) Encryption Mode Supported if set
+    pub fn has_mem_hmk(&self) -> bool {
+        self.eax
+            .contains(MultiKeyEncryptedMemoryCapabilitiesEax::MEM_HMK)
+    }
+
+    /// Number of simultaneously available host encryption key IDs in MEM-HMK
+    /// encryption mode.
+    pub fn max_mem_hmk_encr_key_id(&self) -> u16 {
+        get_bits(self.ebx, 0, 15) as u16
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct MultiKeyEncryptedMemoryCapabilitiesEax: u32 {
+        const MEM_HMK = 1 << 0;
+    }
+}
+
+/// Extended CPU Topology (LEAF=0x8000_0026).
+///
+/// Iterates over the extended cpu topology in order to retrieve more information for logical
+/// processors, including asymmetric and heterogenous topology descriptions. Individual
+/// logical processors may report different values in systems with asynchronous and
+/// heterogeneous topologies
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(Clone)]
+pub struct ExtendedCpuTopologyIter<R: CpuIdReader> {
+    read: R,
+    level: u32,
+}
+
+impl<R: CpuIdReader> ExtendedCpuTopologyIter<R> {
+    pub fn new(read: R) -> Self {
+        Self { read, level: 0 }
+    }
+}
+
+/// Gives information about the current level in the cpu topology.
+#[derive(PartialEq, Eq, Debug)]
+pub struct ExtendedCpuTopologyLevel {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    edx: u32,
+}
+
+impl ExtendedCpuTopologyLevel {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: data.eax,
+            ebx: data.ebx,
+            ecx: data.ecx,
+            edx: data.edx,
+        }
+    }
+
+    /// Number of bits to shift Extended APIC ID right to get a unique topology ID
+    /// of the current hierarchy level.
+    pub fn mask_width(&self) -> u8 {
+        get_bits(self.eax, 0, 4) as u8
+    }
+
+    /// Set to 1 if processor power efficiency ranking (PwrEfficiencyRanking) is
+    /// available and varies between cores. Only valid for LevelType = 1h (Core).
+    pub fn has_efficiency_ranking_available(&self) -> bool {
+        self.eax & (1 << 29) > 0
+    }
+
+    /// Set to 1 if all components at the current hierarchy level do not consist of
+    /// the cores that report the same core type (CoreType).
+    pub fn has_heterogeneous_cores(&self) -> bool {
+        self.eax & (1 << 30) > 0
+    }
+
+    /// Set to 1 if all components at the current hierarchy level do not report the
+    /// same number of logical processors (NumLogProc).
+    pub fn has_asymmetric_topology(&self) -> bool {
+        self.eax & (1 << 31) > 0
+    }
+
+    /// Number of logical processors at the current hierarchy level
+    pub fn num_logical_processors(&self) -> u16 {
+        get_bits(self.ebx, 0, 15) as u16
+    }
+
+    /// Reports a static efficiency ranking between cores of a specific core type,
+    /// where a lower value indicates comparatively lower power consumption
+    /// and lower performance. Only valid for LevelType = 1h (Core)
+    pub fn pwr_efficiency_ranking(&self) -> u8 {
+        get_bits(self.ebx, 16, 23) as u8
+    }
+
+    /// Reports a value that may be used to further differentiate implementation
+    /// specific features. Native mode ID is used in conjunction with the family,
+    /// model, and stepping identifiers. Refer to the Processor Programming
+    /// Reference Manual applicable to your product for a list of Native Mode
+    /// IDs. Only valid for LevelType = 1h (Core)
+    pub fn native_mode_id(&self) -> u8 {
+        get_bits(self.ebx, 24, 27) as u8
+    }
+
+    /// Reports a value that may be used to distinguish between cores with
+    /// different architectural and microarchitectural properties (for example,
+    /// cores with different performance or power characteristics). Refer to the
+    /// Processor Programming Reference Manual applicable to your product for
+    /// a list of the available core types. Only valid for LevelType = 1h (Core)
+    pub fn core_type(&self) -> u8 {
+        get_bits(self.ebx, 28, 31) as u8
+    }
+
+    /// Input ECX
+    pub fn input_ecx(&self) -> u8 {
+        get_bits(self.ecx, 0, 7) as u8
+    }
+
+    /// Encoded hierarchy level type
+    pub fn level_type(&self) -> HierarchyLevelType {
+        HierarchyLevelType::from(get_bits(self.ecx, 8, 15) as u8)
+    }
+
+    /// Extended APIC ID of the logical processor
+    pub fn extended_apic_id(&self) -> u32 {
+        self.edx
+    }
+}
+
+impl<R: CpuIdReader> Iterator for ExtendedCpuTopologyIter<R> {
+    type Item = ExtendedCpuTopologyLevel;
+
+    fn next(&mut self) -> Option<ExtendedCpuTopologyLevel> {
+        let res = self.read.cpuid2(EAX_EXTENDED_CPU_TOPOLOGY, self.level);
+        self.level += 1;
+
+        let ect = ExtendedCpuTopologyLevel::new(res);
+        if ect.level_type() == HierarchyLevelType::Reserved {
+            None
+        } else {
+            Some(ect)
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(PartialEq, Eq)]
+pub enum HierarchyLevelType {
+    Reserved = 0,
+    Core = 1,
+    Complex = 2,
+    Die = 3,
+    Socket = 4,
+    Unknown(u8),
+}
+
+impl From<u8> for HierarchyLevelType {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::Reserved,
+            1 => Self::Core,
+            2 => Self::Complex,
+            3 => Self::Die,
+            4 => Self::Socket,
+            x => Self::Unknown(x),
+        }
+    }
+}
+
+impl Display for HierarchyLevelType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            HierarchyLevelType::Reserved => write!(f, "Reserved (0)"),
+            HierarchyLevelType::Core => write!(f, "Core (1)"),
+            HierarchyLevelType::Complex => write!(f, "Complex (2)"),
+            HierarchyLevelType::Die => write!(f, "DIE (3)"),
+            HierarchyLevelType::Socket => write!(f, "Socket (4)"),
+            HierarchyLevelType::Unknown(x) => write!(f, "Unknown ({x})"),
+        }
+    }
+}
+
+impl Debug for HierarchyLevelType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Reserved => write!(f, "Reserved"),
+            Self::Core => write!(f, "Core"),
+            Self::Complex => write!(f, "Complex"),
+            Self::Die => write!(f, "Die"),
+            Self::Socket => write!(f, "Socket"),
+            Self::Unknown(arg0) => f.debug_tuple("Unknown").field(arg0).finish(),
+        }
     }
 }
