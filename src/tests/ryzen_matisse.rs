@@ -1244,6 +1244,25 @@ fn performance_optimization_info() {
 }
 
 #[test]
+fn instruction_based_sampling_capabilities() {
+    let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
+    let e = cpuid
+        .get_instruction_based_sampling_capabilities()
+        .expect("Leaf is supported");
+
+    assert!(e.has_feature_flags());
+    assert!(e.has_fetch_sampling());
+    assert!(e.has_execution_sampling());
+    assert!(e.has_read_write_operation_counter());
+    assert!(e.has_operation_counter());
+    assert!(e.has_branch_target_address_reporting());
+    assert!(e.has_operation_counter_extended());
+    assert!(e.has_invalid_rip_indication());
+    assert!(e.has_fused_branch_micro_op_indication());
+    assert!(!e.has_l3_miss_filtering());
+}
+
+#[test]
 fn processor_topology_info() {
     let cpuid = CpuId::with_cpuid_fn(cpuid_reader);
     let e = cpuid

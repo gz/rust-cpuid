@@ -1311,6 +1311,49 @@ pub fn markdown<R: crate::CpuIdReader>(cpuid: crate::CpuId<R>) {
         );
     }
 
+    if let Some(info) = cpuid.get_instruction_based_sampling_capabilities() {
+        print_title(
+            &skin,
+            "Instruction-Based Sampling Capabilities (0x8000_001b):",
+        );
+        table2(
+            &skin,
+            &[
+                RowGen::tuple("IBS feature flags valid", info.has_feature_flags()),
+                RowGen::tuple("IBS fetch sampling supporte", info.has_fetch_sampling()),
+                RowGen::tuple(
+                    "IBS execution sampling supported",
+                    info.has_execution_sampling(),
+                ),
+                RowGen::tuple(
+                    "Read write of op counter supported",
+                    info.has_read_write_operation_counter(),
+                ),
+                RowGen::tuple("Op counting mode supported", info.has_operation_counter()),
+                RowGen::tuple(
+                    "Branch target address reporting supported",
+                    info.has_branch_target_address_reporting(),
+                ),
+                RowGen::tuple(
+                    "IbsOpCurCnt and IbsOpMaxCnt extend by 7 bits",
+                    info.has_operation_counter_extended(),
+                ),
+                RowGen::tuple(
+                    "Invalid RIP indication supported",
+                    info.has_invalid_rip_indication(),
+                ),
+                RowGen::tuple(
+                    "Fused branch micro-op indication supported",
+                    info.has_fused_branch_micro_op_indication(),
+                ),
+                RowGen::tuple(
+                    "L3 Miss Filtering for IBS supported",
+                    info.has_l3_miss_filtering(),
+                ),
+            ],
+        );
+    }
+
     if let Some(info) = cpuid.get_processor_topology_info() {
         print_title(&skin, "Processor Topology Info (0x8000_001e):");
         table2(

@@ -1576,6 +1576,109 @@ bitflags! {
     }
 }
 
+/// Performance Optimization Identifier (LEAF=0x8000_001A).
+///
+/// # Platforms
+/// ✅ AMD ❌ Intel
+#[derive(PartialEq, Eq, Debug)]
+pub struct InstructionBasedSamplingCapabilities {
+    eax: InstructionBasedSamplingCapabilitiesEax,
+    /// Reserved
+    _ebx: u32,
+    /// Reserved
+    _ecx: u32,
+    /// Reserved
+    _edx: u32,
+}
+
+impl InstructionBasedSamplingCapabilities {
+    pub(crate) fn new(data: CpuIdResult) -> Self {
+        Self {
+            eax: InstructionBasedSamplingCapabilitiesEax::from_bits_truncate(data.eax),
+            _ebx: data.ebx,
+            _ecx: data.ecx,
+            _edx: data.edx,
+        }
+    }
+
+    /// IBS feature flags valid if set.
+    pub fn has_feature_flags(&self) -> bool {
+        self.eax
+            .contains(InstructionBasedSamplingCapabilitiesEax::IBSFFV)
+    }
+
+    /// IBS fetch sampling supported if set.
+    pub fn has_fetch_sampling(&self) -> bool {
+        self.eax
+            .contains(InstructionBasedSamplingCapabilitiesEax::FETCH_SAM)
+    }
+
+    /// IBS execution sampling supported if set.
+    pub fn has_execution_sampling(&self) -> bool {
+        self.eax
+            .contains(InstructionBasedSamplingCapabilitiesEax::OP_SAM)
+    }
+
+    /// Read write of op counter supported if set.
+    pub fn has_read_write_operation_counter(&self) -> bool {
+        self.eax
+            .contains(InstructionBasedSamplingCapabilitiesEax::RD_WR_OP_CNT)
+    }
+
+    /// Op counting mode supported if set.
+    pub fn has_operation_counter(&self) -> bool {
+        self.eax
+            .contains(InstructionBasedSamplingCapabilitiesEax::OP_CNT)
+    }
+
+    /// Branch target address reporting supported if set.
+    pub fn has_branch_target_address_reporting(&self) -> bool {
+        self.eax
+            .contains(InstructionBasedSamplingCapabilitiesEax::BRN_TRGT)
+    }
+
+    /// IbsOpCurCnt and IbsOpMaxCnt extend by 7 bits if set.
+    pub fn has_operation_counter_extended(&self) -> bool {
+        self.eax
+            .contains(InstructionBasedSamplingCapabilitiesEax::OP_CNT_EXT)
+    }
+
+    /// Invalid RIP indication supported if set.
+    pub fn has_invalid_rip_indication(&self) -> bool {
+        self.eax
+            .contains(InstructionBasedSamplingCapabilitiesEax::RIP_INVALID_CHK)
+    }
+
+    /// Fused branch micro-op indication supported if set.
+    pub fn has_fused_branch_micro_op_indication(&self) -> bool {
+        self.eax
+            .contains(InstructionBasedSamplingCapabilitiesEax::OP_BRN_FUSE)
+    }
+
+    /// L3 Miss Filtering for IBS supported if set.
+    pub fn has_l3_miss_filtering(&self) -> bool {
+        self.eax
+            .contains(InstructionBasedSamplingCapabilitiesEax::IBS_L3_MISS_FILTERING)
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct InstructionBasedSamplingCapabilitiesEax: u32 {
+        const IBSFFV = 1 << 0;
+        const FETCH_SAM = 1 << 1;
+        const OP_SAM = 1 << 2;
+        const RD_WR_OP_CNT = 1 << 3;
+        const OP_CNT = 1 << 4;
+        const BRN_TRGT = 1 << 5;
+        const OP_CNT_EXT = 1 << 6;
+        const RIP_INVALID_CHK = 1 << 7;
+        const OP_BRN_FUSE = 1 << 8;
+        const IBS_L3_MISS_FILTERING = 1 << 11;
+    }
+}
+
 /// Processor Topology Information (LEAF=0x8000_001E).
 ///
 /// # Platforms

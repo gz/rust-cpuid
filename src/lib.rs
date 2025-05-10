@@ -319,6 +319,7 @@ const EAX_ADVANCED_POWER_MGMT_INFO: u32 = 0x8000_0007;
 const EAX_PROCESSOR_CAPACITY_INFO: u32 = 0x8000_0008;
 const EAX_TLB_1GB_PAGE_INFO: u32 = 0x8000_0019;
 const EAX_PERFORMANCE_OPTIMIZATION_INFO: u32 = 0x8000_001A;
+const EAX_INSTRUCTION_BASED_SAMPLING_CAPABILITIES: u32 = 0x8000_001B;
 const EAX_CACHE_PARAMETERS_AMD: u32 = 0x8000_001D;
 const EAX_PROCESSOR_TOPOLOGY_INFO: u32 = 0x8000_001E;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
@@ -928,6 +929,23 @@ impl<R: CpuIdReader> CpuId<R> {
         if self.leaf_is_supported(EAX_PERFORMANCE_OPTIMIZATION_INFO) {
             Some(PerformanceOptimizationInfo::new(
                 self.read.cpuid1(EAX_PERFORMANCE_OPTIMIZATION_INFO),
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Instruction-Based Sampling Capabilities (LEAF=0x8000_001B)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn get_instruction_based_sampling_capabilities(
+        &self,
+    ) -> Option<InstructionBasedSamplingCapabilities> {
+        if self.leaf_is_supported(EAX_INSTRUCTION_BASED_SAMPLING_CAPABILITIES) {
+            Some(InstructionBasedSamplingCapabilities::new(
+                self.read
+                    .cpuid1(EAX_INSTRUCTION_BASED_SAMPLING_CAPABILITIES),
             ))
         } else {
             None
