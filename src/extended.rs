@@ -426,7 +426,7 @@ bitflags! {
         const SYSCALL_SYSRET = 1 << 11;
         const EXECUTE_DISABLE = 1 << 20;
         const MMXEXT = 1 << 22;
-        const FFXSR = 1 << 24;
+        const FFXSR = 1 << 25;
         const GIB_PAGES = 1 << 26;
         const RDTSCP = 1 << 27;
         const I64BIT_MODE = 1 << 29;
