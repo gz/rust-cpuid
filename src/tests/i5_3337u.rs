@@ -433,7 +433,7 @@ fn extended_topology_info_v2() {
 #[test]
 fn extended_state_info() {
     let es = ExtendedStateInfo {
-        read: CpuIdReaderNative,
+        source: CpuIdReaderNative,
         eax: ExtendedStateInfoXCR0Flags::from_bits_truncate(7),
         ebx: 832,
         ecx: 832,
@@ -460,7 +460,7 @@ fn extended_state_info3() {
     });*/
 
     let esi = ExtendedStateInfo {
-        read: CpuIdReaderNative,
+        source: CpuIdReaderNative,
         eax: ExtendedStateInfoXCR0Flags::LEGACY_X87
             | ExtendedStateInfoXCR0Flags::SSE128
             | ExtendedStateInfoXCR0Flags::AVX256
@@ -619,7 +619,7 @@ fn extended_state_info3() {
 #[test]
 fn extended_state_info2() {
     let es = ExtendedStateInfo {
-        read: CpuIdReaderNative,
+        source: CpuIdReaderNative,
         eax: ExtendedStateInfoXCR0Flags::from_bits_truncate(31),
         ebx: 1088,
         ecx: 1088,
@@ -694,7 +694,7 @@ fn extended_state_info2() {
 #[test]
 fn quality_of_service_info() {
     let qos = RdtMonitoringInfo {
-        read: CpuIdReaderNative,
+        source: CpuIdReaderNative,
         ebx: 832,
         edx: 0,
     };
@@ -755,7 +755,7 @@ fn processor_brand_string() {
 #[test]
 fn sgx_test() {
     let sgx = SgxInfo {
-        read: CpuIdReaderNative,
+        source: CpuIdReaderNative,
         eax: 1,
         ebx: 0,
         _ecx: 0,

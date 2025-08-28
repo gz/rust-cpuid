@@ -5,7 +5,7 @@ use core::mem::size_of;
 use core::slice;
 use core::str;
 
-use crate::{get_bits, CpuIdResult, Vendor};
+use crate::{get_bits, set_bits, CpuIdResult, Vendor};
 
 /// Extended Processor and Processor Feature Identifiers (LEAF=0x8000_0001)
 ///
@@ -13,10 +13,10 @@ use crate::{get_bits, CpuIdResult, Vendor};
 /// ✅ AMD 🟡 Intel
 pub struct ExtendedProcessorFeatureIdentifiers {
     vendor: Vendor,
-    eax: u32,
-    ebx: u32,
-    ecx: ExtendedFunctionInfoEcx,
-    edx: ExtendedFunctionInfoEdx,
+    pub(crate) eax: u32,
+    pub(crate) ebx: u32,
+    pub(crate) ecx: ExtendedFunctionInfoEcx,
+    pub(crate) edx: ExtendedFunctionInfoEdx,
 }
 
 impl ExtendedProcessorFeatureIdentifiers {
@@ -387,7 +387,7 @@ impl Debug for ExtendedProcessorFeatureIdentifiers {
 bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    struct ExtendedFunctionInfoEcx: u32 {
+    pub(crate) struct ExtendedFunctionInfoEcx: u32 {
         const LAHF_SAHF = 1 << 0;
         const CMP_LEGACY =  1 << 1;
         const SVM = 1 << 2;
@@ -419,7 +419,7 @@ bitflags! {
 bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    struct ExtendedFunctionInfoEdx: u32 {
+    pub(crate) struct ExtendedFunctionInfoEdx: u32 {
         const SYSCALL_SYSRET = 1 << 11;
         const EXECUTE_DISABLE = 1 << 20;
         const MMXEXT = 1 << 22;
@@ -483,13 +483,22 @@ impl Debug for ProcessorBrandString {
 /// ✅ AMD ❌ Intel (reserved=0)
 #[derive(PartialEq, Eq, Debug)]
 pub struct L1CacheTlbInfo {
-    eax: u32,
-    ebx: u32,
-    ecx: u32,
-    edx: u32,
+    pub(crate) eax: u32,
+    pub(crate) ebx: u32,
+    pub(crate) ecx: u32,
+    pub(crate) edx: u32,
 }
 
 impl L1CacheTlbInfo {
+    pub fn empty() -> Self {
+        Self {
+            eax: 0,
+            ebx: 0,
+            ecx: 0,
+            edx: 0,
+        }
+    }
+
     pub(crate) fn new(data: CpuIdResult) -> Self {
         Self {
             eax: data.eax,
@@ -505,6 +514,11 @@ impl L1CacheTlbInfo {
         Associativity::for_l1(assoc_bits)
     }
 
+    pub fn set_dtlb_2m_4m_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 24, 31);
+        self
+    }
+
     /// Data TLB number of entries for 2-MB and 4-MB pages.
     ///
     /// The value returned is for the number of entries available for the 2-MB page size;
@@ -514,10 +528,20 @@ impl L1CacheTlbInfo {
         get_bits(self.eax, 16, 23) as u8
     }
 
+    pub fn set_dtlb_2m_4m_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 16, 23);
+        self
+    }
+
     /// Instruction TLB associativity for 2-MB and 4-MB pages.
     pub fn itlb_2m_4m_associativity(&self) -> Associativity {
         let assoc_bits = get_bits(self.eax, 8, 15) as u8;
         Associativity::for_l1(assoc_bits)
+    }
+
+    pub fn set_itlb_2m_4m_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 8, 15);
+        self
     }
 
     /// Instruction TLB number of entries for 2-MB and 4-MB pages.
@@ -529,15 +553,30 @@ impl L1CacheTlbInfo {
         get_bits(self.eax, 0, 7) as u8
     }
 
+    pub fn set_itlb_2m_4m_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 0, 7);
+        self
+    }
+
     /// Data TLB associativity for 4K pages.
     pub fn dtlb_4k_associativity(&self) -> Associativity {
         let assoc_bits = get_bits(self.ebx, 24, 31) as u8;
         Associativity::for_l1(assoc_bits)
     }
 
+    pub fn set_dtlb_4k_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 24, 31);
+        self
+    }
+
     /// Data TLB number of entries for 4K pages.
     pub fn dtlb_4k_size(&self) -> u8 {
         get_bits(self.ebx, 16, 23) as u8
+    }
+
+    pub fn set_dtlb_4k_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 16, 23);
+        self
     }
 
     /// Instruction TLB associativity for 4K pages.
@@ -546,14 +585,29 @@ impl L1CacheTlbInfo {
         Associativity::for_l1(assoc_bits)
     }
 
+    pub fn set_itlb_4k_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 8, 15);
+        self
+    }
+
     /// Instruction TLB number of entries for 4K pages.
     pub fn itlb_4k_size(&self) -> u8 {
         get_bits(self.ebx, 0, 7) as u8
     }
 
+    pub fn set_itlb_4k_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 0, 7);
+        self
+    }
+
     /// L1 data cache size in KB
     pub fn dcache_size(&self) -> u8 {
         get_bits(self.ecx, 24, 31) as u8
+    }
+
+    pub fn set_dcache_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ecx, bits, 24, 31);
+        self
     }
 
     /// L1 data cache associativity.
@@ -562,9 +616,19 @@ impl L1CacheTlbInfo {
         Associativity::for_l1(assoc_bits)
     }
 
+    pub fn set_dcache_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ecx, bits, 16, 23);
+        self
+    }
+
     /// L1 data cache lines per tag.
     pub fn dcache_lines_per_tag(&self) -> u8 {
         get_bits(self.ecx, 8, 15) as u8
+    }
+
+    pub fn set_dcache_lines_per_tag(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ecx, bits, 8, 15);
+        self
     }
 
     /// L1 data cache line size in bytes.
@@ -572,9 +636,19 @@ impl L1CacheTlbInfo {
         get_bits(self.ecx, 0, 7) as u8
     }
 
+    pub fn set_dcache_line_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ecx, bits, 0, 7);
+        self
+    }
+
     /// L1 instruction cache size in KB
     pub fn icache_size(&self) -> u8 {
         get_bits(self.edx, 24, 31) as u8
+    }
+
+    pub fn set_icache_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.edx, bits, 24, 31);
+        self
     }
 
     /// L1 instruction cache associativity.
@@ -583,14 +657,29 @@ impl L1CacheTlbInfo {
         Associativity::for_l1(assoc_bits)
     }
 
+    pub fn set_icache_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.edx, bits, 16, 23);
+        self
+    }
+
     /// L1 instruction cache lines per tag.
     pub fn icache_lines_per_tag(&self) -> u8 {
         get_bits(self.edx, 8, 15) as u8
     }
 
+    pub fn set_icache_lines_per_tag(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.edx, bits, 8, 15);
+        self
+    }
+
     /// L1 instruction cache line size in bytes.
     pub fn icache_line_size(&self) -> u8 {
         get_bits(self.edx, 0, 7) as u8
+    }
+
+    pub fn set_icache_line_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.edx, bits, 0, 7);
+        self
     }
 }
 
@@ -600,13 +689,22 @@ impl L1CacheTlbInfo {
 /// ✅ AMD 🟡 Intel
 #[derive(PartialEq, Eq, Debug)]
 pub struct L2And3CacheTlbInfo {
-    eax: u32,
-    ebx: u32,
-    ecx: u32,
-    edx: u32,
+    pub(crate) eax: u32,
+    pub(crate) ebx: u32,
+    pub(crate) ecx: u32,
+    pub(crate) edx: u32,
 }
 
 impl L2And3CacheTlbInfo {
+    pub fn empty() -> Self {
+        Self {
+            eax: 0,
+            ebx: 0,
+            ecx: 0,
+            edx: 0,
+        }
+    }
+
     pub(crate) fn new(data: CpuIdResult) -> Self {
         Self {
             eax: data.eax,
@@ -625,6 +723,11 @@ impl L2And3CacheTlbInfo {
         Associativity::for_l2(assoc_bits)
     }
 
+    pub fn set_dtlb_2m_4m_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 28, 31);
+        self
+    }
+
     /// L2 Data TLB number of entries for 2-MB and 4-MB pages.
     ///
     /// The value returned is for the number of entries available for the 2-MB page size;
@@ -637,6 +740,11 @@ impl L2And3CacheTlbInfo {
         get_bits(self.eax, 16, 27) as u16
     }
 
+    pub fn set_dtlb_2m_4m_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 16, 27);
+        self
+    }
+
     /// L2 Instruction TLB associativity for 2-MB and 4-MB pages.
     ///
     /// # Availability
@@ -644,6 +752,11 @@ impl L2And3CacheTlbInfo {
     pub fn itlb_2m_4m_associativity(&self) -> Associativity {
         let assoc_bits = get_bits(self.eax, 12, 15) as u8;
         Associativity::for_l2(assoc_bits)
+    }
+
+    pub fn set_itlb_2m_4m_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 12, 15);
+        self
     }
 
     /// L2 Instruction TLB number of entries for 2-MB and 4-MB pages.
@@ -658,6 +771,11 @@ impl L2And3CacheTlbInfo {
         get_bits(self.eax, 0, 11) as u16
     }
 
+    pub fn set_itlb_2m_4m_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 0, 11);
+        self
+    }
+
     /// L2 Data TLB associativity for 4K pages.
     ///
     /// # Availability
@@ -667,12 +785,22 @@ impl L2And3CacheTlbInfo {
         Associativity::for_l2(assoc_bits)
     }
 
+    pub fn set_dtlb_4k_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 28, 31);
+        self
+    }
+
     /// L2 Data TLB number of entries for 4K pages.
     ///
     /// # Availability
     /// ✅ AMD ❌ Intel (reserved=0)
     pub fn dtlb_4k_size(&self) -> u16 {
         get_bits(self.ebx, 16, 27) as u16
+    }
+
+    pub fn set_dtlb_4k_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 16, 27);
+        self
     }
 
     /// L2 Instruction TLB associativity for 4K pages.
@@ -684,12 +812,22 @@ impl L2And3CacheTlbInfo {
         Associativity::for_l2(assoc_bits)
     }
 
+    pub fn set_itlb_4k_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 12, 15);
+        self
+    }
+
     /// L2 Instruction TLB number of entries for 4K pages.
     ///
     /// # Availability
     /// ✅ AMD ❌ Intel (reserved=0)
     pub fn itlb_4k_size(&self) -> u16 {
         get_bits(self.ebx, 0, 11) as u16
+    }
+
+    pub fn set_itlb_4k_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 0, 11);
+        self
     }
 
     /// L2 Cache Line size in bytes
@@ -700,12 +838,22 @@ impl L2And3CacheTlbInfo {
         get_bits(self.ecx, 0, 7) as u8
     }
 
+    pub fn set_l2cache_line_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ecx, bits, 0, 7);
+        self
+    }
+
     /// L2 cache lines per tag.
     ///
     /// # Availability
     /// ✅ AMD ❌ Intel (reserved=0)
     pub fn l2cache_lines_per_tag(&self) -> u8 {
         get_bits(self.ecx, 8, 11) as u8
+    }
+
+    pub fn set_l2cache_lines_per_tag(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ecx, bits, 8, 11);
+        self
     }
 
     /// L2 Associativity field
@@ -717,12 +865,22 @@ impl L2And3CacheTlbInfo {
         Associativity::for_l2(assoc_bits)
     }
 
+    pub fn set_l2cache_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ecx, bits, 12, 15);
+        self
+    }
+
     /// Cache size in KB.
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
     pub fn l2cache_size(&self) -> u16 {
         get_bits(self.ecx, 16, 31) as u16
+    }
+
+    pub fn set_l2cache_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ecx, bits, 16, 31);
+        self
     }
 
     /// L2 Cache Line size in bytes
@@ -733,12 +891,22 @@ impl L2And3CacheTlbInfo {
         get_bits(self.edx, 0, 7) as u8
     }
 
+    pub fn set_l3cache_line_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.edx, bits, 0, 7);
+        self
+    }
+
     /// L2 cache lines per tag.
     ///
     /// # Availability
     /// ✅ AMD ❌ Intel (reserved=0)
     pub fn l3cache_lines_per_tag(&self) -> u8 {
         get_bits(self.edx, 8, 11) as u8
+    }
+
+    pub fn set_l3cache_lines_per_tag(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.edx, bits, 8, 11);
+        self
     }
 
     /// L2 Associativity field
@@ -750,6 +918,11 @@ impl L2And3CacheTlbInfo {
         Associativity::for_l3(assoc_bits)
     }
 
+    pub fn set_l3cache_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.edx, bits, 12, 15);
+        self
+    }
+
     /// Specifies the L3 cache size range
     ///
     /// `(L3Size[31:18] * 512KB) <= L3 cache size < ((L3Size[31:18]+1) * 512KB)`.
@@ -758,6 +931,11 @@ impl L2And3CacheTlbInfo {
     /// ✅ AMD ❌ Intel (reserved=0)
     pub fn l3cache_size(&self) -> u16 {
         get_bits(self.edx, 18, 31) as u16
+    }
+
+    pub fn set_l3cache_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.edx, bits, 18, 31);
+        self
     }
 }
 
@@ -832,13 +1010,22 @@ impl Associativity {
 #[derive(Debug, PartialEq, Eq)]
 pub struct ApmInfo {
     /// Reserved on AMD and Intel.
-    _eax: u32,
-    ebx: RasCapabilities,
-    ecx: u32,
-    edx: ApmInfoEdx,
+    pub(crate) _eax: u32,
+    pub(crate) ebx: RasCapabilities,
+    pub(crate) ecx: u32,
+    pub(crate) edx: ApmInfoEdx,
 }
 
 impl ApmInfo {
+    pub fn empty() -> Self {
+        Self {
+            _eax: 0,
+            ebx: RasCapabilities::from_bits_truncate(0),
+            ecx: 0,
+            edx: ApmInfoEdx::from_bits_truncate(0),
+        }
+    }
+
     pub(crate) fn new(data: CpuIdResult) -> Self {
         Self {
             _eax: data.eax,
@@ -860,6 +1047,11 @@ impl ApmInfo {
         self.ebx.contains(RasCapabilities::MCAOVFLRECOV)
     }
 
+    pub fn set_mca_overflow_recovery(&mut self, bit: bool) -> &mut Self {
+        self.ebx.set(RasCapabilities::MCAOVFLRECOV, bit);
+        self
+    }
+
     /// Has Software uncorrectable error containment and recovery capability?
     ///
     /// The processor supports software containment of uncorrectable errors
@@ -872,6 +1064,11 @@ impl ApmInfo {
         self.ebx.contains(RasCapabilities::SUCCOR)
     }
 
+    pub fn set_succor(&mut self, bit: bool) -> &mut Self {
+        self.ebx.contains(RasCapabilities::SUCCOR);
+        self
+    }
+
     /// Has Hardware assert supported?
     ///
     /// Indicates support for `MSRC001_10[DF:C0]`.
@@ -880,6 +1077,11 @@ impl ApmInfo {
     /// ✅ AMD ❌ Intel (reserved=false)
     pub fn has_hwa(&self) -> bool {
         self.ebx.contains(RasCapabilities::HWA)
+    }
+
+    pub fn set_hwa(&mut self, bit: bool) -> &mut Self {
+        self.ebx.contains(RasCapabilities::HWA);
+        self
     }
 
     /// Specifies the ratio of the compute unit power accumulator sample period
@@ -893,12 +1095,22 @@ impl ApmInfo {
         self.ecx
     }
 
+    pub fn set_pwr_sample_time_ratio(&mut self, bit: bool) -> &mut Self {
+        self.ecx;
+        self
+    }
+
     /// Is Temperature Sensor available?
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=false)
     pub fn has_ts(&self) -> bool {
         self.edx.contains(ApmInfoEdx::TS)
+    }
+
+    pub fn set_ts(&mut self, bit: bool) -> &mut Self {
+        self.edx.contains(ApmInfoEdx::TS);
+        self
     }
 
     /// Frequency ID control.
@@ -912,6 +1124,11 @@ impl ApmInfo {
         self.edx.contains(ApmInfoEdx::FID)
     }
 
+    pub fn set_freq_id_ctrl(&mut self, bit: bool) -> &mut Self {
+        self.edx.contains(ApmInfoEdx::FID);
+        self
+    }
+
     /// Voltage ID control.
     ///
     /// # Note
@@ -923,12 +1140,22 @@ impl ApmInfo {
         self.edx.contains(ApmInfoEdx::VID)
     }
 
+    pub fn set_volt_id_ctrl(&mut self, bit: bool) -> &mut Self {
+        self.edx.contains(ApmInfoEdx::VID);
+        self
+    }
+
     /// Has THERMTRIP?
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=false)
     pub fn has_thermtrip(&self) -> bool {
         self.edx.contains(ApmInfoEdx::TTP)
+    }
+
+    pub fn set_thermtrip(&mut self, bit: bool) -> &mut Self {
+        self.edx.contains(ApmInfoEdx::TTP);
+        self
     }
 
     /// Hardware thermal control (HTC)?
@@ -939,12 +1166,22 @@ impl ApmInfo {
         self.edx.contains(ApmInfoEdx::TM)
     }
 
+    pub fn set_tm(&mut self, bit: bool) -> &mut Self {
+        self.edx.contains(ApmInfoEdx::TM);
+        self
+    }
+
     /// Has 100 MHz multiplier Control?
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=false)
     pub fn has_100mhz_steps(&self) -> bool {
         self.edx.contains(ApmInfoEdx::MHZSTEPS100)
+    }
+
+    pub fn set_100mhz_steps(&mut self, bit: bool) -> &mut Self {
+        self.edx.contains(ApmInfoEdx::MHZSTEPS100);
+        self
     }
 
     /// Has Hardware P-state control?
@@ -958,6 +1195,11 @@ impl ApmInfo {
         self.edx.contains(ApmInfoEdx::HWPSTATE)
     }
 
+    pub fn set_hw_pstate(&mut self, bit: bool) -> &mut Self {
+        self.edx.contains(ApmInfoEdx::HWPSTATE);
+        self
+    }
+
     /// Is Invariant TSC available?
     ///
     /// # Platforms
@@ -966,12 +1208,22 @@ impl ApmInfo {
         self.edx.contains(ApmInfoEdx::INVTSC)
     }
 
+    pub fn set_invariant_tsc(&mut self, bit: bool) -> &mut Self {
+        self.edx.contains(ApmInfoEdx::INVTSC);
+        self
+    }
+
     /// Has Core performance boost?
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=false)
     pub fn has_cpb(&self) -> bool {
         self.edx.contains(ApmInfoEdx::CPB)
+    }
+
+    pub fn set_cpb(&mut self, bit: bool) -> &mut Self {
+        self.edx.contains(ApmInfoEdx::CPB);
+        self
     }
 
     /// Has Read-only effective frequency interface?
@@ -986,6 +1238,11 @@ impl ApmInfo {
         self.edx.contains(ApmInfoEdx::EFFFREQRO)
     }
 
+    pub fn set_ro_effective_freq_iface(&mut self, bit: bool) -> &mut Self {
+        self.edx.contains(ApmInfoEdx::EFFFREQRO);
+        self
+    }
+
     /// Indicates support for processor feedback interface.
     ///
     /// # Note
@@ -997,6 +1254,11 @@ impl ApmInfo {
         self.edx.contains(ApmInfoEdx::PROCFEEDBACKIF)
     }
 
+    pub fn set_feedback_iface(&mut self, bit: bool) -> &mut Self {
+        self.edx.contains(ApmInfoEdx::PROCFEEDBACKIF);
+        self
+    }
+
     /// Has Processor power reporting interface?
     ///
     /// # Platforms
@@ -1004,12 +1266,17 @@ impl ApmInfo {
     pub fn has_power_reporting_iface(&self) -> bool {
         self.edx.contains(ApmInfoEdx::PROCPWRREPORT)
     }
+
+    pub fn set_power_reporting_iface(&mut self, bit: bool) -> &mut Self {
+        self.edx.contains(ApmInfoEdx::PROCPWRREPORT);
+        self
+    }
 }
 
 bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    struct ApmInfoEdx: u32 {
+    pub(crate) struct ApmInfoEdx: u32 {
         const TS = 1 << 0;
         const FID = 1 << 1;
         const VID = 1 << 2;
@@ -1028,7 +1295,7 @@ bitflags! {
 bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    struct RasCapabilities: u32 {
+    pub(crate) struct RasCapabilities: u32 {
         const MCAOVFLRECOV = 1 << 0;
         const SUCCOR = 1 << 1;
         const HWA = 1 << 2;
@@ -1046,13 +1313,22 @@ bitflags! {
 /// ✅ AMD 🟡 Intel
 #[derive(PartialEq, Eq)]
 pub struct ProcessorCapacityAndFeatureInfo {
-    eax: u32,
-    ebx: ProcessorCapacityAndFeatureEbx,
-    ecx: u32,
-    edx: u32,
+    pub(crate) eax: u32,
+    pub(crate) ebx: ProcessorCapacityAndFeatureEbx,
+    pub(crate) ecx: u32,
+    pub(crate) edx: u32,
 }
 
 impl ProcessorCapacityAndFeatureInfo {
+    pub fn empty() -> Self {
+        Self {
+            eax: 0,
+            ebx: ProcessorCapacityAndFeatureEbx::from_bits_truncate(0),
+            ecx: 0,
+            edx: 0,
+        }
+    }
+
     pub(crate) fn new(data: CpuIdResult) -> Self {
         Self {
             eax: data.eax,
@@ -1070,12 +1346,22 @@ impl ProcessorCapacityAndFeatureInfo {
         get_bits(self.eax, 0, 7) as u8
     }
 
+    pub fn set_physical_address_bits(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 0, 7);
+        self
+    }
+
     /// Linear Address Bits
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
     pub fn linear_address_bits(&self) -> u8 {
         get_bits(self.eax, 8, 15) as u8
+    }
+
+    pub fn set_linear_address_bits(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 8, 15);
+        self
     }
 
     /// Guest Physical Address Bits
@@ -1090,12 +1376,22 @@ impl ProcessorCapacityAndFeatureInfo {
         get_bits(self.eax, 16, 23) as u8
     }
 
+    pub fn set_guest_physical_address_bits(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 16, 23);
+        self
+    }
+
     /// CLZERO instruction supported if set.
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=false)
     pub fn has_cl_zero(&self) -> bool {
         self.ebx.contains(ProcessorCapacityAndFeatureEbx::CLZERO)
+    }
+
+    pub fn set_cl_zero(&mut self, bit: bool) -> &mut Self {
+        self.ebx.contains(ProcessorCapacityAndFeatureEbx::CLZERO);
+        self
     }
 
     /// Instruction Retired Counter MSR available if set.
@@ -1107,6 +1403,12 @@ impl ProcessorCapacityAndFeatureInfo {
             .contains(ProcessorCapacityAndFeatureEbx::INST_RETCNT_MSR)
     }
 
+    pub fn set_inst_ret_cntr_msr(&mut self, bit: bool) -> &mut Self {
+        self.ebx
+            .contains(ProcessorCapacityAndFeatureEbx::INST_RETCNT_MSR);
+        self
+    }
+
     /// FP Error Pointers Restored by XRSTOR if set.
     ///
     /// # Platforms
@@ -1114,6 +1416,12 @@ impl ProcessorCapacityAndFeatureInfo {
     pub fn has_restore_fp_error_ptrs(&self) -> bool {
         self.ebx
             .contains(ProcessorCapacityAndFeatureEbx::RSTR_FP_ERR_PTRS)
+    }
+
+    pub fn set_restore_fp_error_ptrs(&mut self, bit: bool) -> &mut Self {
+        self.ebx
+            .contains(ProcessorCapacityAndFeatureEbx::RSTR_FP_ERR_PTRS);
+        self
     }
 
     /// INVLPGB and TLBSYNC instruction supported if set.
@@ -1124,12 +1432,22 @@ impl ProcessorCapacityAndFeatureInfo {
         self.ebx.contains(ProcessorCapacityAndFeatureEbx::INVLPGB)
     }
 
+    pub fn set_invlpgb(&mut self, bit: bool) -> &mut Self {
+        self.ebx.contains(ProcessorCapacityAndFeatureEbx::INVLPGB);
+        self
+    }
+
     /// RDPRU instruction supported if set.
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=false)
     pub fn has_rdpru(&self) -> bool {
         self.ebx.contains(ProcessorCapacityAndFeatureEbx::RDPRU)
+    }
+
+    pub fn set_rdpru(&mut self, bit: bool) -> &mut Self {
+        self.ebx.contains(ProcessorCapacityAndFeatureEbx::RDPRU);
+        self
     }
 
     /// MCOMMIT instruction supported if set.
@@ -1140,12 +1458,22 @@ impl ProcessorCapacityAndFeatureInfo {
         self.ebx.contains(ProcessorCapacityAndFeatureEbx::MCOMMIT)
     }
 
+    pub fn set_mcommit(&mut self, bit: bool) -> &mut Self {
+        self.ebx.contains(ProcessorCapacityAndFeatureEbx::MCOMMIT);
+        self
+    }
+
     /// WBNOINVD instruction supported if set.
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
     pub fn has_wbnoinvd(&self) -> bool {
         self.ebx.contains(ProcessorCapacityAndFeatureEbx::WBNOINVD)
+    }
+
+    pub fn set_wbnoinvd(&mut self, bit: bool) -> &mut Self {
+        self.ebx.contains(ProcessorCapacityAndFeatureEbx::WBNOINVD);
+        self
     }
 
     /// WBINVD/WBNOINVD are interruptible if set.
@@ -1157,6 +1485,12 @@ impl ProcessorCapacityAndFeatureInfo {
             .contains(ProcessorCapacityAndFeatureEbx::INT_WBINVD)
     }
 
+    pub fn set_int_wbinvd(&mut self, bit: bool) -> &mut Self {
+        self.ebx
+            .contains(ProcessorCapacityAndFeatureEbx::INT_WBINVD);
+        self
+    }
+
     /// EFER.LMSLE is unsupported if set.
     ///
     /// # Platforms
@@ -1166,6 +1500,12 @@ impl ProcessorCapacityAndFeatureInfo {
             .contains(ProcessorCapacityAndFeatureEbx::EFER_LMSLE_UNSUPP)
     }
 
+    pub fn set_unsupported_efer_lmsle(&mut self, bit: bool) -> &mut Self {
+        self.ebx
+            .contains(ProcessorCapacityAndFeatureEbx::EFER_LMSLE_UNSUPP);
+        self
+    }
+
     /// INVLPGB support for invalidating guest nested translations if set.
     ///
     /// # Platforms
@@ -1173,6 +1513,12 @@ impl ProcessorCapacityAndFeatureInfo {
     pub fn has_invlpgb_nested(&self) -> bool {
         self.ebx
             .contains(ProcessorCapacityAndFeatureEbx::INVLPGB_NESTED)
+    }
+
+    pub fn set_invlpgb_nested(&mut self, bit: bool) -> &mut Self {
+        self.ebx
+            .contains(ProcessorCapacityAndFeatureEbx::INVLPGB_NESTED);
+        self
     }
 
     /// Performance time-stamp counter size (in bits).
@@ -1192,6 +1538,11 @@ impl ProcessorCapacityAndFeatureInfo {
         }
     }
 
+    pub fn set_perf_tsc_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ecx, bits, 16, 17);
+        self
+    }
+
     /// APIC ID size.
     ///
     /// A value of zero indicates that legacy methods must be used to determine
@@ -1202,6 +1553,11 @@ impl ProcessorCapacityAndFeatureInfo {
     /// ✅ AMD ❌ Intel (reserved=0)
     pub fn apic_id_size(&self) -> u8 {
         get_bits(self.ecx, 12, 15) as u8
+    }
+
+    pub fn set_apic_id_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ecx, bits, 12, 15);
+        self
     }
 
     /// The size of the `apic_id_size` field determines the maximum number of
@@ -1225,6 +1581,14 @@ impl ProcessorCapacityAndFeatureInfo {
         get_bits(self.ecx, 0, 7) as usize + 1
     }
 
+    /// Set the number of physical threads in the processor.
+    ///
+    /// The value provided here is one more than will be recorded in the CPUID tables.
+    pub fn set_num_phys_threads(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ecx, bits - 1, 0, 7);
+        self
+    }
+
     /// Maximum page count for INVLPGB instruction.
     ///
     /// # Platforms
@@ -1233,12 +1597,22 @@ impl ProcessorCapacityAndFeatureInfo {
         get_bits(self.edx, 0, 15) as u16
     }
 
+    pub fn set_invlpgb_max_pages(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.edx, bits, 0, 15);
+        self
+    }
+
     /// The maximum ECX value recognized by RDPRU.
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved=0)
     pub fn max_rdpru_id(&self) -> u16 {
         get_bits(self.edx, 16, 31) as u16
+    }
+
+    pub fn set_max_rdpru_id(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.edx, bits, 16, 31);
+        self
     }
 }
 
@@ -1283,7 +1657,7 @@ impl Debug for ProcessorCapacityAndFeatureInfo {
 bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    struct ProcessorCapacityAndFeatureEbx: u32 {
+    pub(crate) struct ProcessorCapacityAndFeatureEbx: u32 {
         const CLZERO = 1 << 0;
         const INST_RETCNT_MSR = 1 << 1;
         const RSTR_FP_ERR_PTRS = 1 << 2;
@@ -1307,11 +1681,11 @@ bitflags! {
 /// ✅ AMD ❌ Intel
 #[derive(PartialEq, Eq, Debug)]
 pub struct SvmFeatures {
-    eax: u32,
-    ebx: u32,
+    pub(crate) eax: u32,
+    pub(crate) ebx: u32,
     /// Reserved
-    _ecx: u32,
-    edx: SvmFeaturesEdx,
+    pub(crate) _ecx: u32,
+    pub(crate) edx: SvmFeaturesEdx,
 }
 
 impl SvmFeatures {
@@ -1433,7 +1807,7 @@ impl SvmFeatures {
 bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    struct SvmFeaturesEdx: u32 {
+    pub(crate) struct SvmFeaturesEdx: u32 {
         const NP = 1 << 0;
         const LBR_VIRT = 1 << 1;
         const SVML = 1 << 2;
@@ -1461,15 +1835,24 @@ bitflags! {
 /// ✅ AMD ❌ Intel
 #[derive(PartialEq, Eq, Debug)]
 pub struct Tlb1gbPageInfo {
-    eax: u32,
-    ebx: u32,
+    pub(crate) eax: u32,
+    pub(crate) ebx: u32,
     /// Reserved
-    _ecx: u32,
+    pub(crate) _ecx: u32,
     /// Reserved
-    _edx: u32,
+    pub(crate) _edx: u32,
 }
 
 impl Tlb1gbPageInfo {
+    pub fn empty() -> Self {
+        Self {
+            eax: 0,
+            ebx: 0,
+            _ecx: 0,
+            _edx: 0,
+        }
+    }
+
     pub(crate) fn new(data: CpuIdResult) -> Self {
         Self {
             eax: data.eax,
@@ -1485,9 +1868,19 @@ impl Tlb1gbPageInfo {
         Associativity::for_l2(assoc_bits)
     }
 
+    pub fn set_dtlb_l1_1gb_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 28, 31);
+        self
+    }
+
     /// L1 Data TLB number of entries for 1-GB pages.
     pub fn dtlb_l1_1gb_size(&self) -> u8 {
         get_bits(self.eax, 16, 27) as u8
+    }
+
+    pub fn set_dtlb_l1_1gb_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 16, 27);
+        self
     }
 
     /// L1 Instruction TLB associativity for 1-GB pages.
@@ -1496,9 +1889,19 @@ impl Tlb1gbPageInfo {
         Associativity::for_l2(assoc_bits)
     }
 
+    pub fn set_itlb_l1_1gb_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 12, 15);
+        self
+    }
+
     /// L1 Instruction TLB number of entries for 1-GB pages.
     pub fn itlb_l1_1gb_size(&self) -> u8 {
         get_bits(self.eax, 0, 11) as u8
+    }
+
+    pub fn set_itlb_l1_1gb_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.eax, bits, 0, 11);
+        self
     }
 
     /// L2 Data TLB associativity for 1-GB pages.
@@ -1507,9 +1910,19 @@ impl Tlb1gbPageInfo {
         Associativity::for_l2(assoc_bits)
     }
 
+    pub fn set_dtlb_l2_1gb_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 28, 31);
+        self
+    }
+
     /// L2 Data TLB number of entries for 1-GB pages.
     pub fn dtlb_l2_1gb_size(&self) -> u8 {
         get_bits(self.ebx, 16, 27) as u8
+    }
+
+    pub fn set_dtlb_l2_1gb_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 16, 27);
+        self
     }
 
     /// L2 Instruction TLB associativity for 1-GB pages.
@@ -1518,9 +1931,19 @@ impl Tlb1gbPageInfo {
         Associativity::for_l2(assoc_bits)
     }
 
+    pub fn set_itlb_l2_1gb_associativity(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 12, 15);
+        self
+    }
+
     /// L2 Instruction TLB number of entries for 1-GB pages.
     pub fn itlb_l2_1gb_size(&self) -> u8 {
         get_bits(self.ebx, 0, 11) as u8
+    }
+
+    pub fn set_itlb_l2_1gb_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 0, 11);
+        self
     }
 }
 
@@ -1530,16 +1953,25 @@ impl Tlb1gbPageInfo {
 /// ✅ AMD ❌ Intel
 #[derive(PartialEq, Eq, Debug)]
 pub struct PerformanceOptimizationInfo {
-    eax: PerformanceOptimizationInfoEax,
+    pub(crate) eax: PerformanceOptimizationInfoEax,
     /// Reserved
-    _ebx: u32,
+    pub(crate) _ebx: u32,
     /// Reserved
-    _ecx: u32,
+    pub(crate) _ecx: u32,
     /// Reserved
-    _edx: u32,
+    pub(crate) _edx: u32,
 }
 
 impl PerformanceOptimizationInfo {
+    pub fn empty() -> Self {
+        Self {
+            eax: PerformanceOptimizationInfoEax::from_bits_truncate(0),
+            _ebx: 0,
+            _ecx: 0,
+            _edx: 0,
+        }
+    }
+
     pub(crate) fn new(data: CpuIdResult) -> Self {
         Self {
             eax: PerformanceOptimizationInfoEax::from_bits_truncate(data.eax),
@@ -1554,22 +1986,37 @@ impl PerformanceOptimizationInfo {
         self.eax.contains(PerformanceOptimizationInfoEax::FP128)
     }
 
+    pub fn set_fp128(&mut self, bit: bool) -> &mut Self {
+        self.eax.set(PerformanceOptimizationInfoEax::FP128, bit);
+        self
+    }
+
     /// MOVU (Move Unaligned) SSE instructions are efficient more than
     /// MOVL/MOVH SSE if set.
     pub fn has_movu(&self) -> bool {
         self.eax.contains(PerformanceOptimizationInfoEax::MOVU)
     }
 
+    pub fn set_movu(&mut self, bit: bool) -> &mut Self {
+        self.eax.set(PerformanceOptimizationInfoEax::MOVU, bit);
+        self
+    }
+
     /// The internal FP/SIMD execution datapath is 256 bits wide if set.
     pub fn has_fp256(&self) -> bool {
         self.eax.contains(PerformanceOptimizationInfoEax::FP256)
+    }
+
+    pub fn set_fp256(&mut self, bit: bool) -> &mut Self {
+        self.eax.set(PerformanceOptimizationInfoEax::FP256, bit);
+        self
     }
 }
 
 bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    struct PerformanceOptimizationInfoEax: u32 {
+    pub(crate) struct PerformanceOptimizationInfoEax: u32 {
         const FP128 = 1 << 0;
         const MOVU = 1 << 1;
         const FP256 = 1 << 2;
@@ -1582,11 +2029,11 @@ bitflags! {
 /// ✅ AMD ❌ Intel
 #[derive(PartialEq, Eq)]
 pub struct ProcessorTopologyInfo {
-    eax: u32,
-    ebx: u32,
-    ecx: u32,
+    pub(crate) eax: u32,
+    pub(crate) ebx: u32,
+    pub(crate) ecx: u32,
     /// Reserved
-    _edx: u32,
+    pub(crate) _edx: u32,
 }
 
 impl ProcessorTopologyInfo {
@@ -1649,10 +2096,10 @@ impl Debug for ProcessorTopologyInfo {
 /// ✅ AMD ❌ Intel
 #[derive(Debug, PartialEq, Eq)]
 pub struct MemoryEncryptionInfo {
-    eax: MemoryEncryptionInfoEax,
-    ebx: u32,
-    ecx: u32,
-    edx: u32,
+    pub(crate) eax: MemoryEncryptionInfoEax,
+    pub(crate) ebx: u32,
+    pub(crate) ecx: u32,
+    pub(crate) edx: u32,
 }
 
 impl MemoryEncryptionInfo {
@@ -1754,7 +2201,7 @@ impl MemoryEncryptionInfo {
 bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    struct MemoryEncryptionInfoEax: u32 {
+    pub(crate) struct MemoryEncryptionInfoEax: u32 {
         const SME = 1 << 0;
         const SEV = 1 << 1;
         const PAGE_FLUSH_MSR = 1 << 2;
