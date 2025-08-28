@@ -889,7 +889,7 @@ impl<R: CpuIdReader> CpuId<R> {
         }
     }
 
-    /// This function provides information about the SVM features that the processory
+    /// This function provides information about the SVM features that the processor
     /// supports. (LEAF=0x8000_000A)
     ///
     /// If SVM is not supported if [ExtendedProcessorFeatureIdentifiers::has_svm] is
@@ -2810,7 +2810,7 @@ impl MonitorMwaitInfo {
         get_bits(self.eax, 0, 15) as u16
     }
 
-    /// Largest monitor-line size in bytes (default is processor's monitor granularity
+    /// Largest monitor-line size in bytes (default is processor's monitor granularity)
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
@@ -3710,6 +3710,15 @@ impl ExtendedFeatures {
         self.edx.contains(ExtendedFeaturesEdx::AVX512_4FMAPS)
     }
 
+    /// Supports FSRM.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    #[inline]
+    pub const fn has_fsrm(&self) -> bool {
+        self.edx.contains(ExtendedFeaturesEdx::FSRM)
+    }
+
     /// Supports AVX512_VP2INTERSECT.
     ///
     /// # Platforms
@@ -3952,7 +3961,7 @@ bitflags! {
         const RDTM = 1 << 12;
         /// Deprecates FPU CS and FPU DS values if 1. (Bit 13)
         const DEPRECATE_FPU_CS_DS = 1 << 13;
-        /// Deprecates FPU CS and FPU DS values if 1. (Bit 14)
+        /// Supports Intel Memory Protection Extensions if set. (Bit 14)
         const MPX = 1 << 14;
         /// Supports Intel Resource Director Technology (RDT) Allocation capability if 1.
         const RDTA = 1 << 15;
@@ -4053,6 +4062,9 @@ bitflags! {
         const AVX512_4VNNIW = 1 << 2;
         /// Bit 03: AVX512_4FMAPS. (Intel® Xeon Phi™ only).
         const AVX512_4FMAPS = 1 << 3;
+        /// Bit 04: Fast Short REP MOVSB (FSRM). Documented only in Intel SDM, present on Intel and
+        /// AMD (Zen 3 and later).
+        const FSRM = 1 << 4;
         /// Bit 08: AVX512_VP2INTERSECT.
         const AVX512_VP2INTERSECT = 1 << 8;
         /// Bit 22: AMX-BF16. If 1, the processor supports tile computational operations on bfloat16 numbers.
@@ -4063,6 +4075,8 @@ bitflags! {
         const AMX_TILE = 1 << 24;
         /// Bit 25: AMX-INT8. If 1, the processor supports tile computational operations on 8-bit integers.
         const AMX_INT8 = 1 << 25;
+        /// Bit 26: IBRS and IBPB. If 1, the processor supports Indirect Branch Restricted Speculation and Indirect Branch Prediction Barrier controls.
+        const IBRS = 1 << 26;
     }
 }
 
