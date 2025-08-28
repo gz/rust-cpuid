@@ -1,7 +1,13 @@
 //! An example of loading and printing features from a CPUID dump.
 extern crate raw_cpuid;
 
-use raw_cpuid::{CpuIdReader, CpuIdResult, CpuIdWriter, FeatureInfo, Vendor, VendorInfo, ThermalPowerInfo, ExtendedFeatures, ExtendedTopologyLevel, ExtendedState, ExtendedStateInfo, L1CacheTlbInfo, L2And3CacheTlbInfo, ApmInfo, ProcessorCapacityAndFeatureInfo, PerformanceOptimizationInfo, Tlb1gbPageInfo};
+use raw_cpuid::{
+    ApmInfo, CpuIdReader, CpuIdResult, CpuIdWriter, ExtendedFeatureIdentification2,
+    ExtendedFeatures, ExtendedProcessorFeatureIdentifiers, ExtendedState, ExtendedStateInfo,
+    ExtendedTopologyLevel, FeatureInfo, L1CacheTlbInfo, L2And3CacheTlbInfo,
+    PerformanceOptimizationInfo, ProcessorCapacityAndFeatureInfo, ProcessorTopologyInfo,
+    ThermalPowerInfo, Tlb1gbPageInfo, Vendor, VendorInfo,
+};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -25,7 +31,6 @@ impl CpuidEntry {
     }
 }
 
-
 #[derive(Clone)]
 enum LeafOrSubleaves {
     Leaf(CpuIdResult),
@@ -48,7 +53,7 @@ impl CpuIdDump {
     // (that also lets this pick the right leaf/subleaf fallback behavior from the get-go)
     fn new() -> Self {
         Self {
-            leaves: HashMap::new()
+            leaves: HashMap::new(),
         }
     }
 }
@@ -61,7 +66,42 @@ const DEFAULT_LEAF: CpuIdResult = CpuIdResult {
 };
 
 impl CpuIdWriter for CpuIdDump {
-    fn set_leaf(&mut self, leaf: u32, bits: Option<CpuIdResult>) {
+    fn set_leaf(&mut self, leaf: u32, mut bits: Option<CpuIdResult>) {
+        // Many bits in 8000_0001h EDX, if present, mirror leaf 1h EDX. Maintain that before
+        // storing the bits.
+        if let Some(bits) = bits.as_mut() {
+            const MIRROR_MASK: u32 = 0b0000_0001_1000_0011_1111_0011_1111_1111;
+
+            let update = if leaf == 0x0000_0001 {
+                // We're updating leaf 1h, so go fix up leaf 8000_0001h (if present)
+                match self.leaves.get_mut(&0x8000_0001) {
+                    Some(LeafOrSubleaves::Leaf(ext_info)) => {
+                        ext_info.edx &= !MIRROR_MASK;
+                        ext_info.edx |= bits.edx & MIRROR_MASK;
+                    }
+                    Some(_) => {
+                        panic!("extended feature information leaf (8000_0001h) had subleaves?");
+                    }
+                    None => {
+                        // No leaf 8000_0001h to mirror to (yet?)
+                    }
+                }
+            } else if leaf == 0x8000_0001 {
+                match self.leaves.get(&0x0000_0001) {
+                    Some(LeafOrSubleaves::Leaf(prior_bits)) => {
+                        bits.edx &= !MIRROR_MASK;
+                        bits.edx |= prior_bits.edx & MIRROR_MASK;
+                    }
+                    Some(_) => {
+                        panic!("feature information leaf (01h) had subleaves?");
+                    }
+                    None => {
+                        // No leaf 1h to shadow (yet?)
+                    }
+                }
+            };
+        }
+
         if let Some(bits) = bits {
             self.leaves.insert(leaf, LeafOrSubleaves::Leaf(bits));
         } else {
@@ -72,7 +112,11 @@ impl CpuIdWriter for CpuIdDump {
     }
     fn set_subleaf(&mut self, leaf: u32, subleaf: u32, bits: Option<CpuIdResult>) {
         if let Some(bits) = bits {
-            match self.leaves.entry(leaf).or_insert(LeafOrSubleaves::Subleaf(HashMap::new())) {
+            match self
+                .leaves
+                .entry(leaf)
+                .or_insert(LeafOrSubleaves::Subleaf(HashMap::new()))
+            {
                 LeafOrSubleaves::Leaf(_) => {
                     panic!("adding a subleaf where there's a leaf. no");
                 }
@@ -81,10 +125,12 @@ impl CpuIdWriter for CpuIdDump {
                 }
             }
         } else {
-            self.leaves.get_mut(&leaf).map(|ent| if let LeafOrSubleaves::Subleaf(leaves) = ent {
-                leaves.remove(&subleaf);
-            } else {
-                panic!("removing a subleaf when there's a leaf. no");
+            self.leaves.get_mut(&leaf).map(|ent| {
+                if let LeafOrSubleaves::Subleaf(leaves) = ent {
+                    leaves.remove(&subleaf);
+                } else {
+                    panic!("removing a subleaf when there's a leaf. no");
+                }
             });
         }
 
@@ -119,7 +165,11 @@ impl CpuIdDump {
         }
 
         if let Some(eax) = max_standard {
-            match self.leaves.entry(0).or_insert(LeafOrSubleaves::Leaf(CpuIdResult::empty())) {
+            match self
+                .leaves
+                .entry(0)
+                .or_insert(LeafOrSubleaves::Leaf(CpuIdResult::empty()))
+            {
                 LeafOrSubleaves::Leaf(leaf) => {
                     leaf.eax = eax;
                 }
@@ -130,7 +180,11 @@ impl CpuIdDump {
         }
 
         if let Some(eax) = max_hv {
-            match self.leaves.entry(0x40000000).or_insert(LeafOrSubleaves::Leaf(CpuIdResult::empty())) {
+            match self
+                .leaves
+                .entry(0x40000000)
+                .or_insert(LeafOrSubleaves::Leaf(CpuIdResult::empty()))
+            {
                 LeafOrSubleaves::Leaf(leaf) => {
                     leaf.eax = eax;
                 }
@@ -141,7 +195,11 @@ impl CpuIdDump {
         }
 
         if let Some(eax) = max_extended {
-            match self.leaves.entry(0x80000000).or_insert(LeafOrSubleaves::Leaf(CpuIdResult::empty())) {
+            match self
+                .leaves
+                .entry(0x80000000)
+                .or_insert(LeafOrSubleaves::Leaf(CpuIdResult::empty()))
+            {
                 LeafOrSubleaves::Leaf(leaf) => {
                     leaf.eax = eax;
                 }
@@ -221,27 +279,13 @@ const MILAN_CPUID: [CpuidEntry; 32] = [
     cpuid_leaf!(0x1, 0x00A00F11, 0x00000800, 0xF6D83203, 0x078BFBFF),
     cpuid_leaf!(0x5, 0x00000000, 0x00000000, 0x00000000, 0x00000000),
     cpuid_leaf!(0x6, 0x00000004, 0x00000000, 0x00000000, 0x00000000),
-    cpuid_subleaf!(
-        0x7, 0x0, 0x00000000, 0x219803A9, 0x00000600, 0x00000010
-    ),
-    cpuid_subleaf!(
-        0xB, 0x0, 0x00000001, 0x00000002, 0x00000100, 0x00000000
-    ),
-    cpuid_subleaf!(
-        0xB, 0x1, 0x00000000, 0x00000000, 0x00000201, 0x00000000
-    ),
-    cpuid_subleaf!(
-        0xB, 0x2, 0x00000000, 0x00000000, 0x00000002, 0x00000000
-    ),
-    cpuid_subleaf!(
-        0xD, 0x0, 0x00000007, 0x00000340, 0x00000340, 0x00000000
-    ),
-    cpuid_subleaf!(
-        0xD, 0x1, 0x00000007, 0x00000340, 0x00000000, 0x00000000
-    ),
-    cpuid_subleaf!(
-        0xD, 0x2, 0x00000100, 0x00000240, 0x00000000, 0x00000000
-    ),
+    cpuid_subleaf!(0x7, 0x0, 0x00000000, 0x219803A9, 0x00000600, 0x00000010),
+    cpuid_subleaf!(0xB, 0x0, 0x00000001, 0x00000002, 0x00000100, 0x00000000),
+    cpuid_subleaf!(0xB, 0x1, 0x00000000, 0x00000000, 0x00000201, 0x00000000),
+    cpuid_subleaf!(0xB, 0x2, 0x00000000, 0x00000000, 0x00000002, 0x00000000),
+    cpuid_subleaf!(0xD, 0x0, 0x00000007, 0x00000340, 0x00000340, 0x00000000),
+    cpuid_subleaf!(0xD, 0x1, 0x00000007, 0x00000340, 0x00000000, 0x00000000),
+    cpuid_subleaf!(0xD, 0x2, 0x00000100, 0x00000240, 0x00000000, 0x00000000),
     cpuid_leaf!(0x80000000, 0x80000021, 0x68747541, 0x444D4163, 0x69746E65),
     // ecx bit 23 should be flipped true at some point, but is currently
     // hidden and will continue to be for the moment.
@@ -264,18 +308,10 @@ const MILAN_CPUID: [CpuidEntry; 32] = [
     cpuid_leaf!(0x8000001A, 0x00000006, 0x00000000, 0x00000000, 0x00000000),
     cpuid_leaf!(0x8000001B, 0x00000000, 0x00000000, 0x00000000, 0x00000000),
     cpuid_leaf!(0x8000001C, 0x00000000, 0x00000000, 0x00000000, 0x00000000),
-    cpuid_subleaf!(
-        0x8000001D, 0x0, 0x00000121, 0x01C0003F, 0x0000003F, 0x00000000
-    ),
-    cpuid_subleaf!(
-        0x8000001D, 0x1, 0x00000122, 0x01C0003F, 0x0000003F, 0x00000000
-    ),
-    cpuid_subleaf!(
-        0x8000001D, 0x2, 0x00000143, 0x01C0003F, 0x000003FF, 0x00000002
-    ),
-    cpuid_subleaf!(
-        0x8000001D, 0x3, 0x00000163, 0x03C0003F, 0x00007FFF, 0x00000001
-    ),
+    cpuid_subleaf!(0x8000001D, 0x0, 0x00000121, 0x01C0003F, 0x0000003F, 0x00000000),
+    cpuid_subleaf!(0x8000001D, 0x1, 0x00000122, 0x01C0003F, 0x0000003F, 0x00000000),
+    cpuid_subleaf!(0x8000001D, 0x2, 0x00000143, 0x01C0003F, 0x000003FF, 0x00000002),
+    cpuid_subleaf!(0x8000001D, 0x3, 0x00000163, 0x03C0003F, 0x00007FFF, 0x00000001),
     cpuid_leaf!(0x8000001E, 0x00000000, 0x00000100, 0x00000000, 0x00000000),
     cpuid_leaf!(0x8000001F, 0x00000000, 0x00000000, 0x00000000, 0x00000000),
     cpuid_leaf!(0x80000021, 0x00000045, 0x00000000, 0x00000000, 0x00000000),
@@ -286,6 +322,7 @@ fn synthetic_milan() -> CpuIdDump {
     let mut cpuid = raw_cpuid::CpuId::with_cpuid_reader(bits);
     let mut leaf = VendorInfo::amd();
     cpuid.set_vendor_info(Some(leaf));
+    cpuid.set_extended_function_info(Some(leaf));
 
     let mut leaf = FeatureInfo::new(Vendor::Amd);
 
@@ -458,7 +495,7 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_avx512vbmi2(false);
     leaf.set_cet_ss(false);
 
-    leaf.set_gfni(false); // TODO: milan??
+    leaf.set_gfni(false); // TODO: Not on Milan? Really??
     leaf.set_vaes(true);
     leaf.set_vpclmulqdq(true);
     leaf.set_avx512vnni(false);
@@ -525,6 +562,62 @@ fn synthetic_milan() -> CpuIdDump {
 
     cpuid.set_extended_state_info(Some(&leaves[..]));
 
+    let mut leaf = ExtendedProcessorFeatureIdentifiers::empty(Vendor::Amd);
+    // This is the same as the leaf 1 EAX configured earlier.
+    leaf.set_extended_signature(0x00A00F11);
+
+    // Set up EBX
+    leaf.set_pkg_type(0x4);
+
+    // Set up ECX
+    leaf.set_lahf_sahf(true);
+    leaf.set_cmp_legacy(false);
+    leaf.set_svm(false);
+    leaf.set_ext_apic_space(false);
+
+    leaf.set_alt_mov_cr8(true);
+    leaf.set_lzcnt(true);
+    leaf.set_sse4a(true);
+    leaf.set_misaligned_sse_mode(true);
+
+    leaf.set_prefetchw(true);
+    leaf.set_osvw(false); // May be set in hardware, hopefully can hide hardware errata from guests
+    leaf.set_ibs(false);
+    leaf.set_xop(false);
+
+    leaf.set_skinit(false);
+    leaf.set_wdt(false);
+    // Bit 15 is reserved here.
+    leaf.set_lwp(false);
+
+    leaf.set_fma4(false); // Not on Milan
+    // Bits 17-19 are reserved
+
+    // Bit 20 is reserved
+    // Bit 21 is reserved, formerly TBM
+    leaf.set_topology_extensions(true);
+    leaf.set_perf_cntr_extensions(false);
+
+    leaf.set_nb_perf_cntr_extensions(false);
+    // Bit 25 is reserved
+    leaf.set_data_access_bkpt_extension(true);
+    leaf.set_perf_tsc(false);
+
+    leaf.set_perf_cntr_llc_extensions(false);
+    leaf.set_monitorx_mwaitx(false);
+    leaf.set_addr_mask_extension(true);
+    // Bit 31 is reserved
+
+    // Set up EDX
+    leaf.set_syscall_sysret(true);
+    leaf.set_execute_disable(true);
+    leaf.set_mmx_extensions(true);
+    leaf.set_fast_fxsave_fxstor(true);
+    leaf.set_1gib_pages(true);
+    leaf.set_rdtscp(false);
+    leaf.set_64bit_mode(true);
+
+    cpuid.set_extended_processor_and_feature_identifiers(Some(leaf));
     // TODO: figure out leaves 8000_0000/8000_0001
 
     // Leaves 8000_0002 through 8000_0005
@@ -580,7 +673,7 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_l3cache_line_size(0x40);
     leaf.set_l3cache_lines_per_tag(0x1);
     leaf.set_l3cache_associativity(0x9);
-    leaf.set_l3cache_size(0x0800);
+    leaf.set_l3cache_size(0x0200);
 
     cpuid.set_l2_l3_cache_and_tlb_info(Some(leaf));
 
@@ -611,7 +704,8 @@ fn synthetic_milan() -> CpuIdDump {
 
     cpuid.set_processor_capacity_feature_info(Some(leaf));
 
-    // Set up TODO: (leaf 8000_000Ah)
+    // Leaf 8000_000Ah is zeroed out for guests.
+    cpuid.set_svm_info(None);
 
     // Set up TLB information for 1GiB pages (leaf 8000_0019h)
     let mut leaf = Tlb1gbPageInfo::empty();
@@ -621,9 +715,9 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_itlb_l1_1gb_size(0x40);
     leaf.set_dtlb_l2_1gb_associativity(0xF);
     leaf.set_dtlb_l2_1gb_size(0x40);
-    leaf.set_itlb_l1_1gb_associativity(0);
-    leaf.set_itlb_l1_1gb_size(0);
-    cpuid.set_tlb_1gb_page_info(Some(leaf)); // TODO: Would zero this
+    leaf.set_itlb_l2_1gb_associativity(0);
+    leaf.set_itlb_l2_1gb_size(0);
+    cpuid.set_tlb_1gb_page_info(Some(leaf));
 
     // Set up processor optimization info (leaf 8000_001Ah)
     let mut leaf = PerformanceOptimizationInfo::empty();
@@ -632,14 +726,50 @@ fn synthetic_milan() -> CpuIdDump {
     cpuid.set_performance_optimization_info(Some(leaf));
 
     // Leaf 8000_001B
-    // TODO: no support for leaf 1B?
+    // TODO: no support for leaf 8000_001B, but zero is what we wanted.
     // Leaf 8000_001C
-    // TODO: no support for leaf 1C?
+    // TODO: no support for leaf 8000_001C, but zero is what we wanted.
+
     // Leaf 8000_001D
 
-    // Leaf 8000_001Eh EBX bit 8 needs attention.
-    cpuid.set_processor_topology_info(None);
+    let mut levels = Vec::new();
+    levels.push(CpuIdResult {
+        eax: 0x00000121,
+        ebx: 0x01C0003F,
+        ecx: 0x0000003F,
+        edx: 0x00000000,
+    });
+    levels.push(CpuIdResult {
+        eax: 0x00000122,
+        ebx: 0x01C0003F,
+        ecx: 0x0000003F,
+        edx: 0x00000000,
+    });
+    levels.push(CpuIdResult {
+        eax: 0x00000143,
+        ebx: 0x01C0003F,
+        ecx: 0x000003FF,
+        edx: 0x00000002,
+    });
+    levels.push(CpuIdResult {
+        eax: 0x00000163,
+        ebx: 0x03C0003F,
+        ecx: 0x00007FFF,
+        edx: 0x00000001,
+    });
+    cpuid.set_extended_cache_parameters(Some(levels.as_slice()));
+
+    let mut leaf = ProcessorTopologyInfo::empty();
+    leaf.set_threads_per_core(2);
+    cpuid.set_processor_topology_info(Some(leaf));
+
     cpuid.set_memory_encryption_info(None);
+
+    let mut leaf = ExtendedFeatureIdentification2::empty();
+    leaf.set_no_nested_data_bp(true);
+    leaf.set_lfence_always_serializing(true);
+    leaf.set_null_select_clears_base(true);
+    cpuid.set_extended_feature_identification_2(Some(leaf));
 
     cpuid.into_source()
 }
@@ -658,23 +788,35 @@ fn main() {
 
         let place = match leaf.subleaf {
             Some(subleaf) => format!("leaf {:08x}h.{}h", leaf.leaf, subleaf),
-            None => format!("leaf {:08x}h", leaf.leaf)
+            None => format!("leaf {:08x}h", leaf.leaf),
         };
 
         if regs.eax != synth.eax {
-            panic!("{}: eax different: expected {:08x}, was {:08x}", place, regs.eax, synth.eax);
+            panic!(
+                "{}: eax different: expected {:08x}, was {:08x}",
+                place, regs.eax, synth.eax
+            );
         }
 
         if regs.ebx != synth.ebx {
-            panic!("{}: ebx different: expected {:08x}, was {:08x}", place, regs.ebx, synth.ebx);
+            panic!(
+                "{}: ebx different: expected {:08x}, was {:08x}",
+                place, regs.ebx, synth.ebx
+            );
         }
 
         if regs.ecx != synth.ecx {
-            panic!("{}: ecx different: expected {:08x}, was {:08x}", place, regs.ecx, synth.ecx);
+            panic!(
+                "{}: ecx different: expected {:08x}, was {:08x}",
+                place, regs.ecx, synth.ecx
+            );
         }
 
         if regs.edx != synth.edx {
-            panic!("{}: edx different: expected {:08x}, was {:08x}", place, regs.edx, synth.edx);
+            panic!(
+                "{}: edx different: expected {:08x}, was {:08x}",
+                place, regs.edx, synth.edx
+            );
         }
     }
 }

@@ -152,7 +152,7 @@ fn set_bits(r: &mut u32, v: u32, from: u32, to: u32) {
     let width = to - from + 1;
     let max = match width {
         32 => 0xffffffff,
-        _ => (1 << (to - from + 1)) - 1
+        _ => (1 << (to - from + 1)) - 1,
     };
     assert!(v <= max);
 
@@ -214,6 +214,9 @@ macro_rules! check_bit_fn {
 }
 
 /// Implements function to write cpuid.
+///
+/// Implementations are expected to maintain CPUID leaf limits (EAX in leaves 0h, 4000_0000h, and
+/// 8000_000h) cover defined leaves automatically as leaves are added and removed.
 pub trait CpuIdWriter {
     fn set_leaf(&mut self, leaf: u32, bits: Option<CpuIdResult>);
     fn set_subleaf(&mut self, leaf: u32, subleaf: u32, bits: Option<CpuIdResult>);
@@ -414,15 +417,47 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
         if let Some(leaf) = leaf {
             // Leaf 0 EAX is ignored: it is the maximum supported "standard" (0x00XXXXXX) leaf and
             // calculated based on what leaves have been set (or cleared).
-            self.source.set_leaf(EAX_VENDOR_INFO, Some(CpuIdResult {
-                eax: 0,
-                ebx: leaf.ebx,
-                ecx: leaf.ecx,
-                edx: leaf.edx
-            }));
+            self.source.set_leaf(
+                EAX_VENDOR_INFO,
+                Some(CpuIdResult {
+                    eax: 0,
+                    ebx: leaf.ebx,
+                    ecx: leaf.ecx,
+                    edx: leaf.edx,
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_VENDOR_INFO, None);
         }
+        Ok(())
+    }
+
+    /// Set extended function info (LEAF=0x8000_0000).
+    ///
+    /// Similar to leaf 0h, this leaf describes limit of valid extended CPUID leaves (at or above
+    /// 0x8000_0000) in EAX, with a vendor identifier (typically the same as leaf 0h) in EBX, ECX,
+    /// EDX.
+    ///
+    /// While the name is different, the leaf is structurally identical to leaf 0h (vendor info),
+    /// so that structure is taken to define this leaf as well.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
+    pub fn set_extended_function_info(&mut self, leaf: Option<VendorInfo>) -> Result<(), ()> {
+        if let Some(leaf) = leaf {
+            self.source.set_leaf(
+                EAX_EXTENDED_FUNCTION_INFO,
+                Some(CpuIdResult {
+                    eax: 0,
+                    ebx: leaf.ebx,
+                    ecx: leaf.ecx,
+                    edx: leaf.edx,
+                }),
+            );
+        } else {
+            self.source.set_leaf(EAX_EXTENDED_FUNCTION_INFO, None);
+        }
+
         Ok(())
     }
 
@@ -437,12 +472,15 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
             use core::convert::TryInto;
             let ecx = u32::from_le_bytes(bytes[0..4].try_into().expect("four bytes"));
             let edx = u32::from_le_bytes(bytes[4..8].try_into().expect("four bytes"));
-            self.source.set_leaf(EAX_FEATURE_INFO, Some(CpuIdResult {
-                eax: leaf.eax,
-                ebx: leaf.ebx,
-                ecx,
-                edx
-            }));
+            self.source.set_leaf(
+                EAX_FEATURE_INFO,
+                Some(CpuIdResult {
+                    eax: leaf.eax,
+                    ebx: leaf.ebx,
+                    ecx,
+                    edx,
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_FEATURE_INFO, None);
         }
@@ -450,78 +488,20 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     }
 
     /*
-    /// Query basic information about caches (LEAF=0x02).
-    ///
-    /// # Platforms
-    /// ❌ AMD ✅ Intel
-    pub fn set_cache_info(&self, leaf: Option<CacheInfoIter>) -> Result<(), ()> {
-        if let Some(leaf) = leaf {
-            self.source.set_leaf(, leaf)?;
-        }
-        if self.leaf_is_supported(EAX_CACHE_INFO) {
-            let res = self.source.cpuid1(EAX_CACHE_INFO);
-            Some(CacheInfoIter {
-                current: 1,
-                eax: res.eax,
-                ebx: res.ebx,
-                ecx: res.ecx,
-                edx: res.edx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Retrieve serial number of processor (LEAF=0x03).
-    ///
-    /// # Platforms
-    /// ❌ AMD ✅ Intel
-    pub fn set_processor_serial(&self, leaf: Option<ProcessorSerial>) -> Result<(), ()> {
-        if let Some(leaf) = leaf {
-            self.source.set_leaf(, leaf)?;
-        }
-        if self.leaf_is_supported(EAX_PROCESSOR_SERIAL) {
-            // upper 64-96 bits are in res1.eax:
-            let res1 = self.source.cpuid1(EAX_FEATURE_INFO);
-            let res = self.source.cpuid1(EAX_PROCESSOR_SERIAL);
-            Some(ProcessorSerial {
-                ecx: res.ecx,
-                edx: res.edx,
-                eax: res1.eax,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Retrieve more elaborate information about caches (LEAF=0x04 or 0x8000_001D).
-    ///
-    /// As opposed to [get_cache_info](CpuId::get_cache_info), this will tell us
-    /// about associativity, set size, line size of each level in the cache
-    /// hierarchy.
-    ///
-    /// # Platforms
-    /// 🟡 AMD ✅ Intel
-    pub fn set_cache_parameters(&self, leaf: Option<CacheParametersIter<R>>) -> Result<(), ()> {
-        if let Some(leaf) = leaf {
-            self.source.set_leaf(, leaf)?;
-        }
-        if self.leaf_is_supported(EAX_CACHE_PARAMETERS)
-            || (self.vendor == Vendor::Amd && self.leaf_is_supported(EAX_CACHE_PARAMETERS_AMD))
-        {
-            Some(CacheParametersIter {
-                source: self.source.clone(),
-                leaf: if self.vendor == Vendor::Amd {
-                    EAX_CACHE_PARAMETERS_AMD
-                } else {
-                    EAX_CACHE_PARAMETERS
-                },
-                current: 0,
-            })
-        } else {
-            None
-        }
-    }
+     * TODO:
+     * set_cache_info (leaf 2h)
+     * set_processor_serial (leaf 3h)
+     * set_cache_parameters (leaf 4h)
+     * set_extended_topology_info_v2 (leaf 1Fh)
+     * set_rdt_monitoring_info (leaf Fh)
+     * set_rdt_allocation_info (leaf 10H)
+     * set_sgx_info (leaf 12h)
+     * set_processor_trace_info (leaf 14h)
+     * set_tsc_info (leaf 15h)
+     * set_processor_frequency_info (leaf 16h)
+     * set_soc_vendor_info (leaf 17h)
+     * set_deterministic_address_translation_info (leaf 18h)
+     * set_hypervisor_info
     */
 
     /// Set information about how monitor/mwait works on this CPU (LEAF=0x05).
@@ -530,12 +510,15 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     /// 🟡 AMD ✅ Intel
     pub fn set_monitor_mwait_info(&mut self, leaf: Option<MonitorMwaitInfo>) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            self.source.set_leaf(EAX_MONITOR_MWAIT_INFO, Some(CpuIdResult {
-                eax: leaf.eax,
-                ebx: leaf.ebx,
-                ecx: leaf.ecx,
-                edx: leaf.edx
-            }));
+            self.source.set_leaf(
+                EAX_MONITOR_MWAIT_INFO,
+                Some(CpuIdResult {
+                    eax: leaf.eax,
+                    ebx: leaf.ebx,
+                    ecx: leaf.ecx,
+                    edx: leaf.edx,
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_MONITOR_MWAIT_INFO, None);
         }
@@ -548,12 +531,15 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     /// 🟡 AMD ✅ Intel
     pub fn set_thermal_power_info(&mut self, leaf: Option<ThermalPowerInfo>) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            self.source.set_leaf(EAX_THERMAL_POWER_INFO, Some(CpuIdResult {
-                eax: leaf.eax.bits(),
-                ebx: leaf.ebx,
-                ecx: leaf.ecx.bits(),
-                edx: leaf._edx,
-            }));
+            self.source.set_leaf(
+                EAX_THERMAL_POWER_INFO,
+                Some(CpuIdResult {
+                    eax: leaf.eax.bits(),
+                    ebx: leaf.ebx,
+                    ecx: leaf.ecx.bits(),
+                    edx: leaf._edx,
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_THERMAL_POWER_INFO, None);
         }
@@ -566,21 +552,25 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     /// 🟡 AMD ✅ Intel
     pub fn set_extended_feature_info(&mut self, leaf: Option<ExtendedFeatures>) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            self.source.set_subleaf(EAX_STRUCTURED_EXTENDED_FEATURE_INFO, 0,
+            self.source.set_subleaf(
+                EAX_STRUCTURED_EXTENDED_FEATURE_INFO,
+                0,
                 Some(CpuIdResult {
                     eax: leaf._eax,
                     ebx: leaf.ebx.bits(),
                     ecx: leaf.ecx.bits(),
                     edx: leaf.edx.bits(),
-                })
+                }),
             );
-            self.source.set_subleaf(EAX_STRUCTURED_EXTENDED_FEATURE_INFO, 1,
+            self.source.set_subleaf(
+                EAX_STRUCTURED_EXTENDED_FEATURE_INFO,
+                1,
                 Some(CpuIdResult {
                     eax: leaf.eax1.bits(),
                     ebx: leaf._ebx1,
                     ecx: leaf._ecx1,
                     edx: leaf.edx1.bits(),
-                })
+                }),
             );
         } else {
             self.source.set_leaf(EAX_THERMAL_POWER_INFO, None);
@@ -592,14 +582,20 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     ///
     /// # Platforms
     /// ❌ AMD ✅ Intel
-    pub fn set_direct_cache_access_info(&mut self, leaf: Option<DirectCacheAccessInfo>) -> Result<(), ()> {
+    pub fn set_direct_cache_access_info(
+        &mut self,
+        leaf: Option<DirectCacheAccessInfo>,
+    ) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            self.source.set_leaf(EAX_DIRECT_CACHE_ACCESS_INFO, Some(CpuIdResult {
-                eax: leaf.eax,
-                ebx: 0,
-                ecx: 0,
-                edx: 0
-            }));
+            self.source.set_leaf(
+                EAX_DIRECT_CACHE_ACCESS_INFO,
+                Some(CpuIdResult {
+                    eax: leaf.eax,
+                    ebx: 0,
+                    ecx: 0,
+                    edx: 0,
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_DIRECT_CACHE_ACCESS_INFO, None);
         }
@@ -611,14 +607,20 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     ///
     /// # Platforms
     /// ❌ AMD ✅ Intel
-    pub fn set_performance_monitoring_info(&mut self, leaf: Option<PerformanceMonitoringInfo>) -> Result<(), ()> {
+    pub fn set_performance_monitoring_info(
+        &mut self,
+        leaf: Option<PerformanceMonitoringInfo>,
+    ) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            self.source.set_leaf(EAX_PERFORMANCE_MONITOR_INFO, Some(CpuIdResult {
-                eax: leaf.eax,
-                ebx: leaf.ebx.bits(),
-                ecx: leaf._ecx,
-                edx: leaf.edx
-            }));
+            self.source.set_leaf(
+                EAX_PERFORMANCE_MONITOR_INFO,
+                Some(CpuIdResult {
+                    eax: leaf.eax,
+                    ebx: leaf.ebx.bits(),
+                    ecx: leaf._ecx,
+                    edx: leaf.edx,
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_PERFORMANCE_MONITOR_INFO, None);
         }
@@ -634,53 +636,43 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn set_extended_topology_info(&mut self, topo: Option<&[ExtendedTopologyLevel]>) -> Result<(), ()> {
+    pub fn set_extended_topology_info(
+        &mut self,
+        topo: Option<&[ExtendedTopologyLevel]>,
+    ) -> Result<(), ()> {
         // Since the whole topology must be provided at once, blow away any prior leaves up front.
         self.source.set_leaf(EAX_EXTENDED_TOPOLOGY_INFO, None);
 
         if let Some(topo) = topo {
             for (idx, level) in topo.iter().enumerate() {
                 use core::convert::TryInto;
-                let idx = idx.try_into().expect("extended topology subleaf fits into u32");
-                self.source.set_subleaf(EAX_EXTENDED_TOPOLOGY_INFO, idx, Some(CpuIdResult {
-                    eax: level.eax,
-                    ebx: level.ebx,
-                    ecx: level.ecx,
-                    edx: level.edx,
-                }));
+                let idx = idx
+                    .try_into()
+                    .expect("extended topology subleaf fits into u32");
+                self.source.set_subleaf(
+                    EAX_EXTENDED_TOPOLOGY_INFO,
+                    idx,
+                    Some(CpuIdResult {
+                        eax: level.eax,
+                        ebx: level.ebx,
+                        ecx: level.ecx,
+                        edx: level.edx,
+                    }),
+                );
             }
         }
 
         Ok(())
     }
 
-    /*
-     * TODO:
-    /// Extended information about topology (LEAF=0x1F).
-    ///
-    /// # Platforms
-    /// ❌ AMD ✅ Intel
-    pub fn set_extended_topology_info_v2(&self, leaf: Option<ExtendedTopologyIter<R>>) -> Result<(), ()> {
-        if let Some(leaf) = leaf {
-            self.source.set_leaf(, leaf)?;
-        }
-        if self.leaf_is_supported(EAX_EXTENDED_TOPOLOGY_INFO_V2) {
-            Some(ExtendedTopologyIter {
-                source: self.source.clone(),
-                level: 0,
-                is_v2: true,
-            })
-        } else {
-            None
-        }
-    }
-    */
-
     /// Information for saving/restoring extended register state (LEAF=0x0D).
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn set_extended_state_info(&mut self, info: Option<&[Option<CpuIdResult>]>) -> Result<(), ()> {
+    pub fn set_extended_state_info(
+        &mut self,
+        info: Option<&[Option<CpuIdResult>]>,
+    ) -> Result<(), ()> {
         // Since all extended state info must be provided at once, blow away any prior leaves up
         // front.
         self.source.set_leaf(EAX_EXTENDED_STATE_INFO, None);
@@ -688,227 +680,16 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
         if let Some(info) = info {
             for (idx, level) in info.iter().enumerate() {
                 use core::convert::TryInto;
-                let idx = idx.try_into().expect("extended state subleaf fits into u32");
-                self.source.set_subleaf(EAX_EXTENDED_STATE_INFO, idx, *level);
+                let idx = idx
+                    .try_into()
+                    .expect("extended state subleaf fits into u32");
+                self.source
+                    .set_subleaf(EAX_EXTENDED_STATE_INFO, idx, *level);
             }
         }
 
         Ok(())
     }
-
-    /*
-    /// Quality of service monitoring information (LEAF=0x0F).
-    ///
-    /// # Platforms
-    /// ❌ AMD ✅ Intel
-    pub fn set_rdt_monitoring_info(&self, leaf: Option<RdtMonitoringInfo<R>>) -> Result<(), ()> {
-        if let Some(leaf) = leaf {
-            self.source.set_leaf(, leaf)?;
-        }
-        let res = self.source.cpuid1(EAX_RDT_MONITORING);
-
-        if self.leaf_is_supported(EAX_RDT_MONITORING) {
-            Some(RdtMonitoringInfo {
-                source: self.source.clone(),
-                ebx: res.ebx,
-                edx: res.edx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Quality of service enforcement information (LEAF=0x10).
-    ///
-    /// # Platforms
-    /// ❌ AMD ✅ Intel
-    pub fn set_rdt_allocation_info(&self, leaf: Option<RdtAllocationInfo<R>>) -> Result<(), ()> {
-        if let Some(leaf) = leaf {
-            self.source.set_leaf(, leaf)?;
-        }
-        let res = self.source.cpuid1(EAX_RDT_ALLOCATION);
-
-        if self.leaf_is_supported(EAX_RDT_ALLOCATION) {
-            Some(RdtAllocationInfo {
-                source: self.source.clone(),
-                ebx: res.ebx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Information about secure enclave support (LEAF=0x12).
-    ///
-    /// # Platforms
-    /// ❌ AMD ✅ Intel
-    pub fn set_sgx_info(&self, leaf: Option<SgxInfo<R>>) -> Result<(), ()> {
-        if let Some(leaf) = leaf {
-            self.source.set_leaf(, leaf)?;
-        }
-        // Leaf 12H sub-leaf 0 (ECX = 0) is supported if CPUID.(EAX=07H, ECX=0H):EBX[SGX] = 1.
-        self.get_extended_feature_info().and_then(|info| {
-            if self.leaf_is_supported(EAX_SGX) && info.has_sgx() {
-                let res = self.source.cpuid2(EAX_SGX, 0);
-                let res1 = self.source.cpuid2(EAX_SGX, 1);
-                Some(SgxInfo {
-                    source: self.source.clone(),
-                    eax: res.eax,
-                    ebx: res.ebx,
-                    _ecx: res.ecx,
-                    edx: res.edx,
-                    eax1: res1.eax,
-                    ebx1: res1.ebx,
-                    ecx1: res1.ecx,
-                    edx1: res1.edx,
-                })
-            } else {
-                None
-            }
-        })
-    }
-
-    /// Intel Processor Trace Enumeration Information (LEAF=0x14).
-    ///
-    /// # Platforms
-    /// ❌ AMD ✅ Intel
-    pub fn set_processor_trace_info(&self, leaf: Option<ProcessorTraceInfo>) -> Result<(), ()> {
-        if let Some(leaf) = leaf {
-            self.source.set_leaf(, leaf)?;
-        }
-        if self.leaf_is_supported(EAX_TRACE_INFO) {
-            let res = self.source.cpuid2(EAX_TRACE_INFO, 0);
-            let res1 = if res.eax >= 1 {
-                Some(self.source.cpuid2(EAX_TRACE_INFO, 1))
-            } else {
-                None
-            };
-
-            Some(ProcessorTraceInfo {
-                _eax: res.eax,
-                ebx: res.ebx,
-                ecx: res.ecx,
-                _edx: res.edx,
-                leaf1: res1,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Time Stamp Counter/Core Crystal Clock Information (LEAF=0x15).
-    ///
-    /// # Platforms
-    /// ❌ AMD ✅ Intel
-    pub fn set_tsc_info(&self, leaf: Option<TscInfo>) -> Result<(), ()> {
-        if let Some(leaf) = leaf {
-            self.source.set_leaf(, leaf)?;
-        }
-        if self.leaf_is_supported(EAX_TIME_STAMP_COUNTER_INFO) {
-            let res = self.source.cpuid2(EAX_TIME_STAMP_COUNTER_INFO, 0);
-            Some(TscInfo {
-                eax: res.eax,
-                ebx: res.ebx,
-                ecx: res.ecx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Processor Frequency Information (LEAF=0x16).
-    ///
-    /// # Platforms
-    /// ❌ AMD ✅ Intel
-    pub fn set_processor_frequency_info(&self, leaf: Option<ProcessorFrequencyInfo>) -> Result<(), ()> {
-        if let Some(leaf) = leaf {
-            self.source.set_leaf(, leaf)?;
-        }
-        if self.leaf_is_supported(EAX_FREQUENCY_INFO) {
-            let res = self.source.cpuid1(EAX_FREQUENCY_INFO);
-            Some(ProcessorFrequencyInfo {
-                eax: res.eax,
-                ebx: res.ebx,
-                ecx: res.ecx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Contains SoC vendor specific information (LEAF=0x17).
-    ///
-    /// # Platforms
-    /// ❌ AMD ✅ Intel
-    pub fn set_soc_vendor_info(&self, leaf: Option<SoCVendorInfo<R>>) -> Result<(), ()> {
-        if let Some(leaf) = leaf {
-            self.source.set_leaf(, leaf)?;
-        }
-        if self.leaf_is_supported(EAX_SOC_VENDOR_INFO) {
-            let res = self.source.cpuid1(EAX_SOC_VENDOR_INFO);
-            Some(SoCVendorInfo {
-                source: self.source.clone(),
-                eax: res.eax,
-                ebx: res.ebx,
-                ecx: res.ecx,
-                edx: res.edx,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Query deterministic address translation feature (LEAF=0x18).
-    ///
-    /// # Platforms
-    /// ❌ AMD ✅ Intel
-    pub fn set_deterministic_address_translation_info(&self, leaf: Option<DatIter<R>>) -> Result<(), ()> {
-        if let Some(leaf) = leaf {
-            self.source.set_leaf(, leaf)?;
-        }
-        if self.leaf_is_supported(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO) {
-            let res = self
-                .source
-                .cpuid2(EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO, 0);
-            Some(DatIter {
-                source: self.source.clone(),
-                current: 0,
-                count: res.eax,
-            })
-        } else {
-            None
-        }
-    }
-    */
-
-    /*
-    /// Returns information provided by the hypervisor, if running
-    /// in a virtual environment (LEAF=0x4000_00xx).
-    ///
-    /// # Platform
-    /// Needs to be a virtual CPU to be supported.
-    pub fn set_hypervisor_info(&self, leaf: Option<HypervisorInfo<R>>) -> Result<(), ()> {
-        if let Some(leaf) = leaf {
-            self.source.set_leaf(, leaf)?;
-        } else {
-            panic!("TODO: no");
-        // We only fetch HypervisorInfo, if the Hypervisor-Flag is set.
-        // See https://github.com/gz/rust-cpuid/issues/52
-        self.get_feature_info()
-            .filter(|fi| fi.has_hypervisor())
-            .and_then(|_| {
-                let res = self.source.cpuid1(EAX_HYPERVISOR_INFO);
-                if res.eax > 0 {
-                    Some(HypervisorInfo {
-                        source: self.source.clone(),
-                        res,
-                    })
-                } else {
-                    None
-                }
-            })
-    }
-    */
 
     /// Extended Processor and Processor Feature Identifiers (LEAF=0x8000_0001).
     ///
@@ -916,19 +697,21 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     /// ✅ AMD 🟡 Intel
     pub fn set_extended_processor_and_feature_identifiers(
         &mut self,
-        leaf: Option<ExtendedProcessorFeatureIdentifiers>
+        leaf: Option<ExtendedProcessorFeatureIdentifiers>,
     ) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            self.source.set_leaf(EAX_EXTENDED_PROCESSOR_AND_FEATURE_IDENTIFIERS,
+            self.source.set_leaf(
+                EAX_EXTENDED_PROCESSOR_AND_FEATURE_IDENTIFIERS,
                 Some(CpuIdResult {
                     eax: leaf.eax,
                     ebx: leaf.ebx,
                     ecx: leaf.ecx.bits(),
                     edx: leaf.edx.bits(),
-                })
+                }),
             );
         } else {
-            self.source.set_leaf(EAX_EXTENDED_PROCESSOR_AND_FEATURE_IDENTIFIERS, None);
+            self.source
+                .set_leaf(EAX_EXTENDED_PROCESSOR_AND_FEATURE_IDENTIFIERS, None);
         }
 
         Ok(())
@@ -938,33 +721,68 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn set_processor_brand_string(&self, brand_string: Option<&'static [u8]>) -> Result<(), ()> {
-        // panic!("TODO: chunk and set brand string");
-        if let Some(brand_string) = brand_string {
+    pub fn set_processor_brand_string(
+        &mut self,
+        brand_string: Option<&'static [u8]>,
+    ) -> Result<(), ()> {
+        if let Some(mut brand_string) = brand_string {
             if brand_string.len() > 48 {
                 return Err(());
             }
 
-//            self.source.set_leaf(, leaf)?;
+            fn next_dword(buf: &mut &[u8]) -> u32 {
+                let to_read = core::cmp::min(buf.len(), 4);
+
+                let (current, remainder) = buf.split_at(to_read);
+
+                let mut res = [0u8; 4];
+                res[..current.len()].copy_from_slice(&current);
+                *buf = remainder;
+
+                // Brand strings are space-padded. Null-terminated, too, but that's handled by
+                // callers.
+                for i in to_read..4 {
+                    res[i] = 0x20;
+                }
+
+                u32::from_le_bytes(res)
+            }
+
+            let brand_string_0 = CpuIdResult {
+                eax: next_dword(&mut brand_string),
+                ebx: next_dword(&mut brand_string),
+                ecx: next_dword(&mut brand_string),
+                edx: next_dword(&mut brand_string),
+            };
+            let brand_string_1 = CpuIdResult {
+                eax: next_dword(&mut brand_string),
+                ebx: next_dword(&mut brand_string),
+                ecx: next_dword(&mut brand_string),
+                edx: next_dword(&mut brand_string),
+            };
+            let mut brand_string_2 = CpuIdResult {
+                eax: next_dword(&mut brand_string),
+                ebx: next_dword(&mut brand_string),
+                ecx: next_dword(&mut brand_string),
+                edx: next_dword(&mut brand_string),
+            };
+
+            // Mask out the last byte in the brand string section; this makes the string
+            // null-terminated.
+            brand_string_2.edx &= 0x00ffffff;
+
+            self.source
+                .set_leaf(EAX_EXTENDED_BRAND_STRING, Some(brand_string_0));
+            self.source
+                .set_leaf(EAX_EXTENDED_BRAND_STRING + 1, Some(brand_string_1));
+            self.source
+                .set_leaf(EAX_EXTENDED_BRAND_STRING + 2, Some(brand_string_2));
         } else {
-            panic!("TODO: no");
+            self.source.set_leaf(EAX_EXTENDED_BRAND_STRING, None);
+            self.source.set_leaf(EAX_EXTENDED_BRAND_STRING + 1, None);
+            self.source.set_leaf(EAX_EXTENDED_BRAND_STRING + 2, None);
         }
         Ok(())
-
-        /*
-        if self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING)
-            && self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING + 1)
-            && self.leaf_is_supported(EAX_EXTENDED_BRAND_STRING + 2)
-        {
-            Some(ProcessorBrandString::new([
-                self.source.cpuid1(EAX_EXTENDED_BRAND_STRING),
-                self.source.cpuid1(EAX_EXTENDED_BRAND_STRING + 1),
-                self.source.cpuid1(EAX_EXTENDED_BRAND_STRING + 2),
-            ]))
-        } else {
-            None
-        }
-        */
     }
 
     /// L1 Instruction Cache Information (LEAF=0x8000_0005)
@@ -973,12 +791,15 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     /// ✅ AMD ❌ Intel (reserved)
     pub fn set_l1_cache_and_tlb_info(&mut self, leaf: Option<L1CacheTlbInfo>) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            self.source.set_leaf(EAX_L1_CACHE_INFO, Some(CpuIdResult {
-                eax: leaf.eax,
-                ebx: leaf.ebx,
-                ecx: leaf.ecx,
-                edx: leaf.edx
-            }));
+            self.source.set_leaf(
+                EAX_L1_CACHE_INFO,
+                Some(CpuIdResult {
+                    eax: leaf.eax,
+                    ebx: leaf.ebx,
+                    ecx: leaf.ecx,
+                    edx: leaf.edx,
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_L1_CACHE_INFO, None);
         }
@@ -990,14 +811,20 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     ///
     /// # Platforms
     /// ✅ AMD 🟡 Intel
-    pub fn set_l2_l3_cache_and_tlb_info(&mut self, leaf: Option<L2And3CacheTlbInfo>) -> Result<(), ()> {
+    pub fn set_l2_l3_cache_and_tlb_info(
+        &mut self,
+        leaf: Option<L2And3CacheTlbInfo>,
+    ) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            self.source.set_leaf(EAX_L2_L3_CACHE_INFO, Some(CpuIdResult {
-                eax: leaf.eax,
-                ebx: leaf.ebx,
-                ecx: leaf.ecx,
-                edx: leaf.edx
-            }));
+            self.source.set_leaf(
+                EAX_L2_L3_CACHE_INFO,
+                Some(CpuIdResult {
+                    eax: leaf.eax,
+                    ebx: leaf.ebx,
+                    ecx: leaf.ecx,
+                    edx: leaf.edx,
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_L2_L3_CACHE_INFO, None);
         }
@@ -1011,12 +838,15 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     /// ✅ AMD 🟡 Intel
     pub fn set_advanced_power_mgmt_info(&mut self, leaf: Option<ApmInfo>) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            self.source.set_leaf(EAX_ADVANCED_POWER_MGMT_INFO, Some(CpuIdResult {
-                eax: leaf._eax,
-                ebx: leaf.ebx.bits(),
-                ecx: leaf.ecx,
-                edx: leaf.edx.bits()
-            }));
+            self.source.set_leaf(
+                EAX_ADVANCED_POWER_MGMT_INFO,
+                Some(CpuIdResult {
+                    eax: leaf._eax,
+                    ebx: leaf.ebx.bits(),
+                    ecx: leaf.ecx,
+                    edx: leaf.edx.bits(),
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_ADVANCED_POWER_MGMT_INFO, None);
         }
@@ -1028,14 +858,20 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     ///
     /// # Platforms
     /// ✅ AMD 🟡 Intel
-    pub fn set_processor_capacity_feature_info(&mut self, leaf: Option<ProcessorCapacityAndFeatureInfo>) -> Result<(), ()> {
+    pub fn set_processor_capacity_feature_info(
+        &mut self,
+        leaf: Option<ProcessorCapacityAndFeatureInfo>,
+    ) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            self.source.set_leaf(EAX_PROCESSOR_CAPACITY_INFO, Some(CpuIdResult {
-                eax: leaf.eax,
-                ebx: leaf.ebx.bits(),
-                ecx: leaf.ecx,
-                edx: leaf.edx
-            }));
+            self.source.set_leaf(
+                EAX_PROCESSOR_CAPACITY_INFO,
+                Some(CpuIdResult {
+                    eax: leaf.eax,
+                    ebx: leaf.ebx.bits(),
+                    ecx: leaf.ecx,
+                    edx: leaf.edx,
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_PROCESSOR_CAPACITY_INFO, None);
         }
@@ -1054,12 +890,15 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     /// ✅ AMD ❌ Intel
     pub fn set_svm_info(&mut self, leaf: Option<SvmFeatures>) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            self.source.set_leaf(EAX_SVM_FEATURES, Some(CpuIdResult {
-                eax: leaf.eax,
-                ebx: leaf.ebx,
-                ecx: leaf._ecx,
-                edx: leaf.edx.bits()
-            }));
+            self.source.set_leaf(
+                EAX_SVM_FEATURES,
+                Some(CpuIdResult {
+                    eax: leaf.eax,
+                    ebx: leaf.ebx,
+                    ecx: leaf._ecx,
+                    edx: leaf.edx.bits(),
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_SVM_FEATURES, None);
         }
@@ -1073,12 +912,15 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     /// ✅ AMD ❌ Intel
     pub fn set_tlb_1gb_page_info(&mut self, leaf: Option<Tlb1gbPageInfo>) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            self.source.set_leaf(EAX_TLB_1GB_PAGE_INFO, Some(CpuIdResult {
-                eax: leaf.eax,
-                ebx: leaf.ebx,
-                ecx: leaf._ecx,
-                edx: leaf._edx
-            }));
+            self.source.set_leaf(
+                EAX_TLB_1GB_PAGE_INFO,
+                Some(CpuIdResult {
+                    eax: leaf.eax,
+                    ebx: leaf.ebx,
+                    ecx: leaf._ecx,
+                    edx: leaf._edx,
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_TLB_1GB_PAGE_INFO, None);
         }
@@ -1090,16 +932,53 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved)
-    pub fn set_performance_optimization_info(&mut self, leaf: Option<PerformanceOptimizationInfo>) -> Result<(), ()> {
+    pub fn set_performance_optimization_info(
+        &mut self,
+        leaf: Option<PerformanceOptimizationInfo>,
+    ) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            self.source.set_leaf(EAX_PERFORMANCE_OPTIMIZATION_INFO, Some(CpuIdResult {
-                eax: leaf.eax.bits(),
-                ebx: leaf._ebx,
-                ecx: leaf._ecx,
-                edx: leaf._edx
-            }));
+            self.source.set_leaf(
+                EAX_PERFORMANCE_OPTIMIZATION_INFO,
+                Some(CpuIdResult {
+                    eax: leaf.eax.bits(),
+                    ebx: leaf._ebx,
+                    ecx: leaf._ecx,
+                    edx: leaf._edx,
+                }),
+            );
         } else {
-            self.source.set_leaf(EAX_PERFORMANCE_OPTIMIZATION_INFO, None);
+            self.source
+                .set_leaf(EAX_PERFORMANCE_OPTIMIZATION_INFO, None);
+        }
+
+        Ok(())
+    }
+
+    /// Information about processor cache hierarchy (LEAF=0x8000_001D)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn set_extended_cache_parameters(
+        &mut self,
+        levels: Option<&[CpuIdResult]>,
+    ) -> Result<(), ()> {
+        self.source.set_leaf(EAX_CACHE_PARAMETERS_AMD, None);
+
+        if let Some(levels) = levels {
+            for (idx, level) in levels.iter().enumerate() {
+                use core::convert::TryInto;
+                let idx = idx
+                    .try_into()
+                    .expect("extended cache parameters subleaf fits into u32");
+                self.source
+                    .set_subleaf(EAX_CACHE_PARAMETERS_AMD, idx, Some(*level));
+                /* CpuIdResult {
+                    eax: level.eax,
+                    ebx: level.ebx,
+                    ecx: level.ecx,
+                    edx: level.edx,
+                })); */
+            }
         }
 
         Ok(())
@@ -1109,15 +988,20 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved)
-    pub fn set_processor_topology_info(&mut self, leaf: Option<ProcessorTopologyInfo>) -> Result<(), ()> {
+    pub fn set_processor_topology_info(
+        &mut self,
+        leaf: Option<ProcessorTopologyInfo>,
+    ) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            // TODO: ProcessorTopologyInfo ugh
-            self.source.set_leaf(EAX_PROCESSOR_TOPOLOGY_INFO, Some(CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 0,
-                edx: 0
-            }));
+            self.source.set_leaf(
+                EAX_PROCESSOR_TOPOLOGY_INFO,
+                Some(CpuIdResult {
+                    eax: leaf.eax,
+                    ebx: leaf.ebx,
+                    ecx: leaf.ecx,
+                    edx: leaf._edx,
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_PROCESSOR_TOPOLOGY_INFO, None);
         }
@@ -1129,17 +1013,48 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved)
-    pub fn set_memory_encryption_info(&mut self, leaf: Option<MemoryEncryptionInfo>) -> Result<(), ()> {
+    pub fn set_memory_encryption_info(
+        &mut self,
+        leaf: Option<MemoryEncryptionInfo>,
+    ) -> Result<(), ()> {
         if let Some(leaf) = leaf {
-            // TODO: MemoryEncryptionInfo ugh
-            self.source.set_leaf(EAX_MEMORY_ENCRYPTION_INFO, Some(CpuIdResult {
-                eax: 0,
-                ebx: 0,
-                ecx: 0,
-                edx: 0
-            }));
+            self.source.set_leaf(
+                EAX_MEMORY_ENCRYPTION_INFO,
+                Some(CpuIdResult {
+                    eax: leaf.eax.bits(),
+                    ebx: leaf.ebx,
+                    ecx: leaf.ecx,
+                    edx: leaf.edx,
+                }),
+            );
         } else {
             self.source.set_leaf(EAX_MEMORY_ENCRYPTION_INFO, None);
+        }
+
+        Ok(())
+    }
+
+    /// Extended Feature Identification 2 (LEAF=0x8000_0021)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn set_extended_feature_identification_2(
+        &mut self,
+        leaf: Option<ExtendedFeatureIdentification2>,
+    ) -> Result<(), ()> {
+        if let Some(leaf) = leaf {
+            self.source.set_leaf(
+                EAX_EXTENDED_FEATURE_IDENTIFICATION_2,
+                Some(CpuIdResult {
+                    eax: leaf.eax.bits(),
+                    ebx: leaf.ebx,
+                    ecx: leaf._ecx,
+                    edx: leaf._edx,
+                }),
+            );
+        } else {
+            self.source
+                .set_leaf(EAX_EXTENDED_FEATURE_IDENTIFICATION_2, None);
         }
 
         Ok(())
@@ -1691,7 +1606,9 @@ impl<R: CpuIdReader> CpuId<R> {
     /// ✅ AMD 🟡 Intel
     pub fn get_advanced_power_mgmt_info(&self) -> Option<ApmInfo> {
         if self.leaf_is_supported(EAX_ADVANCED_POWER_MGMT_INFO) {
-            Some(ApmInfo::new(self.source.cpuid1(EAX_ADVANCED_POWER_MGMT_INFO)))
+            Some(ApmInfo::new(
+                self.source.cpuid1(EAX_ADVANCED_POWER_MGMT_INFO),
+            ))
         } else {
             None
         }
@@ -1736,7 +1653,9 @@ impl<R: CpuIdReader> CpuId<R> {
     /// ✅ AMD ❌ Intel
     pub fn get_tlb_1gb_page_info(&self) -> Option<Tlb1gbPageInfo> {
         if self.leaf_is_supported(EAX_TLB_1GB_PAGE_INFO) {
-            Some(Tlb1gbPageInfo::new(self.source.cpuid1(EAX_TLB_1GB_PAGE_INFO)))
+            Some(Tlb1gbPageInfo::new(
+                self.source.cpuid1(EAX_TLB_1GB_PAGE_INFO),
+            ))
         } else {
             None
         }
@@ -1940,7 +1859,7 @@ impl<R: CpuIdReader> Debug for CpuId<R> {
 ///
 /// # Platforms
 /// ✅ AMD ✅ Intel
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(C)]
 pub struct VendorInfo {
     ebx: u32,
@@ -4139,8 +4058,10 @@ impl ThermalPowerInfo {
     }
 
     pub fn set_hwp_energy_performance_preference(&mut self, bit: bool) -> &mut Self {
-        self.eax
-            .set(ThermalPowerFeaturesEax::HWP_ENERGY_PERFORMANCE_PREFERENCE, bit);
+        self.eax.set(
+            ThermalPowerFeaturesEax::HWP_ENERGY_PERFORMANCE_PREFERENCE,
+            bit,
+        );
         self
     }
 
@@ -4252,8 +4173,10 @@ impl ThermalPowerInfo {
     }
 
     pub fn set_ignore_idle_processor_hwp_request(&mut self, bit: bool) -> &mut Self {
-        self.eax
-            .set(ThermalPowerFeaturesEax::IGNORE_IDLE_PROCESSOR_HWP_REQUEST, bit);
+        self.eax.set(
+            ThermalPowerFeaturesEax::IGNORE_IDLE_PROCESSOR_HWP_REQUEST,
+            bit,
+        );
         self
     }
 
@@ -6019,7 +5942,8 @@ impl<R: CpuIdReader> Iterator for ExtendedTopologyIter<R> {
 
     fn next(&mut self) -> Option<ExtendedTopologyLevel> {
         let res = if self.is_v2 {
-            self.source.cpuid2(EAX_EXTENDED_TOPOLOGY_INFO_V2, self.level)
+            self.source
+                .cpuid2(EAX_EXTENDED_TOPOLOGY_INFO_V2, self.level)
         } else {
             self.source.cpuid2(EAX_EXTENDED_TOPOLOGY_INFO, self.level)
         };
@@ -6158,13 +6082,13 @@ impl<F: CpuIdReader> ExtendedStateInfo<F> {
                 eax: self.eax.bits(),
                 ebx: self.ebx,
                 ecx: self.ecx,
-                edx: self._edx
+                edx: self._edx,
             }),
             Some(CpuIdResult {
                 eax: self.eax1,
                 ebx: self.ebx1,
                 ecx: self.ecx1.bits(),
-                edx: self._edx1
+                edx: self._edx1,
             }),
         ]
     }

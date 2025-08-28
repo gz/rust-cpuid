@@ -23,6 +23,16 @@ pub struct ExtendedProcessorFeatureIdentifiers {
 }
 
 impl ExtendedProcessorFeatureIdentifiers {
+    pub fn empty(vendor: Vendor) -> Self {
+        Self {
+            vendor,
+            eax: 0,
+            ebx: 0,
+            ecx: ExtendedFunctionInfoEcx::from_bits_truncate(0),
+            edx: ExtendedFunctionInfoEdx::from_bits_truncate(0),
+        }
+    }
+
     pub(crate) fn new(vendor: Vendor, data: CpuIdResult) -> Self {
         Self {
             vendor,
@@ -49,6 +59,11 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.eax
     }
 
+    pub fn set_extended_signature(&mut self, bits: u32) -> &mut Self {
+        self.eax = bits;
+        self
+    }
+
     /// Returns package type on AMD.
     ///
     /// Package type. If `(Family[7:0] >= 10h)`, this field is valid. If
@@ -58,6 +73,11 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// ✅ AMD ❌ Intel (reserved)
     pub fn pkg_type(&self) -> u32 {
         get_bits(self.ebx, 28, 31)
+    }
+
+    pub fn set_pkg_type(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 28, 31);
+        self
     }
 
     /// Returns brand ID on AMD.
@@ -71,12 +91,22 @@ impl ExtendedProcessorFeatureIdentifiers {
         get_bits(self.ebx, 0, 15)
     }
 
+    pub fn set_brand_id(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 0, 15);
+        self
+    }
+
     /// Is LAHF/SAHF available in 64-bit mode?
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
     pub fn has_lahf_sahf(&self) -> bool {
         self.ecx.contains(ExtendedFunctionInfoEcx::LAHF_SAHF)
+    }
+
+    pub fn set_lahf_sahf(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::LAHF_SAHF, bit);
+        self
     }
 
     /// Check support legacy cmp.
@@ -87,12 +117,22 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::CMP_LEGACY)
     }
 
+    pub fn set_cmp_legacy(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::CMP_LEGACY, bit);
+        self
+    }
+
     /// Secure virtual machine supported.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
     pub fn has_svm(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::SVM)
+    }
+
+    pub fn set_svm(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::SVM, bit);
+        self
     }
 
     /// Extended APIC space.
@@ -106,12 +146,22 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::EXT_APIC_SPACE)
     }
 
+    pub fn set_ext_apic_space(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::EXT_APIC_SPACE, bit);
+        self
+    }
+
     /// LOCK MOV CR0 means MOV CR8. See “MOV(CRn)” in APM3.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
     pub fn has_alt_mov_cr8(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::ALTMOVCR8)
+    }
+
+    pub fn set_alt_mov_cr8(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::ALTMOVCR8, bit);
+        self
     }
 
     /// Is LZCNT available?
@@ -126,6 +176,11 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.ecx.contains(ExtendedFunctionInfoEcx::LZCNT)
     }
 
+    pub fn set_lzcnt(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::LZCNT, bit);
+        self
+    }
+
     /// XTRQ, INSERTQ, MOVNTSS, and MOVNTSD instruction support.
     ///
     /// See “EXTRQ”, “INSERTQ”,“MOVNTSS”, and “MOVNTSD” in APM4.
@@ -136,6 +191,11 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::SSE4A)
     }
 
+    pub fn set_sse4a(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::SSE4A, bit);
+        self
+    }
+
     /// Misaligned SSE mode. See “Misaligned Access Support Added for SSE Instructions” in
     /// APM1.
     ///
@@ -143,6 +203,11 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// ✅ AMD ❌ Intel (will return false)
     pub fn has_misaligned_sse_mode(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::MISALIGNSSE)
+    }
+
+    pub fn set_misaligned_sse_mode(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::MISALIGNSSE, bit);
+        self
     }
 
     /// Is PREFETCHW available?
@@ -156,12 +221,22 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.ecx.contains(ExtendedFunctionInfoEcx::PREFETCHW)
     }
 
+    pub fn set_prefetchw(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::PREFETCHW, bit);
+        self
+    }
+
     /// Indicates OS-visible workaround support
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
     pub fn has_osvw(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::OSVW)
+    }
+
+    pub fn set_osvw(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::OSVW, bit);
+        self
     }
 
     /// Instruction based sampling.
@@ -172,12 +247,22 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::IBS)
     }
 
+    pub fn set_ibs(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::IBS, bit);
+        self
+    }
+
     /// Extended operation support.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
     pub fn has_xop(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::XOP)
+    }
+
+    pub fn set_xop(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::XOP, bit);
+        self
     }
 
     /// SKINIT and STGI are supported.
@@ -191,6 +276,11 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::SKINIT)
     }
 
+    pub fn set_skinit(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::SKINIT, bit);
+        self
+    }
+
     /// Watchdog timer support.
     ///
     /// Indicates support for MSRC001_0074.
@@ -201,12 +291,22 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::WDT)
     }
 
+    pub fn set_wdt(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::WDT, bit);
+        self
+    }
+
     /// Lightweight profiling support
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
     pub fn has_lwp(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::LWP)
+    }
+
+    pub fn set_lwp(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::LWP, bit);
+        self
     }
 
     /// Four-operand FMA instruction support.
@@ -217,12 +317,22 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::FMA4)
     }
 
+    pub fn set_fma4(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::FMA4, bit);
+        self
+    }
+
     /// Trailing bit manipulation instruction support.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
     pub fn has_tbm(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::TBM)
+    }
+
+    pub fn set_tbm(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::TBM, bit);
+        self
     }
 
     /// Topology extensions support.
@@ -235,6 +345,11 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::TOPEXT)
     }
 
+    pub fn set_topology_extensions(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::TOPEXT, bit);
+        self
+    }
+
     /// Processor performance counter extensions support.
     ///
     /// Indicates support for `MSRC001_020[A,8,6,4,2,0]` and `MSRC001_020[B,9,7,5,3,1]`.
@@ -243,6 +358,11 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// ✅ AMD ❌ Intel (will return false)
     pub fn has_perf_cntr_extensions(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFCTREXT)
+    }
+
+    pub fn set_perf_cntr_extensions(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::PERFCTREXT, bit);
+        self
     }
 
     /// NB performance counter extensions support.
@@ -255,6 +375,11 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFCTREXTNB)
     }
 
+    pub fn set_nb_perf_cntr_extensions(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::PERFCTREXTNB, bit);
+        self
+    }
+
     /// Data access breakpoint extension.
     ///
     /// Indicates support for `MSRC001_1027` and `MSRC001_101[B:9]`.
@@ -263,6 +388,11 @@ impl ExtendedProcessorFeatureIdentifiers {
     /// ✅ AMD ❌ Intel (will return false)
     pub fn has_data_access_bkpt_extension(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::DATABRKPEXT)
+    }
+
+    pub fn set_data_access_bkpt_extension(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::DATABRKPEXT, bit);
+        self
     }
 
     /// Performance time-stamp counter.
@@ -275,12 +405,22 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFTSC)
     }
 
+    pub fn set_perf_tsc(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::PERFTSC, bit);
+        self
+    }
+
     /// Support for L3 performance counter extension.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
     pub fn has_perf_cntr_llc_extensions(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::PERFCTREXTLLC)
+    }
+
+    pub fn set_perf_cntr_llc_extensions(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::PERFCTREXTLLC, bit);
+        self
     }
 
     /// Support for MWAITX and MONITORX instructions.
@@ -291,12 +431,22 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::MONITORX)
     }
 
+    pub fn set_monitorx_mwaitx(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::MONITORX, bit);
+        self
+    }
+
     /// Breakpoint Addressing masking extended to bit 31.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
     pub fn has_addr_mask_extension(&self) -> bool {
         self.vendor == Vendor::Amd && self.ecx.contains(ExtendedFunctionInfoEcx::ADDRMASKEXT)
+    }
+
+    pub fn set_addr_mask_extension(&mut self, bit: bool) -> &mut Self {
+        self.ecx.set(ExtendedFunctionInfoEcx::ADDRMASKEXT, bit);
+        self
     }
 
     /// Are fast system calls available.
@@ -307,12 +457,22 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.edx.contains(ExtendedFunctionInfoEdx::SYSCALL_SYSRET)
     }
 
+    pub fn set_syscall_sysret(&mut self, bit: bool) -> &mut Self {
+        self.edx.set(ExtendedFunctionInfoEdx::SYSCALL_SYSRET, bit);
+        self
+    }
+
     /// Is there support for execute disable bit.
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
     pub fn has_execute_disable(&self) -> bool {
         self.edx.contains(ExtendedFunctionInfoEdx::EXECUTE_DISABLE)
+    }
+
+    pub fn set_execute_disable(&mut self, bit: bool) -> &mut Self {
+        self.edx.set(ExtendedFunctionInfoEdx::EXECUTE_DISABLE, bit);
+        self
     }
 
     /// AMD extensions to MMX instructions.
@@ -323,12 +483,22 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.edx.contains(ExtendedFunctionInfoEdx::MMXEXT)
     }
 
+    pub fn set_mmx_extensions(&mut self, bit: bool) -> &mut Self {
+        self.edx.set(ExtendedFunctionInfoEdx::MMXEXT, bit);
+        self
+    }
+
     /// FXSAVE and FXRSTOR instruction optimizations.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
     pub fn has_fast_fxsave_fxstor(&self) -> bool {
         self.vendor == Vendor::Amd && self.edx.contains(ExtendedFunctionInfoEdx::FFXSR)
+    }
+
+    pub fn set_fast_fxsave_fxstor(&mut self, bit: bool) -> &mut Self {
+        self.edx.set(ExtendedFunctionInfoEdx::FFXSR, bit);
+        self
     }
 
     /// Is there support for 1GiB pages.
@@ -339,12 +509,22 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.edx.contains(ExtendedFunctionInfoEdx::GIB_PAGES)
     }
 
+    pub fn set_1gib_pages(&mut self, bit: bool) -> &mut Self {
+        self.edx.set(ExtendedFunctionInfoEdx::GIB_PAGES, bit);
+        self
+    }
+
     /// Check support for rdtscp instruction.
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
     pub fn has_rdtscp(&self) -> bool {
         self.edx.contains(ExtendedFunctionInfoEdx::RDTSCP)
+    }
+
+    pub fn set_rdtscp(&mut self, bit: bool) -> &mut Self {
+        self.edx.set(ExtendedFunctionInfoEdx::RDTSCP, bit);
+        self
     }
 
     /// Check support for 64-bit mode.
@@ -355,6 +535,11 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.edx.contains(ExtendedFunctionInfoEdx::I64BIT_MODE)
     }
 
+    pub fn set_64bit_mode(&mut self, bit: bool) -> &mut Self {
+        self.edx.set(ExtendedFunctionInfoEdx::I64BIT_MODE, bit);
+        self
+    }
+
     /// 3DNow AMD extensions.
     ///
     /// # Platform
@@ -363,12 +548,22 @@ impl ExtendedProcessorFeatureIdentifiers {
         self.vendor == Vendor::Amd && self.edx.contains(ExtendedFunctionInfoEdx::THREEDNOWEXT)
     }
 
+    pub fn set_amd_3dnow_extensions(&mut self, bit: bool) -> &mut Self {
+        self.edx.set(ExtendedFunctionInfoEdx::THREEDNOWEXT, bit);
+        self
+    }
+
     /// 3DNow extensions.
     ///
     /// # Platform
     /// ✅ AMD ❌ Intel (will return false)
     pub fn has_3dnow(&self) -> bool {
         self.vendor == Vendor::Amd && self.edx.contains(ExtendedFunctionInfoEdx::THREEDNOW)
+    }
+
+    pub fn set_3dnow(&mut self, bit: bool) -> &mut Self {
+        self.edx.set(ExtendedFunctionInfoEdx::THREEDNOW, bit);
+        self
     }
 }
 
@@ -1068,7 +1263,7 @@ impl ApmInfo {
     }
 
     pub fn set_succor(&mut self, bit: bool) -> &mut Self {
-        self.ebx.contains(RasCapabilities::SUCCOR);
+        self.ebx.set(RasCapabilities::SUCCOR, bit);
         self
     }
 
@@ -1083,7 +1278,7 @@ impl ApmInfo {
     }
 
     pub fn set_hwa(&mut self, bit: bool) -> &mut Self {
-        self.ebx.contains(RasCapabilities::HWA);
+        self.ebx.set(RasCapabilities::HWA, bit);
         self
     }
 
@@ -1112,7 +1307,7 @@ impl ApmInfo {
     }
 
     pub fn set_ts(&mut self, bit: bool) -> &mut Self {
-        self.edx.contains(ApmInfoEdx::TS);
+        self.edx.set(ApmInfoEdx::TS, bit);
         self
     }
 
@@ -1128,7 +1323,7 @@ impl ApmInfo {
     }
 
     pub fn set_freq_id_ctrl(&mut self, bit: bool) -> &mut Self {
-        self.edx.contains(ApmInfoEdx::FID);
+        self.edx.set(ApmInfoEdx::FID, bit);
         self
     }
 
@@ -1144,7 +1339,7 @@ impl ApmInfo {
     }
 
     pub fn set_volt_id_ctrl(&mut self, bit: bool) -> &mut Self {
-        self.edx.contains(ApmInfoEdx::VID);
+        self.edx.set(ApmInfoEdx::VID, bit);
         self
     }
 
@@ -1157,7 +1352,7 @@ impl ApmInfo {
     }
 
     pub fn set_thermtrip(&mut self, bit: bool) -> &mut Self {
-        self.edx.contains(ApmInfoEdx::TTP);
+        self.edx.set(ApmInfoEdx::TTP, bit);
         self
     }
 
@@ -1170,7 +1365,7 @@ impl ApmInfo {
     }
 
     pub fn set_tm(&mut self, bit: bool) -> &mut Self {
-        self.edx.contains(ApmInfoEdx::TM);
+        self.edx.set(ApmInfoEdx::TM, bit);
         self
     }
 
@@ -1183,7 +1378,7 @@ impl ApmInfo {
     }
 
     pub fn set_100mhz_steps(&mut self, bit: bool) -> &mut Self {
-        self.edx.contains(ApmInfoEdx::MHZSTEPS100);
+        self.edx.set(ApmInfoEdx::MHZSTEPS100, bit);
         self
     }
 
@@ -1199,7 +1394,7 @@ impl ApmInfo {
     }
 
     pub fn set_hw_pstate(&mut self, bit: bool) -> &mut Self {
-        self.edx.contains(ApmInfoEdx::HWPSTATE);
+        self.edx.set(ApmInfoEdx::HWPSTATE, bit);
         self
     }
 
@@ -1212,7 +1407,7 @@ impl ApmInfo {
     }
 
     pub fn set_invariant_tsc(&mut self, bit: bool) -> &mut Self {
-        self.edx.contains(ApmInfoEdx::INVTSC);
+        self.edx.set(ApmInfoEdx::INVTSC, bit);
         self
     }
 
@@ -1225,7 +1420,7 @@ impl ApmInfo {
     }
 
     pub fn set_cpb(&mut self, bit: bool) -> &mut Self {
-        self.edx.contains(ApmInfoEdx::CPB);
+        self.edx.set(ApmInfoEdx::CPB, bit);
         self
     }
 
@@ -1242,7 +1437,7 @@ impl ApmInfo {
     }
 
     pub fn set_ro_effective_freq_iface(&mut self, bit: bool) -> &mut Self {
-        self.edx.contains(ApmInfoEdx::EFFFREQRO);
+        self.edx.set(ApmInfoEdx::EFFFREQRO, bit);
         self
     }
 
@@ -1258,7 +1453,7 @@ impl ApmInfo {
     }
 
     pub fn set_feedback_iface(&mut self, bit: bool) -> &mut Self {
-        self.edx.contains(ApmInfoEdx::PROCFEEDBACKIF);
+        self.edx.set(ApmInfoEdx::PROCFEEDBACKIF, bit);
         self
     }
 
@@ -1271,7 +1466,7 @@ impl ApmInfo {
     }
 
     pub fn set_power_reporting_iface(&mut self, bit: bool) -> &mut Self {
-        self.edx.contains(ApmInfoEdx::PROCPWRREPORT);
+        self.edx.set(ApmInfoEdx::PROCPWRREPORT, bit);
         self
     }
 }
@@ -1393,7 +1588,7 @@ impl ProcessorCapacityAndFeatureInfo {
     }
 
     pub fn set_cl_zero(&mut self, bit: bool) -> &mut Self {
-        self.ebx.contains(ProcessorCapacityAndFeatureEbx::CLZERO);
+        self.ebx.set(ProcessorCapacityAndFeatureEbx::CLZERO, bit);
         self
     }
 
@@ -1408,7 +1603,7 @@ impl ProcessorCapacityAndFeatureInfo {
 
     pub fn set_inst_ret_cntr_msr(&mut self, bit: bool) -> &mut Self {
         self.ebx
-            .contains(ProcessorCapacityAndFeatureEbx::INST_RETCNT_MSR);
+            .set(ProcessorCapacityAndFeatureEbx::INST_RETCNT_MSR, bit);
         self
     }
 
@@ -1423,7 +1618,7 @@ impl ProcessorCapacityAndFeatureInfo {
 
     pub fn set_restore_fp_error_ptrs(&mut self, bit: bool) -> &mut Self {
         self.ebx
-            .contains(ProcessorCapacityAndFeatureEbx::RSTR_FP_ERR_PTRS);
+            .set(ProcessorCapacityAndFeatureEbx::RSTR_FP_ERR_PTRS, bit);
         self
     }
 
@@ -1436,7 +1631,7 @@ impl ProcessorCapacityAndFeatureInfo {
     }
 
     pub fn set_invlpgb(&mut self, bit: bool) -> &mut Self {
-        self.ebx.contains(ProcessorCapacityAndFeatureEbx::INVLPGB);
+        self.ebx.set(ProcessorCapacityAndFeatureEbx::INVLPGB, bit);
         self
     }
 
@@ -1449,7 +1644,7 @@ impl ProcessorCapacityAndFeatureInfo {
     }
 
     pub fn set_rdpru(&mut self, bit: bool) -> &mut Self {
-        self.ebx.contains(ProcessorCapacityAndFeatureEbx::RDPRU);
+        self.ebx.set(ProcessorCapacityAndFeatureEbx::RDPRU, bit);
         self
     }
 
@@ -1462,7 +1657,7 @@ impl ProcessorCapacityAndFeatureInfo {
     }
 
     pub fn set_mcommit(&mut self, bit: bool) -> &mut Self {
-        self.ebx.contains(ProcessorCapacityAndFeatureEbx::MCOMMIT);
+        self.ebx.set(ProcessorCapacityAndFeatureEbx::MCOMMIT, bit);
         self
     }
 
@@ -1475,7 +1670,7 @@ impl ProcessorCapacityAndFeatureInfo {
     }
 
     pub fn set_wbnoinvd(&mut self, bit: bool) -> &mut Self {
-        self.ebx.contains(ProcessorCapacityAndFeatureEbx::WBNOINVD);
+        self.ebx.set(ProcessorCapacityAndFeatureEbx::WBNOINVD, bit);
         self
     }
 
@@ -1490,7 +1685,7 @@ impl ProcessorCapacityAndFeatureInfo {
 
     pub fn set_int_wbinvd(&mut self, bit: bool) -> &mut Self {
         self.ebx
-            .contains(ProcessorCapacityAndFeatureEbx::INT_WBINVD);
+            .set(ProcessorCapacityAndFeatureEbx::INT_WBINVD, bit);
         self
     }
 
@@ -1505,7 +1700,7 @@ impl ProcessorCapacityAndFeatureInfo {
 
     pub fn set_unsupported_efer_lmsle(&mut self, bit: bool) -> &mut Self {
         self.ebx
-            .contains(ProcessorCapacityAndFeatureEbx::EFER_LMSLE_UNSUPP);
+            .set(ProcessorCapacityAndFeatureEbx::EFER_LMSLE_UNSUPP, bit);
         self
     }
 
@@ -1520,7 +1715,7 @@ impl ProcessorCapacityAndFeatureInfo {
 
     pub fn set_invlpgb_nested(&mut self, bit: bool) -> &mut Self {
         self.ebx
-            .contains(ProcessorCapacityAndFeatureEbx::INVLPGB_NESTED);
+            .set(ProcessorCapacityAndFeatureEbx::INVLPGB_NESTED, bit);
         self
     }
 
@@ -1586,7 +1781,7 @@ impl ProcessorCapacityAndFeatureInfo {
 
     /// Set the number of physical threads in the processor.
     ///
-    /// The value provided here is one more than will be recorded in the CPUID tables.
+    /// The value provided here is one more than will be recorded in the CPUID leaf.
     pub fn set_num_phys_threads(&mut self, bits: u32) -> &mut Self {
         set_bits(&mut self.ecx, bits - 1, 0, 7);
         self
@@ -2040,6 +2235,15 @@ pub struct ProcessorTopologyInfo {
 }
 
 impl ProcessorTopologyInfo {
+    pub fn empty() -> Self {
+        Self {
+            eax: 0,
+            ebx: 0,
+            ecx: 0,
+            _edx: 0,
+        }
+    }
+
     pub(crate) fn new(data: CpuIdResult) -> Self {
         Self {
             eax: data.eax,
@@ -2068,6 +2272,15 @@ impl ProcessorTopologyInfo {
     /// `Threads per Core` means `Cores per Compute Unit` if AMD Family 15h-16h Processors.
     pub fn threads_per_core(&self) -> u8 {
         get_bits(self.ebx, 8, 15) as u8 + 1
+    }
+
+    /// Set threads per core (or `Cores per Compute Unit` on AMD Family >=15h)
+    ///
+    /// # Note
+    /// The value provided here is one more than will be recorded in the CPUID leaf.
+    pub fn set_threads_per_core(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits - 1, 8, 15);
+        self
     }
 
     /// Node ID
@@ -2532,13 +2745,22 @@ impl AssignableBandwidthMonitoringCounterInfo {
 /// ✅ AMD ❌ Intel
 #[derive(PartialEq, Eq, Debug)]
 pub struct ExtendedFeatureIdentification2 {
-    eax: ExtendedFeatureIdentification2Eax,
-    ebx: u32,
-    _ecx: u32,
-    _edx: u32,
+    pub(crate) eax: ExtendedFeatureIdentification2Eax,
+    pub(crate) ebx: u32,
+    pub(crate) _ecx: u32,
+    pub(crate) _edx: u32,
 }
 
 impl ExtendedFeatureIdentification2 {
+    pub fn empty() -> Self {
+        Self {
+            eax: ExtendedFeatureIdentification2Eax::from_bits_truncate(0),
+            ebx: 0,
+            _ecx: 0,
+            _edx: 0,
+        }
+    }
+
     pub(crate) fn new(data: CpuIdResult) -> Self {
         Self {
             eax: ExtendedFeatureIdentification2Eax::from_bits_truncate(data.eax),
@@ -2554,16 +2776,36 @@ impl ExtendedFeatureIdentification2 {
             .contains(ExtendedFeatureIdentification2Eax::NO_NESTED_DATA_BP)
     }
 
+    pub fn set_no_nested_data_bp(&mut self, bit: bool) -> &mut Self {
+        self.eax
+            .set(ExtendedFeatureIdentification2Eax::NO_NESTED_DATA_BP, bit);
+        self
+    }
+
     /// LFENCE is always dispatch serializing if set
     pub fn has_lfence_always_serializing(&self) -> bool {
         self.eax
             .contains(ExtendedFeatureIdentification2Eax::LFENCE_ALWAYS_SERIALIZING)
     }
 
+    pub fn set_lfence_always_serializing(&mut self, bit: bool) -> &mut Self {
+        self.eax.set(
+            ExtendedFeatureIdentification2Eax::LFENCE_ALWAYS_SERIALIZING,
+            bit,
+        );
+        self
+    }
+
     /// SMM paging configuration lock supported if set
     pub fn has_smm_pg_cfg_lock(&self) -> bool {
         self.eax
             .contains(ExtendedFeatureIdentification2Eax::SMM_PG_CFG_LOCK)
+    }
+
+    pub fn set_smm_pg_cfg_lock(&mut self, bit: bool) -> &mut Self {
+        self.eax
+            .set(ExtendedFeatureIdentification2Eax::SMM_PG_CFG_LOCK, bit);
+        self
     }
 
     /// Null segment selector loads also clear the destination segment register
@@ -2573,10 +2815,24 @@ impl ExtendedFeatureIdentification2 {
             .contains(ExtendedFeatureIdentification2Eax::NULL_SELECT_CLEARS_BASE)
     }
 
+    pub fn set_null_select_clears_base(&mut self, bit: bool) -> &mut Self {
+        self.eax.set(
+            ExtendedFeatureIdentification2Eax::NULL_SELECT_CLEARS_BASE,
+            bit,
+        );
+        self
+    }
+
     /// Upper Address Ignore is supported if set
     pub fn has_upper_address_ignore(&self) -> bool {
         self.eax
             .contains(ExtendedFeatureIdentification2Eax::UPPER_ADDRESS_IGNORE)
+    }
+
+    pub fn set_upper_address_ignore(&mut self, bit: bool) -> &mut Self {
+        self.eax
+            .set(ExtendedFeatureIdentification2Eax::UPPER_ADDRESS_IGNORE, bit);
+        self
     }
 
     /// Automatic IBRS if set
@@ -2585,10 +2841,22 @@ impl ExtendedFeatureIdentification2 {
             .contains(ExtendedFeatureIdentification2Eax::AUTOMATIC_IBRS)
     }
 
+    pub fn set_automatic_ibrs(&mut self, bit: bool) -> &mut Self {
+        self.eax
+            .set(ExtendedFeatureIdentification2Eax::AUTOMATIC_IBRS, bit);
+        self
+    }
+
     /// SMM_CTL MSR (C001_0116h) is not supported if set
     pub fn has_no_smm_ctl_msr(&self) -> bool {
         self.eax
             .contains(ExtendedFeatureIdentification2Eax::NO_SMM_CTL_MSR)
+    }
+
+    pub fn set_no_smm_ctl_msr(&mut self, bit: bool) -> &mut Self {
+        self.eax
+            .set(ExtendedFeatureIdentification2Eax::NO_SMM_CTL_MSR, bit);
+        self
     }
 
     /// Prefetch control MSR supported if set
@@ -2597,10 +2865,22 @@ impl ExtendedFeatureIdentification2 {
             .contains(ExtendedFeatureIdentification2Eax::PREFETCH_CTL_MSR)
     }
 
+    pub fn set_prefetch_ctl_msr(&mut self, bit: bool) -> &mut Self {
+        self.eax
+            .set(ExtendedFeatureIdentification2Eax::PREFETCH_CTL_MSR, bit);
+        self
+    }
+
     /// CPUID disable for non-privileged software if set
     pub fn has_cpuid_user_dis(&self) -> bool {
         self.eax
             .contains(ExtendedFeatureIdentification2Eax::CPUID_USER_DIS)
+    }
+
+    pub fn set_cpuid_user_dis(&mut self, bit: bool) -> &mut Self {
+        self.eax
+            .set(ExtendedFeatureIdentification2Eax::CPUID_USER_DIS, bit);
+        self
     }
 
     /// The size of the Microcode patch in 16-byte multiples. If 0, the size of the
@@ -2608,12 +2888,17 @@ impl ExtendedFeatureIdentification2 {
     pub fn microcode_patch_size(&self) -> u16 {
         get_bits(self.ebx, 0, 11) as u16
     }
+
+    pub fn microcode_patcset_size(&mut self, bits: u32) -> &mut Self {
+        set_bits(&mut self.ebx, bits, 0, 11);
+        self
+    }
 }
 
 bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    struct ExtendedFeatureIdentification2Eax: u32 {
+    pub(crate) struct ExtendedFeatureIdentification2Eax: u32 {
         const NO_NESTED_DATA_BP = 1 << 0;
         const LFENCE_ALWAYS_SERIALIZING = 1 << 2;
         const SMM_PG_CFG_LOCK = 1 << 3;
