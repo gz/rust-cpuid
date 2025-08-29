@@ -1887,6 +1887,15 @@ pub struct SvmFeatures {
 }
 
 impl SvmFeatures {
+    pub fn empty() -> Self {
+        Self {
+            eax: 0,
+            ebx: 0,
+            _ecx: 0,
+            edx: SvmFeaturesEdx::from_bits_truncate(0),
+        }
+    }
+
     pub(crate) fn new(data: CpuIdResult) -> Self {
         Self {
             eax: data.eax,
