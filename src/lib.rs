@@ -55,6 +55,8 @@ extern crate std;
 #[cfg(feature = "display")]
 pub mod display;
 mod extended;
+#[cfg(feature = "std")]
+mod dump;
 #[cfg(test)]
 mod tests;
 
@@ -68,6 +70,8 @@ use core::str;
 use serde_derive::{Deserialize, Serialize};
 
 pub use extended::*;
+#[cfg(feature = "std")]
+pub use dump::CpuIdDump;
 
 /// Uses Rust's `cpuid` function from the `arch` module.
 #[cfg(any(
@@ -502,7 +506,7 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
      * set_soc_vendor_info (leaf 17h)
      * set_deterministic_address_translation_info (leaf 18h)
      * set_hypervisor_info
-    */
+     */
 
     /// Set information about how monitor/mwait works on this CPU (LEAF=0x05).
     ///
