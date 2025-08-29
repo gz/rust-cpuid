@@ -6215,7 +6215,7 @@ impl<F: CpuIdReader> ExtendedStateInfo<F> {
     }
 
     pub fn set_xsaveopt(&mut self, bit: bool) -> &mut Self {
-        self.eax1 & !(1 << 0);
+        self.eax1 &= !(1 << 0);
         self.eax1 |= bit as u32;
         self
     }
@@ -6226,7 +6226,7 @@ impl<F: CpuIdReader> ExtendedStateInfo<F> {
     }
 
     pub fn set_xsavec(&mut self, bit: bool) -> &mut Self {
-        self.eax1 & !(1 << 1);
+        self.eax1 &= !(1 << 1);
         self.eax1 |= (bit as u32) << 1;
         self
     }
@@ -6237,7 +6237,7 @@ impl<F: CpuIdReader> ExtendedStateInfo<F> {
     }
 
     pub fn set_xgetbv(&mut self, bit: bool) -> &mut Self {
-        self.eax1 & !(1 << 2);
+        self.eax1 &= !(1 << 2);
         self.eax1 |= (bit as u32) << 2;
         self
     }
@@ -6248,7 +6248,7 @@ impl<F: CpuIdReader> ExtendedStateInfo<F> {
     }
 
     pub fn set_xsavex_xrstors(&mut self, bit: bool) -> &mut Self {
-        self.eax1 & !(1 << 3);
+        self.eax1 &= !(1 << 3);
         self.eax1 |= (bit as u32) << 3;
         self
     }
