@@ -2179,7 +2179,7 @@ bitflags! {
     }
 }
 
-/// Extended Feature Identification 2 (LEAF=0x8000_0021).
+/// Extended Performance Monitoring and Debug (LEAF=0x8000_0022).
 ///
 /// # Platforms
 /// ✅ AMD ❌ Intel
@@ -2246,7 +2246,7 @@ bitflags! {
     }
 }
 
-/// Extended Feature Identification 2 (LEAF=0x8000_0021).
+/// Multi-Key Encrypted Memory Capabilities (LEAF=0x8000_0023).
 ///
 /// # Platforms
 /// ✅ AMD ❌ Intel

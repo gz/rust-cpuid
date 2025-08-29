@@ -1027,7 +1027,7 @@ impl<R: CpuIdReader> CpuId<R> {
         }
     }
 
-    /// Extended CPU Topolog (LEAF=0x8000_0026)
+    /// Extended CPU Topology (LEAF=0x8000_0026)
     ///
     /// # Platforms
     /// ✅ AMD ❌ Intel (reserved)
