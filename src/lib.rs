@@ -3730,6 +3730,15 @@ pub struct MonitorMwaitInfo {
 }
 
 impl MonitorMwaitInfo {
+    pub fn empty() -> Self {
+        Self {
+            eax: 0,
+            ebx: 0,
+            ecx: 0,
+            edx: 0,
+        }
+    }
+
     /// Smallest monitor-line size in bytes (default is processor's monitor granularity)
     ///
     /// # Platforms
