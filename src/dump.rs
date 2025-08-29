@@ -1,5 +1,5 @@
+use crate::{CpuIdReader, CpuIdResult, CpuIdWriter};
 use std::collections::HashMap;
-use crate::{CpuIdResult, CpuIdReader, CpuIdWriter};
 
 #[derive(Clone)]
 enum LeafOrSubleaves {
@@ -73,7 +73,11 @@ impl Iterator for CpuIdDumpIter {
             };
 
             self.leaf = *first_key;
-            let entry = self.dump.leaves.remove(&self.leaf).expect("leaf is present");
+            let entry = self
+                .dump
+                .leaves
+                .remove(&self.leaf)
+                .expect("leaf is present");
             match entry {
                 LeafOrSubleaves::Leaf(regs) => {
                     return Some((self.leaf, None, regs));

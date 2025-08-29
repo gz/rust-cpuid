@@ -54,9 +54,9 @@ extern crate std;
 
 #[cfg(feature = "display")]
 pub mod display;
-mod extended;
 #[cfg(feature = "std")]
 mod dump;
+mod extended;
 #[cfg(test)]
 mod tests;
 
@@ -69,9 +69,9 @@ use core::str;
 #[cfg(feature = "serialize")]
 use serde_derive::{Deserialize, Serialize};
 
-pub use extended::*;
 #[cfg(feature = "std")]
 pub use dump::CpuIdDump;
+pub use extended::*;
 
 /// Uses Rust's `cpuid` function from the `arch` module.
 #[cfg(any(
