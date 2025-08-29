@@ -28,6 +28,64 @@ impl CpuIdDump {
     }
 }
 
+pub struct CpuIdDumpIter {
+    // It's straightforward enough to use `hash_map::Drain` to walk the top-level map but it's more
+    // annoying for inner collections of subleaves because `Drain` holds a borrow of the
+    // to-be-drained map. Here, that'd mean the struct is self-referential with `current_subleaf`
+    // borrowing `dump`. So, just be naive the whole way through (much to the dismay of `impl
+    // Iterator` below..)
+    dump: CpuIdDump,
+    leaf: u32,
+    current_subleaf: Option<HashMap<u32, CpuIdResult>>,
+}
+
+impl IntoIterator for CpuIdDump {
+    type Item = (u32, Option<u32>, CpuIdResult);
+    type IntoIter = CpuIdDumpIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        CpuIdDumpIter {
+            dump: self,
+            leaf: 0,
+            current_subleaf: None,
+        }
+    }
+}
+
+impl Iterator for CpuIdDumpIter {
+    type Item = (u32, Option<u32>, CpuIdResult);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(subleaves) = self.current_subleaf.as_mut() {
+                if let Some(subleaf) = subleaves.keys().next().cloned() {
+                    let regs = subleaves.remove(&subleaf).expect("subleaf is present");
+                    return Some((self.leaf, Some(subleaf), regs));
+                } else {
+                    // We've exhauted this subleaf, move on.
+                    self.current_subleaf = None;
+                }
+            }
+
+            let Some(first_key) = self.dump.leaves.keys().next() else {
+                // We've exhausted the whole map!
+                return None;
+            };
+
+            self.leaf = *first_key;
+            let entry = self.dump.leaves.remove(&self.leaf).expect("leaf is present");
+            match entry {
+                LeafOrSubleaves::Leaf(regs) => {
+                    return Some((self.leaf, None, regs));
+                }
+                LeafOrSubleaves::Subleaf(subleaves) => {
+                    self.current_subleaf = Some(subleaves);
+                }
+            }
+        }
+    }
+}
+
 const DEFAULT_LEAF: CpuIdResult = CpuIdResult {
     eax: 0,
     ebx: 0,
