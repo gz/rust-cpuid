@@ -1293,8 +1293,8 @@ impl ApmInfo {
         self.ecx
     }
 
-    pub fn set_pwr_sample_time_ratio(&mut self, bit: bool) -> &mut Self {
-        self.ecx;
+    pub fn set_pwr_sample_time_ratio(&mut self, bits: u32) -> &mut Self {
+        self.ecx = bits;
         self
     }
 

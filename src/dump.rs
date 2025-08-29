@@ -100,7 +100,7 @@ impl CpuIdWriter for CpuIdDump {
         if let Some(bits) = bits.as_mut() {
             const MIRROR_MASK: u32 = 0b0000_0001_1000_0011_1111_0011_1111_1111;
 
-            let update = if leaf == 0x0000_0001 {
+            if leaf == 0x0000_0001 {
                 // We're updating leaf 1h, so go fix up leaf 8000_0001h (if present)
                 match self.leaves.get_mut(&0x8000_0001) {
                     Some(LeafOrSubleaves::Leaf(ext_info)) => {
@@ -172,7 +172,7 @@ impl CpuIdDump {
         let mut max_hv = None;
         let mut max_extended = None;
 
-        for (idx, k) in self.leaves.keys().enumerate() {
+        for k in self.leaves.keys() {
             let k = *k;
             if k < 0x40000000 {
                 max_standard = Some(match max_standard {
@@ -258,7 +258,7 @@ impl CpuIdReader for CpuIdDump {
 
     fn cpuid2(&self, leaf: u32, subleaf: u32) -> CpuIdResult {
         match self.leaves.get(&leaf) {
-            Some(LeafOrSubleaves::Leaf(res)) => {
+            Some(LeafOrSubleaves::Leaf(_res)) => {
                 // TODO: vendor-specific fallback behavior
                 DEFAULT_LEAF
             }
