@@ -2,110 +2,20 @@
 extern crate raw_cpuid;
 
 use raw_cpuid::{
-    ApmInfo, CpuIdDump, CpuIdReader, CpuIdResult, CpuIdWriter, ExtendedFeatureIdentification2,
-    ExtendedFeatures, ExtendedProcessorFeatureIdentifiers, ExtendedState, ExtendedStateInfo,
-    ExtendedTopologyLevel, FeatureInfo, L1CacheTlbInfo, L2And3CacheTlbInfo,
-    PerformanceOptimizationInfo, ProcessorCapacityAndFeatureInfo, ProcessorTopologyInfo,
-    ThermalPowerInfo, Tlb1gbPageInfo, Vendor, VendorInfo,
+    ApmInfo, CpuIdDump, CpuIdResult, ExtendedFeatureIdentification2, ExtendedFeatures,
+    ExtendedProcessorFeatureIdentifiers, ExtendedState, ExtendedStateInfo, ExtendedTopologyLevel,
+    FeatureInfo, L1CacheTlbInfo, L2And3CacheTlbInfo, PerformanceOptimizationInfo,
+    ProcessorCapacityAndFeatureInfo, ProcessorTopologyInfo, ThermalPowerInfo, Tlb1gbPageInfo,
+    Vendor, VendorInfo,
 };
-use std::collections::HashMap;
 
-#[derive(Debug)]
-struct CpuidEntry {
-    leaf: u32,
-    subleaf: Option<u32>,
-    eax: u32,
-    ebx: u32,
-    ecx: u32,
-    edx: u32,
-}
-
-impl CpuidEntry {
-    pub fn just_regs(&self) -> CpuIdResult {
-        CpuIdResult {
-            eax: self.eax,
-            ebx: self.ebx,
-            ecx: self.ecx,
-            edx: self.edx,
-        }
-    }
-}
-
-macro_rules! cpuid_leaf {
-    ($leaf:literal, $eax:literal, $ebx:literal, $ecx:literal, $edx:literal) => {
-        CpuidEntry {
-            leaf: $leaf,
-            subleaf: None,
-            eax: $eax,
-            ebx: $ebx,
-            ecx: $ecx,
-            edx: $edx,
-        }
-    };
-}
-
-macro_rules! cpuid_subleaf {
-    ($leaf:literal, $sl:literal, $eax:literal, $ebx:literal, $ecx:literal, $edx:literal) => {
-        CpuidEntry {
-            leaf: $leaf,
-            subleaf: Some($sl),
-            eax: $eax,
-            ebx: $ebx,
-            ecx: $ecx,
-            edx: $edx,
-        }
-    };
-}
-
-const MILAN_CPUID: [CpuidEntry; 32] = [
-    cpuid_leaf!(0x0, 0x0000000D, 0x68747541, 0x444D4163, 0x69746E65),
-    cpuid_leaf!(0x1, 0x00A00F11, 0x00000800, 0xF6D83203, 0x078BFBFF),
-    cpuid_leaf!(0x5, 0x00000000, 0x00000000, 0x00000000, 0x00000000),
-    cpuid_leaf!(0x6, 0x00000004, 0x00000000, 0x00000000, 0x00000000),
-    cpuid_subleaf!(0x7, 0x0, 0x00000000, 0x219803A9, 0x00000600, 0x00000010),
-    cpuid_subleaf!(0xB, 0x0, 0x00000001, 0x00000002, 0x00000100, 0x00000000),
-    cpuid_subleaf!(0xB, 0x1, 0x00000000, 0x00000000, 0x00000201, 0x00000000),
-    cpuid_subleaf!(0xB, 0x2, 0x00000000, 0x00000000, 0x00000002, 0x00000000),
-    cpuid_subleaf!(0xD, 0x0, 0x00000007, 0x00000340, 0x00000340, 0x00000000),
-    cpuid_subleaf!(0xD, 0x1, 0x00000007, 0x00000340, 0x00000000, 0x00000000),
-    cpuid_subleaf!(0xD, 0x2, 0x00000100, 0x00000240, 0x00000000, 0x00000000),
-    cpuid_leaf!(0x80000000, 0x80000021, 0x68747541, 0x444D4163, 0x69746E65),
-    // ecx bit 23 should be flipped true at some point, but is currently
-    // hidden and will continue to be for the moment.
-    // ecx bit 3 should be masked, but is is not and advertises support for
-    // unsupported extensions to LAPIC space.
-    //
-    // RFD 314 talks about these bits more, but we currently allow them to
-    // be wrong as they have been wrong before and we'll get to them
-    // individually later.
-    cpuid_leaf!(0x80000001, 0x00A00F11, 0x40000000, 0x444001F1, 0x27D3FBFF),
-    cpuid_leaf!(0x80000002, 0x20444D41, 0x43595045, 0x31373720, 0x36205033),
-    cpuid_leaf!(0x80000003, 0x6F432D34, 0x50206572, 0x65636F72, 0x726F7373),
-    cpuid_leaf!(0x80000004, 0x20202020, 0x20202020, 0x20202020, 0x00202020),
-    cpuid_leaf!(0x80000005, 0xFF40FF40, 0xFF40FF40, 0x20080140, 0x20080140),
-    cpuid_leaf!(0x80000006, 0x48002200, 0x68004200, 0x02006140, 0x08009140),
-    cpuid_leaf!(0x80000007, 0x00000000, 0x00000000, 0x00000000, 0x00000100),
-    cpuid_leaf!(0x80000008, 0x00003030, 0x00000205, 0x00000000, 0x00000000),
-    cpuid_leaf!(0x8000000A, 0x00000000, 0x00000000, 0x00000000, 0x00000000),
-    cpuid_leaf!(0x80000019, 0xF040F040, 0xF0400000, 0x00000000, 0x00000000),
-    cpuid_leaf!(0x8000001A, 0x00000006, 0x00000000, 0x00000000, 0x00000000),
-    cpuid_leaf!(0x8000001B, 0x00000000, 0x00000000, 0x00000000, 0x00000000),
-    cpuid_leaf!(0x8000001C, 0x00000000, 0x00000000, 0x00000000, 0x00000000),
-    cpuid_subleaf!(0x8000001D, 0x0, 0x00000121, 0x01C0003F, 0x0000003F, 0x00000000),
-    cpuid_subleaf!(0x8000001D, 0x1, 0x00000122, 0x01C0003F, 0x0000003F, 0x00000000),
-    cpuid_subleaf!(0x8000001D, 0x2, 0x00000143, 0x01C0003F, 0x000003FF, 0x00000002),
-    cpuid_subleaf!(0x8000001D, 0x3, 0x00000163, 0x03C0003F, 0x00007FFF, 0x00000001),
-    cpuid_leaf!(0x8000001E, 0x00000000, 0x00000100, 0x00000000, 0x00000000),
-    cpuid_leaf!(0x8000001F, 0x00000000, 0x00000000, 0x00000000, 0x00000000),
-    cpuid_leaf!(0x80000021, 0x00000045, 0x00000000, 0x00000000, 0x00000000),
-];
-
+// Construct a CPUID profile that looks something like a virtual machine might see on an AMD Milan
+// (e.g. 7003-series) processor.
 fn synthetic_milan() -> CpuIdDump {
-    let mut bits = CpuIdDump::new();
-    let mut cpuid = raw_cpuid::CpuId::with_cpuid_reader(bits);
-    let mut leaf = VendorInfo::amd();
-    cpuid.set_vendor_info(Some(leaf));
-    cpuid.set_extended_function_info(Some(leaf));
+    let mut cpuid = raw_cpuid::CpuId::with_cpuid_reader(CpuIdDump::new());
+    let leaf = VendorInfo::amd();
+    cpuid.set_vendor_info(Some(leaf)).unwrap();
+    cpuid.set_extended_function_info(Some(leaf)).unwrap();
 
     let mut leaf = FeatureInfo::new(Vendor::Amd);
 
@@ -117,7 +27,7 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_stepping_id(0x01);
 
     // Set up EBX
-    leaf.set_brand_index(0); //
+    leaf.set_brand_index(0);
     leaf.set_cflush_cache_line_size(8);
     leaf.set_initial_local_apic_id(0); // Populated dynamically in a real system.
     leaf.set_max_logical_processor_ids(0); // Populated dynamically in a real system.
@@ -149,14 +59,14 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_sse41(true);
 
     leaf.set_sse42(true);
-    leaf.set_x2apic(false); // GOT THIS WRONG IN OMICRON UGHGHGHGGHH
+    leaf.set_x2apic(true);
     leaf.set_movbe(true);
     leaf.set_popcnt(true);
 
     leaf.set_tsc_deadline(false);
     leaf.set_aesni(true);
     leaf.set_xsave(true);
-    leaf.set_oxsave(false); // managed dynamically in practice
+    leaf.set_oxsave(false); // Populated dynamically in a real system.
 
     leaf.set_avx(true);
     leaf.set_f16c(true);
@@ -199,30 +109,22 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_sse2(true);
     // bit 27 is reserved
 
-    leaf.set_htt(false); // managed dynamically in practice
-                         // bits 29-31 are not used here.
+    leaf.set_htt(true);
+    // bits 29-31 are not used here.
 
-    // Milan Leaf 1 EAX: 0x00A00F11
-    // Milan Leaf 1 EBX: 0xXXYY0800
-    // Milan Leaf 1 ECX: 0xF6F83203
-    // Milan Leaf 1 EDX: 0x078BFBFF
-    cpuid.set_feature_info(Some(leaf));
+    cpuid.set_feature_info(Some(leaf)).unwrap();
 
     // Leaf 2, 3, 4: all skipped on AMD
 
-    // Leaf 5: Monitor and MWait. All zero here.
-    cpuid.set_monitor_mwait_info(None);
+    // Leaf 5: Monitor and MWait. These are hidden from the guest, so zero this leaf.
+    cpuid.set_monitor_mwait_info(None).unwrap();
 
-    // Leaf 6: Power management and .. some feature bits.
+    // Leaf 6: Power management and some more feature bits.
     let mut leaf = ThermalPowerInfo::empty();
     leaf.set_arat(true);
     leaf.set_hw_coord_feedback(false);
 
-    // Milan Leaf 6 EAX 0x00000004
-    // Milan Leaf 6 EBX 0x00000004
-    // Milan Leaf 6 ECX 0x00000004
-    // Milan Leaf 6 EDX 0x00000004
-    cpuid.set_thermal_power_info(Some(leaf));
+    cpuid.set_thermal_power_info(Some(leaf)).unwrap();
 
     // Leaf 7: Extended features
     let mut leaf = ExtendedFeatures::new();
@@ -237,7 +139,7 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_smep(true);
 
     leaf.set_bmi2(true);
-    leaf.set_rep_movsb_stosb(true); // ERMS
+    leaf.set_rep_movsb_stosb(true); // aka ERMS
     leaf.set_invpcid(false);
     // Bit 11 is reserved on AMD
 
@@ -246,14 +148,14 @@ fn synthetic_milan() -> CpuIdDump {
     // Bit 14 is reserved on AMD
     // Bit 15 is reserved on AMD
 
-    leaf.set_avx512f(false); // Not on Milan
-    leaf.set_avx512dq(false); // Not on Milan
-    leaf.set_rdseed(false); // False here
+    leaf.set_avx512f(false);
+    leaf.set_avx512dq(false);
+    leaf.set_rdseed(true);
     leaf.set_adx(true);
 
     leaf.set_smap(true);
-    leaf.set_avx512_ifma(false); // Not on Milan
-                                 // Bit 22 is reserved on AMD
+    leaf.set_avx512_ifma(false);
+    // Bit 22 is reserved on AMD
     leaf.set_clflushopt(true);
 
     leaf.set_clwb(true);
@@ -261,10 +163,10 @@ fn synthetic_milan() -> CpuIdDump {
     // Bit 26 is reserved on AMD
     // Bit 27 is reserved on AMD
 
-    leaf.set_avx512cd(false); // Not on Milan
+    leaf.set_avx512cd(false);
     leaf.set_sha(true);
-    leaf.set_avx512bw(false); // Not on Milan
-    leaf.set_avx512vl(false); // Not on Milan
+    leaf.set_avx512bw(false);
+    leaf.set_avx512vl(false);
 
     // Set up leaf 7 ECX
 
@@ -278,7 +180,7 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_avx512vbmi2(false);
     leaf.set_cet_ss(false);
 
-    leaf.set_gfni(false); // TODO: Not on Milan? Really??
+    leaf.set_gfni(false);
     leaf.set_vaes(true);
     leaf.set_vpclmulqdq(true);
     leaf.set_avx512vnni(false);
@@ -292,39 +194,37 @@ fn synthetic_milan() -> CpuIdDump {
 
     // Set up leaf 7 EDX
     leaf.set_fsrm(true);
-    cpuid.set_extended_feature_info(Some(leaf));
+    cpuid.set_extended_feature_info(Some(leaf)).unwrap();
 
     // Set up extended topology info (leaf Bh)
     let mut levels = Vec::new();
 
     let mut topo_level1 = ExtendedTopologyLevel::empty();
-    // EAX
-    // These perhaps should be dynamic based on SMT or no?
     topo_level1.set_shift_right_for_next_apic_id(1);
-    // EBX
     topo_level1.set_processors(2);
-    // ECX
     topo_level1.set_level_number(0);
-    topo_level1.set_level_type(1); // If there's no SMT, there should be no SMT right..?
+    topo_level1.set_level_type(1);
 
     levels.push(topo_level1);
 
     let mut topo_level2 = ExtendedTopologyLevel::empty();
-    // ECX
+    topo_level2.set_shift_right_for_next_apic_id(7);
+    topo_level2.set_processors(32);
     topo_level2.set_level_number(1);
     topo_level2.set_level_type(2);
 
     levels.push(topo_level2);
 
     let mut topo_level3 = ExtendedTopologyLevel::empty();
-    // ECX
     topo_level3.set_level_number(2);
     topo_level3.set_level_type(0); // This level is invalid.
 
     levels.push(topo_level3);
-    cpuid.set_extended_topology_info(Some(levels.as_slice()));
+    cpuid
+        .set_extended_topology_info(Some(levels.as_slice()))
+        .unwrap();
 
-    // TODO: ok, kind of messed up to have to pass a `CpuIdDump` here..
+    // TODO: it is not great to pass another `CpuIdDump` here just to create the type..
     let mut state = ExtendedStateInfo::empty(CpuIdDump::new());
     state.set_xcr0_supports_legacy_x87(true);
     state.set_xcr0_supports_sse_128(true);
@@ -343,7 +243,7 @@ fn synthetic_milan() -> CpuIdDump {
     ymm_state.set_offset(0x240);
     leaves.push(Some(ymm_state.into_leaf()));
 
-    cpuid.set_extended_state_info(Some(&leaves[..]));
+    cpuid.set_extended_state_info(Some(&leaves[..])).unwrap();
 
     let mut leaf = ExtendedProcessorFeatureIdentifiers::empty(Vendor::Amd);
     // This is the same as the leaf 1 EAX configured earlier.
@@ -364,7 +264,8 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_misaligned_sse_mode(true);
 
     leaf.set_prefetchw(true);
-    leaf.set_osvw(false); // May be set in hardware, hopefully can hide hardware errata from guests
+    // Probably set in hardware, but hide this and the MSR from guests.
+    leaf.set_osvw(false);
     leaf.set_ibs(false);
     leaf.set_xop(false);
 
@@ -401,11 +302,14 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_rdtscp(false);
     leaf.set_64bit_mode(true);
 
-    cpuid.set_extended_processor_and_feature_identifiers(Some(leaf));
-    // TODO: figure out leaves 8000_0000/8000_0001
+    cpuid
+        .set_extended_processor_and_feature_identifiers(Some(leaf))
+        .unwrap();
 
     // Leaves 8000_0002 through 8000_0005
-    cpuid.set_processor_brand_string(Some(b"AMD EPYC 7713P 64-Core Processor"));
+    cpuid
+        .set_processor_brand_string(Some(b"AMD EPYC Processor"))
+        .unwrap();
 
     // Set up L1 cache+TLB info (leaf 8000_0005h)
     let mut leaf = L1CacheTlbInfo::empty();
@@ -430,7 +334,7 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_icache_associativity(0x08);
     leaf.set_icache_size(0x20);
 
-    cpuid.set_l1_cache_and_tlb_info(Some(leaf));
+    cpuid.set_l1_cache_and_tlb_info(Some(leaf)).unwrap();
 
     // Set up L2 and L3 cache+TLB info (leaf 8000_0006h)
     let mut leaf = L2And3CacheTlbInfo::empty();
@@ -459,20 +363,20 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_l3cache_associativity(0x9);
     leaf.set_l3cache_size(0x0200);
 
-    cpuid.set_l2_l3_cache_and_tlb_info(Some(leaf));
+    cpuid.set_l2_l3_cache_and_tlb_info(Some(leaf)).unwrap();
 
     // Set up advanced power management info (leaf 8000_0007h)
     let mut leaf = ApmInfo::empty();
     leaf.set_invariant_tsc(true);
-    cpuid.set_advanced_power_mgmt_info(Some(leaf));
+    cpuid.set_advanced_power_mgmt_info(Some(leaf)).unwrap();
 
     // Set up processor capacity info (leaf 8000_0008h)
     let mut leaf = ProcessorCapacityAndFeatureInfo::empty();
 
     // Set up leaf 8000_0008 EAX
-    leaf.set_physical_address_bits(0x30); // TODO: BREAKING
-    leaf.set_linear_address_bits(0x30); // TODO: BREAKING
-    leaf.set_guest_physical_address_bits(0); // TODO: BREAKING
+    leaf.set_physical_address_bits(0x30);
+    leaf.set_linear_address_bits(0x30);
+    leaf.set_guest_physical_address_bits(0);
 
     // St up leaf 8000_0008 EBX
     leaf.set_cl_zero(true);
@@ -483,13 +387,15 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_apic_id_size(0);
     leaf.set_perf_tsc_size(0);
 
-    leaf.set_invlpgb_max_pages(0); // TODO: BREAKING
-    leaf.set_max_rdpru_id(0); // TODO: BREAKING
+    leaf.set_invlpgb_max_pages(0);
+    leaf.set_max_rdpru_id(0);
 
-    cpuid.set_processor_capacity_feature_info(Some(leaf));
+    cpuid
+        .set_processor_capacity_feature_info(Some(leaf))
+        .unwrap();
 
     // Leaf 8000_000Ah is zeroed out for guests.
-    cpuid.set_svm_info(None);
+    cpuid.set_svm_info(None).unwrap();
 
     // Set up TLB information for 1GiB pages (leaf 8000_0019h)
     let mut leaf = Tlb1gbPageInfo::empty();
@@ -501,13 +407,13 @@ fn synthetic_milan() -> CpuIdDump {
     leaf.set_dtlb_l2_1gb_size(0x40);
     leaf.set_itlb_l2_1gb_associativity(0);
     leaf.set_itlb_l2_1gb_size(0);
-    cpuid.set_tlb_1gb_page_info(Some(leaf));
+    cpuid.set_tlb_1gb_page_info(Some(leaf)).unwrap();
 
     // Set up processor optimization info (leaf 8000_001Ah)
     let mut leaf = PerformanceOptimizationInfo::empty();
     leaf.set_movu(true);
     leaf.set_fp256(true);
-    cpuid.set_performance_optimization_info(Some(leaf));
+    cpuid.set_performance_optimization_info(Some(leaf)).unwrap();
 
     // Leaf 8000_001B
     // TODO: no support for leaf 8000_001B, but zero is what we wanted.
@@ -515,45 +421,49 @@ fn synthetic_milan() -> CpuIdDump {
     // TODO: no support for leaf 8000_001C, but zero is what we wanted.
 
     // Leaf 8000_001D
-
-    let mut levels = Vec::new();
-    levels.push(CpuIdResult {
-        eax: 0x00000121,
-        ebx: 0x01C0003F,
-        ecx: 0x0000003F,
-        edx: 0x00000000,
-    });
-    levels.push(CpuIdResult {
-        eax: 0x00000122,
-        ebx: 0x01C0003F,
-        ecx: 0x0000003F,
-        edx: 0x00000000,
-    });
-    levels.push(CpuIdResult {
-        eax: 0x00000143,
-        ebx: 0x01C0003F,
-        ecx: 0x000003FF,
-        edx: 0x00000002,
-    });
-    levels.push(CpuIdResult {
-        eax: 0x00000163,
-        ebx: 0x03C0003F,
-        ecx: 0x00007FFF,
-        edx: 0x00000001,
-    });
-    cpuid.set_extended_cache_parameters(Some(levels.as_slice()));
+    let levels = vec![
+        CpuIdResult {
+            eax: 0x00000121,
+            ebx: 0x01C0003F,
+            ecx: 0x0000003F,
+            edx: 0x00000000,
+        },
+        CpuIdResult {
+            eax: 0x00000122,
+            ebx: 0x01C0003F,
+            ecx: 0x0000003F,
+            edx: 0x00000000,
+        },
+        CpuIdResult {
+            eax: 0x00000143,
+            ebx: 0x01C0003F,
+            ecx: 0x000003FF,
+            edx: 0x00000002,
+        },
+        CpuIdResult {
+            eax: 0x00000163,
+            ebx: 0x03C0003F,
+            ecx: 0x00007FFF,
+            edx: 0x00000001,
+        },
+    ];
+    cpuid
+        .set_extended_cache_parameters(Some(levels.as_slice()))
+        .unwrap();
 
     let mut leaf = ProcessorTopologyInfo::empty();
     leaf.set_threads_per_core(2);
-    cpuid.set_processor_topology_info(Some(leaf));
+    cpuid.set_processor_topology_info(Some(leaf)).unwrap();
 
-    cpuid.set_memory_encryption_info(None);
+    cpuid.set_memory_encryption_info(None).unwrap();
 
     let mut leaf = ExtendedFeatureIdentification2::empty();
     leaf.set_no_nested_data_bp(true);
     leaf.set_lfence_always_serializing(true);
     leaf.set_null_select_clears_base(true);
-    cpuid.set_extended_feature_identification_2(Some(leaf));
+    cpuid
+        .set_extended_feature_identification_2(Some(leaf))
+        .unwrap();
 
     cpuid.into_source()
 }
@@ -561,46 +471,14 @@ fn synthetic_milan() -> CpuIdDump {
 fn main() {
     let synthetic_milan = synthetic_milan();
 
-    for leaf in MILAN_CPUID.iter() {
-        let synth = if let Some(subleaf) = leaf.subleaf {
-            synthetic_milan.cpuid2(leaf.leaf, subleaf)
-        } else {
-            synthetic_milan.cpuid1(leaf.leaf)
+    for (leaf, subleaf, regs) in synthetic_milan.into_iter() {
+        let place = match subleaf {
+            Some(subleaf) => format!("leaf {:08x}h.{}h", leaf, subleaf),
+            None => format!("leaf {:08x}h", leaf),
         };
 
-        let regs = leaf.just_regs();
+        let CpuIdResult { eax, ebx, ecx, edx } = regs;
 
-        let place = match leaf.subleaf {
-            Some(subleaf) => format!("leaf {:08x}h.{}h", leaf.leaf, subleaf),
-            None => format!("leaf {:08x}h", leaf.leaf),
-        };
-
-        if regs.eax != synth.eax {
-            panic!(
-                "{}: eax different: expected {:08x}, was {:08x}",
-                place, regs.eax, synth.eax
-            );
-        }
-
-        if regs.ebx != synth.ebx {
-            panic!(
-                "{}: ebx different: expected {:08x}, was {:08x}",
-                place, regs.ebx, synth.ebx
-            );
-        }
-
-        if regs.ecx != synth.ecx {
-            panic!(
-                "{}: ecx different: expected {:08x}, was {:08x}",
-                place, regs.ecx, synth.ecx
-            );
-        }
-
-        if regs.edx != synth.edx {
-            panic!(
-                "{}: edx different: expected {:08x}, was {:08x}",
-                place, regs.edx, synth.edx
-            );
-        }
+        println!("{place}: eax=0x{eax:08x} ebx=0x{ebx:08x} ecx=0x{ecx:08x} edx=0x{edx:08x}");
     }
 }

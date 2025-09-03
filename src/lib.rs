@@ -976,12 +976,6 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
                     .expect("extended cache parameters subleaf fits into u32");
                 self.source
                     .set_subleaf(EAX_CACHE_PARAMETERS_AMD, idx, Some(*level));
-                /* CpuIdResult {
-                    eax: level.eax,
-                    ebx: level.ebx,
-                    ecx: level.ecx,
-                    edx: level.edx,
-                })); */
             }
         }
 
