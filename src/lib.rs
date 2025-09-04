@@ -889,7 +889,7 @@ impl<R: CpuIdReader> CpuId<R> {
         }
     }
 
-    /// This function provides information about the SVM features that the processory
+    /// This function provides information about the SVM features that the processor
     /// supports. (LEAF=0x8000_000A)
     ///
     /// If SVM is not supported if [ExtendedProcessorFeatureIdentifiers::has_svm] is
@@ -2810,7 +2810,7 @@ impl MonitorMwaitInfo {
         get_bits(self.eax, 0, 15) as u16
     }
 
-    /// Largest monitor-line size in bytes (default is processor's monitor granularity
+    /// Largest monitor-line size in bytes (default is processor's monitor granularity)
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
@@ -3952,7 +3952,7 @@ bitflags! {
         const RDTM = 1 << 12;
         /// Deprecates FPU CS and FPU DS values if 1. (Bit 13)
         const DEPRECATE_FPU_CS_DS = 1 << 13;
-        /// Deprecates FPU CS and FPU DS values if 1. (Bit 14)
+        /// Supports Intel Memory Protection Extensions if set. (Bit 14)
         const MPX = 1 << 14;
         /// Supports Intel Resource Director Technology (RDT) Allocation capability if 1.
         const RDTA = 1 << 15;
