@@ -560,7 +560,7 @@ impl<W: CpuIdReader + CpuIdWriter> CpuId<W> {
                 EAX_STRUCTURED_EXTENDED_FEATURE_INFO,
                 0,
                 Some(CpuIdResult {
-                    eax: leaf._eax,
+                    eax: leaf.eax,
                     ebx: leaf.ebx.bits(),
                     ecx: leaf.ecx.bits(),
                     edx: leaf.edx.bits(),
@@ -1248,7 +1248,7 @@ impl<R: CpuIdReader> CpuId<R> {
             let res = self.source.cpuid1(EAX_STRUCTURED_EXTENDED_FEATURE_INFO);
             let res1 = self.source.cpuid2(EAX_STRUCTURED_EXTENDED_FEATURE_INFO, 1);
             Some(ExtendedFeatures {
-                _eax: res.eax,
+                eax: res.eax,
                 ebx: ExtendedFeaturesEbx::from_bits_truncate(res.ebx),
                 ecx: ExtendedFeaturesEcx::from_bits_truncate(res.ecx),
                 edx: ExtendedFeaturesEdx::from_bits_truncate(res.edx),
@@ -4323,7 +4323,7 @@ bitflags! {
 /// # Platforms
 /// 🟡 AMD ✅ Intel
 pub struct ExtendedFeatures {
-    _eax: u32,
+    eax: u32,
     ebx: ExtendedFeaturesEbx,
     ecx: ExtendedFeaturesEcx,
     edx: ExtendedFeaturesEdx,
@@ -4336,7 +4336,7 @@ pub struct ExtendedFeatures {
 impl ExtendedFeatures {
     pub fn new() -> Self {
         Self {
-            _eax: 0,
+            eax: 0,
             ebx: ExtendedFeaturesEbx::from_bits_truncate(0),
             ecx: ExtendedFeaturesEcx::from_bits_truncate(0),
             edx: ExtendedFeaturesEdx::from_bits_truncate(0),
@@ -4345,6 +4345,18 @@ impl ExtendedFeatures {
             _ecx1: 0,
             edx1: ExtendedFeaturesEdx1::from_bits_truncate(0),
         }
+    }
+
+    /// Ensure the maximum valid subleaf for this leaf is at least high enough to cover `level`.
+    ///
+    /// This is mostly useful for keeping the max valid subleaf high enough to encompass feature
+    /// bits set in this leaf.
+    ///
+    // Private only because there hasn't been a need to make this public (yet?). It probably makes
+    // more sense to just set `eax` public if there's need to manage that precisely.
+    fn used_subleaf(&mut self, level: u32) -> &mut Self {
+        self.eax = core::cmp::max(self.eax, level);
+        self
     }
 
     /// FSGSBASE. Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1.
@@ -5184,6 +5196,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_avx_vnni(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.eax1.set(ExtendedFeaturesEax1::AVX_VNNI, bit);
         self
     }
@@ -5198,6 +5211,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_avx512_bf16(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.eax1.set(ExtendedFeaturesEax1::AVX512_BF16, bit);
         self
     }
@@ -5212,6 +5226,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_fzrm(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.eax1.set(ExtendedFeaturesEax1::FZRM, bit);
         self
     }
@@ -5226,6 +5241,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_fsrs(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.eax1.set(ExtendedFeaturesEax1::FSRS, bit);
         self
     }
@@ -5240,6 +5256,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_fsrcrs(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.eax1.set(ExtendedFeaturesEax1::FSRCRS, bit);
         self
     }
@@ -5254,6 +5271,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_hreset(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.eax1.set(ExtendedFeaturesEax1::HRESET, bit);
         self
     }
@@ -5268,6 +5286,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_avx_ifma(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.eax1.set(ExtendedFeaturesEax1::AVX_IFMA, bit);
         self
     }
@@ -5282,6 +5301,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_lam(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.eax1.set(ExtendedFeaturesEax1::LAM, bit);
         self
     }
@@ -5296,6 +5316,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_msrlist(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.eax1.set(ExtendedFeaturesEax1::MSRLIST, bit);
         self
     }
@@ -5311,6 +5332,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_invd_disable_post_bios_done(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.eax1
             .set(ExtendedFeaturesEax1::INVD_DISABLE_POST_BIOS_DONE, bit);
         self
@@ -5326,6 +5348,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_avx_vnni_int8(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.edx1.set(ExtendedFeaturesEdx1::AVX_VNNI_INT8, bit);
         self
     }
@@ -5340,6 +5363,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_avx_ne_convert(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.edx1.set(ExtendedFeaturesEdx1::AVX_NE_CONVERT, bit);
         self
     }
@@ -5354,6 +5378,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_avx_vnni_int16(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.edx1.set(ExtendedFeaturesEdx1::AVX_VNNI_INT16, bit);
         self
     }
@@ -5368,6 +5393,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_prefetchi(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.edx1.set(ExtendedFeaturesEdx1::PREFETCHI, bit);
         self
     }
@@ -5382,6 +5408,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_uiret_uif(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.edx1.set(ExtendedFeaturesEdx1::UIRET_UIF, bit);
         self
     }
@@ -5396,6 +5423,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_cet_sss(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.edx1.set(ExtendedFeaturesEdx1::CET_SSS, bit);
         self
     }
@@ -5410,6 +5438,7 @@ impl ExtendedFeatures {
     }
 
     pub fn set_avx10(&mut self, bit: bool) -> &mut Self {
+        self.used_subleaf(1);
         self.edx1.set(ExtendedFeaturesEdx1::AVX10, bit);
         self
     }
