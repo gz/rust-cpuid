@@ -4,6 +4,7 @@
 use std::str::FromStr;
 
 use clap::{Parser, ValueEnum};
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 use raw_cpuid::{CpuId, CpuIdReaderNative};
 
 #[derive(ValueEnum, Clone)]
@@ -36,6 +37,7 @@ struct Opts {
     format: OutputFormat,
 }
 
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 fn main() {
     let opts: Opts = Opts::parse();
     match opts.format {

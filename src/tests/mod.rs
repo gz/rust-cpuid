@@ -8,6 +8,7 @@ mod xeon_gold_6252;
 use crate::*;
 
 #[test]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 fn cpuid_impls_debug() {
     fn debug_required<T: Debug>(_t: T) {}
 

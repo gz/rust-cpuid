@@ -4,6 +4,8 @@
 //!
 //! ## Example
 //! ```rust
+//! #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+//! {
 //! use raw_cpuid::CpuId;
 //! let cpuid = CpuId::new();
 //!
@@ -23,6 +25,7 @@
 //!     }
 //! } else {
 //!     println!("No cache parameter information available")
+//! }
 //! }
 //! ```
 //!
@@ -6031,6 +6034,7 @@ impl<R: CpuIdReader> HypervisorInfo<R> {
 }
 
 #[cfg(doctest)]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod test_readme {
     macro_rules! external_doc_test {
         ($x:expr) => {
