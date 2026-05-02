@@ -5958,6 +5958,13 @@ impl<R: CpuIdReader> fmt::Debug for HypervisorInfo<R> {
         f.debug_struct("HypervisorInfo")
             .field("identify", &self.identify())
             .field("interface", &self.interface())
+            .field("hv_system_identity", &self.hv_system_identity())
+            .field("hv_features", &self.hv_features())
+            .field("hv_implementation_recommendations", &self.hv_implementation_recommendations())
+            .field("hv_implementation_limits", &self.hv_implementation_limits())
+            .field("hv_implementation_hardware_features", &self.hv_implementation_hardware_features())
+            .field("hv_nested_features", &self.hv_nested_features())
+            .field("hv_nested_virtualization_features", &self.hv_nested_virtualization_features())
             .field("tsc_frequency", &self.tsc_frequency())
             .field("apic_frequency", &self.apic_frequency())
             .finish()
@@ -6176,6 +6183,7 @@ impl<R: CpuIdReader> HypervisorInfo<R> {
 }
 
 /// Hypervisor System Identity (LEAF=0x40000002)
+#[derive(Debug)]
 pub struct HvSystemIdentity {
     eax: u32,
     ebx: u32,
@@ -6198,6 +6206,7 @@ impl HvSystemIdentity {
 }
 
 bitflags! {
+    #[derive(Debug)]
     struct HvPartitionPrivilegeMask: u64 {
         // Access to virtual MSRs
         const ACCESS_VP_RUN_TIME_REG = 1;
@@ -6233,6 +6242,7 @@ bitflags! {
 }
 
 bitflags! {
+    #[derive(Debug)]
     struct HvFeaturesFlagsEcx: u32 {
         const INVARIANT_MPERF = 1 << 4;
         const SUPERVISOR_SHADOW_STACK = 1 << 5;
@@ -6242,6 +6252,7 @@ bitflags! {
 }
 
 bitflags! {
+    #[derive(Debug)]
     struct HvFeaturesFlagsEdx: u32 {
         const GUEST_DEBUGGING = 1;
         const PERFORMANCE_MONITOR = 1 << 1;
@@ -6269,6 +6280,7 @@ bitflags! {
 }
 
 /// EAX and EBX indicate which features are available to the partition based upon the current partition privileges (LEAF=0x40000003)
+#[derive(Debug)]
 pub struct HvFeatures {
     eax_ebx: HvPartitionPrivilegeMask,
     ecx: HvFeaturesFlagsEcx,
@@ -6649,6 +6661,7 @@ impl HvFeatures {
 }
 
 bitflags! {
+    #[derive(Debug)]
     struct HvImplRecommendationsEax: u32 {
         const USE_HYPERCALL_FOR_ADDRESS_SPACE_SWITCHES = 1;
         const USE_HYPERCALL_FOR_LOCAL_TLB_FLUSHES = 1 << 1;
@@ -6671,6 +6684,7 @@ bitflags! {
 }
 
 /// Indicates which behaviors the hypervisor recommends the OS implement for optimal performance (LEAF=0x40000004)
+#[derive(Debug)]
 pub struct HvImplRecommendations {
     eax: HvImplRecommendationsEax,
     ebx: u32,
@@ -6811,6 +6825,7 @@ impl HvImplRecommendations {
 }
 
 /// Describes the scale limits supported in the current hypervisor implementation. If any value is zero, the hypervisor does not expose the corresponding information (LEAF=0x40000005)
+#[derive(Debug)]
 pub struct HvImplLimits {
     eax: u32,
     ebx: u32,
@@ -6833,6 +6848,7 @@ impl HvImplLimits {
 }
 
 bitflags! {
+    #[derive(Debug)]
     struct HvImplHardwareFeaturesEax: u32 {
         const APIC_OVERLAY_ASSIST = 1;
         const MSR_BITMAPS = 1 << 1;
@@ -6859,6 +6875,7 @@ bitflags! {
 }
 
 /// Indicates which hardware-specific features have been detected and are currently in use by the hypervisor (LEAF=0x40000006)
+#[derive(Debug)]
 pub struct HvImplHardwareFeatures {
     eax: HvImplHardwareFeaturesEax,
     _ebx: u32,
@@ -7021,6 +7038,7 @@ impl HvImplHardwareFeatures {
 }
 
 bitflags! {
+    #[derive(Debug)]
     struct HvNestedFeaturesEax: u32 {
         const ACCESS_SYNIC_REGS = 1 << 2;
         const ACCESS_INTR_CTRL_REGS = 1 << 4;
@@ -7031,6 +7049,7 @@ bitflags! {
 }
 
 bitflags! {
+    #[derive(Debug)]
     struct HvNestedFeaturesEdx: u32 {
         const XMM_REGISTERS_FOR_FAST_HYPERCALL = 1 << 4;
         const FAST_HYPERCALL_OUTPUT_AVAILABLE = 1 << 15;
@@ -7039,6 +7058,7 @@ bitflags! {
 }
 
 /// Describes the features exposed to the partition by the hypervisor when running nested. EAX describes access to virtual MSRs. EDX describes access to hypercalls (LEAF=0x40000009)
+#[derive(Debug)]
 pub struct HvNestedFeatures {
     eax: HvNestedFeaturesEax,
     _ebx: u32,
@@ -7105,6 +7125,7 @@ impl HvNestedFeatures {
 }
 
 bitflags! {
+    #[derive(Debug)]
     struct HvNestedVirtualizationFeaturesEax: u32 {
         const DIRECT_VIRTUAL_FLUSH_HYPERCALLS = 1 << 17;
         const FLUSH_GUEST_PHYSICAL_ADDRESS_SPACE_AND_LIST = 1 << 18;
@@ -7116,12 +7137,14 @@ bitflags! {
 }
 
 bitflags! {
+    #[derive(Debug)]
     struct HvNestedVirtualizationFeaturesEbx: u32 {
         const GUEST_PERF_GLOBAL_CTRL_AND_HOST_PERF_GLOBAL_CTRL_FIELDS = 1;
     }
 }
 
 /// Indicates which nested virtualization optimizations are available to a nested hypervisor (LEAF=0x4000000A)
+#[derive(Debug)]
 pub struct HvNestedVirtualizationFeatures {
     eax: HvNestedVirtualizationFeaturesEax,
     ebx: HvNestedVirtualizationFeaturesEbx,
