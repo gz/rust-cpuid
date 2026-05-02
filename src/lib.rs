@@ -6652,6 +6652,21 @@ bitflags! {
     struct HvImplRecommendationsEax: u32 {
         const USE_HYPERCALL_FOR_ADDRESS_SPACE_SWITCHES = 1;
         const USE_HYPERCALL_FOR_LOCAL_TLB_FLUSHES = 1 << 1;
+        const USE_HYPERCALL_FOR_REMOTE_TLB_FLUSHES = 1 << 2;
+        const USE_MSRS_FOR_ACCESSING_APIC_REGISTERS = 1 << 3;
+        const USE_MSR_TO_INITIATE_SYSTEM_RESET = 1 << 4;
+        const USE_RELAXED_TIMING = 1 << 5;
+        const USE_DMA_REMAPPING = 1 << 6;
+        const USE_INTERRUPT_REMAPPING = 1 << 7;
+        const DEPRECATE_AUTOEOI = 1 << 9;
+        const USE_SYNTHETIC_CLUSTER_IPI_HYPERCALL = 1 << 10;
+        const USE_NEWER_EX_PROCESSOR_MASKS_INTERFACE = 1 << 11;
+        const NESTED_HYPERVISOR = 1 << 12;
+        const USE_INT_FOR_MBEC_SYSTEM_CALLS = 1 << 13;
+        const USE_ENLIGHTENED_VMCS_INTERFACE = 1 << 14;
+        const USE_SYNCED_TIMELINE = 1 << 15;
+        const USE_DIRECT_LOCAL_FLUSH_ENTIRE = 1 << 17;
+        const NO_NON_ARCHITECTURAL_CORE_SHARING = 1 << 18;
     }
 }
 
@@ -6676,6 +6691,111 @@ impl HvImplRecommendations {
         use_hypercall_for_local_tlb_flushes,
         eax,
         HvImplRecommendationsEax::USE_HYPERCALL_FOR_LOCAL_TLB_FLUSHES
+    );
+
+    check_flag!(
+        doc = "Recommend using hypercall for remote TLB flushes rather than inter-processor interrupts",
+        use_hypercall_for_remote_tlb_flushes,
+        eax,
+        HvImplRecommendationsEax::USE_HYPERCALL_FOR_REMOTE_TLB_FLUSHES
+    );
+
+    check_flag!(
+        doc = "Recommend using MSRs for accessing APIC registers EOI, ICR and TPR rather than their memory-mapped counterparts",
+        use_msrs_for_accessing_apic_registers,
+        eax,
+        HvImplRecommendationsEax::USE_MSRS_FOR_ACCESSING_APIC_REGISTERS
+    );
+
+    check_flag!(
+        doc = "Recommend using the hypervisor-provided MSR to initiate a system RESET",
+        use_msr_to_initiate_system_reset,
+        eax,
+        HvImplRecommendationsEax::USE_MSR_TO_INITIATE_SYSTEM_RESET
+    );
+
+    check_flag!(
+        doc = "Recommend using relaxed timing for this partition. If used, the VM should disable any watchdog timeouts that rely on the timely delivery of external interrupts",
+        use_relaxed_timing,
+        eax,
+        HvImplRecommendationsEax::USE_RELAXED_TIMING
+    );
+
+    check_flag!(
+        doc = "Recommend using DMA remapping",
+        use_dma_remapping,
+        eax,
+        HvImplRecommendationsEax::USE_DMA_REMAPPING
+    );
+
+    check_flag!(
+        doc = "Recommend using interrupt remapping",
+        use_interrupt_remapping,
+        eax,
+        HvImplRecommendationsEax::USE_INTERRUPT_REMAPPING
+    );
+
+    check_flag!(
+        doc = "Recommend deprecating AutoEOI",
+        deprecate_autoeoi,
+        eax,
+        HvImplRecommendationsEax::DEPRECATE_AUTOEOI
+    );
+
+    check_flag!(
+        doc = "Recommend using SyntheticClusterIpi hypercall",
+        use_synthetic_cluster_ipi_hypercall,
+        eax,
+        HvImplRecommendationsEax::USE_SYNTHETIC_CLUSTER_IPI_HYPERCALL
+    );
+
+    check_flag!(
+        doc = "Recommend using the newer ExProcessorMasks interface",
+        use_newer_ex_processor_masks_interface,
+        eax,
+        HvImplRecommendationsEax::USE_NEWER_EX_PROCESSOR_MASKS_INTERFACE
+    );
+
+    check_flag!(
+        doc = "Indicates that the hypervisor is nested within a Hyper-V partition",
+        hypervisor_nested_within_hyperv_partition,
+        eax,
+        HvImplRecommendationsEax::NESTED_HYPERVISOR
+    );
+
+    check_flag!(
+        doc = "Recommend using INT for MBEC system calls",
+        use_int_for_mbec_system_calls,
+        eax,
+        HvImplRecommendationsEax::USE_INT_FOR_MBEC_SYSTEM_CALLS
+    );
+
+    check_flag!(
+        doc = "Recommend a nested hypervisor using the enlightened VMCS interface. Also indicates that additional nested enlightenments may be available (see leaf 0x4000000A)",
+        use_enlightened_vmcs_interface,
+        eax,
+        HvImplRecommendationsEax::USE_ENLIGHTENED_VMCS_INTERFACE
+    );
+
+    check_flag!(
+        doc = "Indicates the partition should consume the QueryPerformanceCounter bias provided by the root partition",
+        use_synced_timeline,
+        eax,
+        HvImplRecommendationsEax::USE_SYNCED_TIMELINE
+    );
+
+    check_flag!(
+        doc = "Indicates the guest should toggle CR4.PGE to flush the entire TLB, as this is more performant than making a hypercall",
+        use_direct_local_flush_entire,
+        eax,
+        HvImplRecommendationsEax::USE_DIRECT_LOCAL_FLUSH_ENTIRE
+    );
+
+    check_flag!(
+        doc = "Indicates that core sharing is not possible. This can be used as an optimization to avoid the performance overhead of STIBP",
+        no_non_architectural_core_sharing,
+        eax,
+        HvImplRecommendationsEax::NO_NON_ARCHITECTURAL_CORE_SHARING
     );
 
     /// Recommended number of attempts to retry a spinlock failure before notifying the hypervisor about the failures. 0xFFFFFFFF indicates never notify
