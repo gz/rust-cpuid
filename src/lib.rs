@@ -7023,12 +7023,18 @@ impl HvImplHardwareFeatures {
 bitflags! {
     struct HvNestedFeaturesEax: u32 {
         const ACCESS_SYNIC_REGS = 1 << 2;
+        const ACCESS_INTR_CTRL_REGS = 1 << 4;
+        const ACCESS_HYPERCALL_MSRS = 1 << 5;
+        const ACCESS_VP_INDEX = 1 << 6;
+        const ACCESS_REENLIGHTENMENT_CONTROLS = 1 << 12;
     }
 }
 
 bitflags! {
     struct HvNestedFeaturesEdx: u32 {
         const XMM_REGISTERS_FOR_FAST_HYPERCALL = 1 << 4;
+        const FAST_HYPERCALL_OUTPUT_AVAILABLE = 1 << 15;
+        const SINT_POLLING_MODE_AVAILABLE = 1 << 17;
     }
 }
 
@@ -7049,10 +7055,52 @@ impl HvNestedFeatures {
     );
 
     check_flag!(
+        doc = "Access intr ctrl regs",
+        access_intr_ctrl_regs_is_available,
+        eax,
+        HvNestedFeaturesEax::ACCESS_INTR_CTRL_REGS
+    );
+
+    check_flag!(
+        doc = "Access hypercall MSRs",
+        access_hypercall_msrs_is_available,
+        eax,
+        HvNestedFeaturesEax::ACCESS_HYPERCALL_MSRS
+    );
+
+    check_flag!(
+        doc = "Access VP index",
+        access_vp_index_is_available,
+        eax,
+        HvNestedFeaturesEax::ACCESS_VP_INDEX
+    );
+
+    check_flag!(
+        doc = "Access reenlightenment controls",
+        access_reenlightenment_controls_is_available,
+        eax,
+        HvNestedFeaturesEax::ACCESS_REENLIGHTENMENT_CONTROLS
+    );
+
+    check_flag!(
         doc = "XMM registers for fast hypercall available",
         xmm_registers_for_fast_hypercall_available,
         edx,
         HvNestedFeaturesEdx::XMM_REGISTERS_FOR_FAST_HYPERCALL
+    );
+
+    check_flag!(
+        doc = "Fast hypercall output available",
+        fast_hypercall_output_available,
+        edx,
+        HvNestedFeaturesEdx::FAST_HYPERCALL_OUTPUT_AVAILABLE
+    );
+
+    check_flag!(
+        doc = "SINT polling mode available",
+        sint_polling_mode_available,
+        edx,
+        HvNestedFeaturesEdx::SINT_POLLING_MODE_AVAILABLE
     );
 }
 
