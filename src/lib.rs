@@ -7107,6 +7107,11 @@ impl HvNestedFeatures {
 bitflags! {
     struct HvNestedVirtualizationFeaturesEax: u32 {
         const DIRECT_VIRTUAL_FLUSH_HYPERCALLS = 1 << 17;
+        const FLUSH_GUEST_PHYSICAL_ADDRESS_SPACE_AND_LIST = 1 << 18;
+        const ENLIGHTENED_MSR_BITMAP = 1 << 19;
+        const COMBINING_VIRTUALIZATION_EXCEPTIONS = 1 << 20;
+        const NON_ZERO_VALUE_OF_GUEST_IA32_DEBUG_CTRL_FIELD = 1 << 21;
+        const ENLIGHTENED_TLB_ON_AMD_PLATFORMS = 1 << 22;
     }
 }
 
@@ -7134,6 +7139,41 @@ impl HvNestedVirtualizationFeatures {
         direct_virtual_flush_hypercalls_support_is_available,
         eax,
         HvNestedVirtualizationFeaturesEax::DIRECT_VIRTUAL_FLUSH_HYPERCALLS
+    );
+
+    check_flag!(
+        doc = "Indicates support for the HvCallFlushGuestPhysicalAddressSpace and HvCallFlushGuestPhysicalAddressList hypercalls (on x64 platforms)",
+        flush_guest_physical_address_space_and_list_is_available,
+        eax,
+        HvNestedVirtualizationFeaturesEax::FLUSH_GUEST_PHYSICAL_ADDRESS_SPACE_AND_LIST
+    );
+
+    check_flag!(
+        doc = "Indicates support for using an enlightened MSR bitmap",
+        enlightened_msr_bitmap_support_is_available,
+        eax,
+        HvNestedVirtualizationFeaturesEax::ENLIGHTENED_MSR_BITMAP
+    );
+
+    check_flag!(
+        doc = "Indicates support for combining virtualization exceptions in the page fault exception class",
+        combining_virtualization_exceptions_support_is_available,
+        eax,
+        HvNestedVirtualizationFeaturesEax::COMBINING_VIRTUALIZATION_EXCEPTIONS
+    );
+
+    check_flag!(
+        doc = "Indicates support for non-zero value of the 0x00002802 (GuestIa32DebugCtl) field in the VMCS",
+        non_zero_value_of_guest_ia32_debug_ctrl_support_is_available,
+        eax,
+        HvNestedVirtualizationFeaturesEax::NON_ZERO_VALUE_OF_GUEST_IA32_DEBUG_CTRL_FIELD
+    );
+
+    check_flag!(
+        doc = "Indicates support for the enlightened TLB on AMD platforms. ASID flushes do not affect TLB entries derived from the NPT. Hypercalls must be used to invalidate NPT TLB entries. Also indicates support for the HvCallFlushGuestPhysicalAddressSpace and HvCallFlushGuestPhysicalAddressList hypercalls",
+        enlightened_tlb_on_amd_platforms,
+        eax,
+        HvNestedVirtualizationFeaturesEax::ENLIGHTENED_TLB_ON_AMD_PLATFORMS
     );
 
     check_flag!(
