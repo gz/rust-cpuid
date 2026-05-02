@@ -6834,7 +6834,27 @@ impl HvImplLimits {
 
 bitflags! {
     struct HvImplHardwareFeaturesEax: u32 {
-        const APIC_OVERLAY_ASSIST_IS_DETECTED_AND_IN_USE = 1;
+        const APIC_OVERLAY_ASSIST = 1;
+        const MSR_BITMAPS = 1 << 1;
+        const ARCHITECTURAL_PERFORMANCE_COUNTERS = 1 << 2;
+        const SECOND_LEVEL_ADDRESS_TRANSLATION = 1 << 3;
+        const DMA_REMAPPING = 1 << 4;
+        const INTERRUPT_REMAPPING = 1 << 5;
+        const MEMORY_PATROL_SCRUBBER = 1 << 6;
+        const DMA_PROTECTION = 1 << 7;
+        const HPET = 1 << 8;
+        const SYNTHETIC_TIMERS_ARE_VOLATILE = 1 << 9;
+        const PHYSICAL_DESTINATION_MODE_REQUIRED = 1 << 14;
+        const USE_VMFUNC_FOR_ALIAS_MAP_SWITCH = 1 << 15;
+        const HARDWARE_MEMORY_ZEROING = 1 << 16;
+        const UNRESTRICTED_GUEST = 1 << 17;
+        const RESOURCE_ALLOCATION = 1 << 18;
+        const RESOURCE_MONITORING = 1 << 19;
+        const GUEST_VIRTUAL_PMU = 1 << 20;
+        const GUEST_VIRTUAL_LBR = 1 << 21;
+        const GUEST_VIRTUAL_IPT = 1 << 22;
+        const APIC_EMULATION = 1 << 23;
+        const ACPI_WDAT_TABLE = 1 << 24;
     }
 }
 
@@ -6851,7 +6871,152 @@ impl HvImplHardwareFeatures {
         doc = "Support for APIC overlay assist is detected and in use",
         apic_overlay_assist_support_is_available,
         eax,
-        HvImplHardwareFeaturesEax::APIC_OVERLAY_ASSIST_IS_DETECTED_AND_IN_USE
+        HvImplHardwareFeaturesEax::APIC_OVERLAY_ASSIST
+    );
+
+    check_flag!(
+        doc = "Support for MSR bitmaps is detected and in use",
+        msr_bitmaps_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::MSR_BITMAPS
+    );
+
+    check_flag!(
+        doc = "Support for architectural performance counters is detected and in use",
+        architectural_performance_counters_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::ARCHITECTURAL_PERFORMANCE_COUNTERS
+    );
+
+    check_flag!(
+        doc = "Support for second level address translation is detected and in use",
+        second_level_address_translation_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::SECOND_LEVEL_ADDRESS_TRANSLATION
+    );
+
+    check_flag!(
+        doc = "Support for DMA remapping is detected and in use",
+        dma_remapping_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::DMA_REMAPPING
+    );
+
+    check_flag!(
+        doc = "Support for interrupt remapping is detected and in use",
+        interrupt_remapping_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::INTERRUPT_REMAPPING
+    );
+
+    check_flag!(
+        doc = "Indicates that a memory patrol scrubber is present in the hardware",
+        memory_patrol_scrubber_present,
+        eax,
+        HvImplHardwareFeaturesEax::MEMORY_PATROL_SCRUBBER
+    );
+
+    check_flag!(
+        doc = "DMA protection is in use",
+        dma_protection_in_use,
+        eax,
+        HvImplHardwareFeaturesEax::DMA_PROTECTION
+    );
+
+    check_flag!(
+        doc = "HPET is requested",
+        hpet_requested,
+        eax,
+        HvImplHardwareFeaturesEax::HPET
+    );
+
+    check_flag!(
+        doc = "Synthetic timers are volatile",
+        synthetic_timers_are_volatile,
+        eax,
+        HvImplHardwareFeaturesEax::SYNTHETIC_TIMERS_ARE_VOLATILE
+    );
+
+    /// The hypervisor level of the current guest - '0' if non-nested.
+    pub fn guest_hypervisor_level(&self) -> u32 {
+        get_bits(self.eax.bits(), 10, 13)
+    }
+
+    check_flag!(
+        doc = "Physical destination mode required",
+        physical_destination_mode_required,
+        eax,
+        HvImplHardwareFeaturesEax::PHYSICAL_DESTINATION_MODE_REQUIRED
+    );
+
+    check_flag!(
+        doc = "Use VMFUNC for alias map switch",
+        use_vmfunc_for_alias_map_switch,
+        eax,
+        HvImplHardwareFeaturesEax::USE_VMFUNC_FOR_ALIAS_MAP_SWITCH
+    );
+
+    check_flag!(
+        doc = "Support for hardware memory zeroing is present",
+        hardware_memory_zeroing_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::HARDWARE_MEMORY_ZEROING
+    );
+
+    check_flag!(
+        doc = "Support for Unrestricted Guest is present",
+        unrestricted_guest_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::UNRESTRICTED_GUEST
+    );
+
+    check_flag!(
+        doc = "Support for resource allocation (RDT-A, PQOS-A) is present",
+        resource_allocation_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::RESOURCE_ALLOCATION
+    );
+
+    check_flag!(
+        doc = "Support for resource monitoring (RDT-M, PQOS-M) is present",
+        resource_monitoring_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::RESOURCE_MONITORING
+    );
+
+    check_flag!(
+        doc = "Support for guest virtual PMU is present",
+        guest_virtual_pmu_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::GUEST_VIRTUAL_PMU
+    );
+
+    check_flag!(
+        doc = "Support for guest virtual LBR is present",
+        guest_virtual_lbr_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::GUEST_VIRTUAL_LBR
+    );
+
+    check_flag!(
+        doc = "Support for guest virtual IPT is present",
+        guest_virtual_ipt_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::GUEST_VIRTUAL_IPT
+    );
+
+    check_flag!(
+        doc = "Support for APIC emulation is present",
+        apic_emulation_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::APIC_EMULATION
+    );
+
+    check_flag!(
+        doc = "ACPI WDAT table is detected and in use by the hypervisor",
+        acpi_wdat_table_is_present,
+        eax,
+        HvImplHardwareFeaturesEax::ACPI_WDAT_TABLE
     );
 }
 
