@@ -307,8 +307,17 @@ const EAX_SOC_VENDOR_INFO: u32 = 0x17;
 const EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO: u32 = 0x18;
 const EAX_EXTENDED_TOPOLOGY_INFO_V2: u32 = 0x1F;
 
-/// Hypervisor leaf
+// Hypervisor leafs:
 const EAX_HYPERVISOR_INFO: u32 = 0x4000_0000;
+const EAX_HYPERVISOR_INTERFACE_SIGNATURE: u32 = 0x4000_0001;
+// Microsoft Hyper-V CPUID leafs:
+const EAX_MS_HV_SYSTEM_IDENTITY: u32 = 0x4000_0002;
+const EAX_MS_HV_FEATURES: u32 = 0x4000_0003;
+const EAX_MS_HV_IMPLEMENTATION_RECOMMENDATIONS: u32 = 0x4000_0004;
+const EAX_MS_HV_IMPLEMENTATION_LIMITS: u32 = 0x4000_0005;
+const EAX_MS_HV_IMPLEMENTATION_HARDWARE_FEATURES: u32 = 0x4000_0006;
+const EAX_MS_HV_NESTED_FEATURES: u32 = 0x4000_0009;
+const EAX_MS_HV_NESTED_VIRTUALIZATION_FEATURES: u32 = 0x4000_000A;
 
 //
 // Extended leafs:
@@ -797,11 +806,13 @@ impl<R: CpuIdReader> CpuId<R> {
         self.get_feature_info()
             .filter(|fi| fi.has_hypervisor())
             .and_then(|_| {
-                let res = self.read.cpuid1(EAX_HYPERVISOR_INFO);
-                if res.eax > 0 {
+                let hypervisor_info = self.read.cpuid1(EAX_HYPERVISOR_INFO);
+                let interface_signature = self.read.cpuid1(EAX_HYPERVISOR_INTERFACE_SIGNATURE);
+                if hypervisor_info.eax > 0 && interface_signature.eax > 0 {
                     Some(HypervisorInfo {
                         read: self.read.clone(),
-                        res,
+                        hypervisor_info,
+                        interface_signature,
                     })
                 } else {
                     None
@@ -5933,19 +5944,30 @@ impl fmt::Display for SoCVendorBrand {
     }
 }
 
-/// Information about Hypervisor (LEAF=0x4000_0001)
+const HV_INTERFACE: u32 = 0x31237648;
+
+/// Information about Hypervisor (LEAF=0x4000_0000)
 ///
 /// More information about this semi-official leaf can be found here
 /// <https://lwn.net/Articles/301888/>
 pub struct HypervisorInfo<R: CpuIdReader> {
     read: R,
-    res: CpuIdResult,
+    hypervisor_info: CpuIdResult,
+    interface_signature: CpuIdResult,
 }
 
 impl<R: CpuIdReader> fmt::Debug for HypervisorInfo<R> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("HypervisorInfo")
             .field("identify", &self.identify())
+            .field("interface", &self.interface())
+            .field("hv_system_identity", &self.hv_system_identity())
+            .field("hv_features", &self.hv_features())
+            .field("hv_implementation_recommendations", &self.hv_implementation_recommendations())
+            .field("hv_implementation_limits", &self.hv_implementation_limits())
+            .field("hv_implementation_hardware_features", &self.hv_implementation_hardware_features())
+            .field("hv_nested_features", &self.hv_nested_features())
+            .field("hv_nested_virtualization_features", &self.hv_nested_virtualization_features())
             .field("tsc_frequency", &self.tsc_frequency())
             .field("apic_frequency", &self.apic_frequency())
             .finish()
@@ -5980,7 +6002,11 @@ impl<R: CpuIdReader> HypervisorInfo<R> {
     /// have an ID, you find cumulated lists with all kinds of IDs on Github
     /// relatively easy.
     pub fn identify(&self) -> Hypervisor {
-        match (self.res.ebx, self.res.ecx, self.res.edx) {
+        match (
+            self.hypervisor_info.ebx,
+            self.hypervisor_info.ecx,
+            self.hypervisor_info.edx,
+        ) {
             // "VMwareVMware" (0x56 => V, 0x4d => M, ...)
             (0x61774d56, 0x4d566572, 0x65726177) => Hypervisor::VMware,
             // "XenVMMXenVMM"
@@ -6009,11 +6035,137 @@ impl<R: CpuIdReader> HypervisorInfo<R> {
         }
     }
 
+    /// Hypervisor Vendor-Neutral Interface Identification - 0x40000001
+    pub fn interface(&self) -> u32 {
+        self.interface_signature.eax
+    }
+
+    /// Hypervisor System Identity - 0x40000002
+    pub fn hv_system_identity(&self) -> Option<HvSystemIdentity> {
+        if self.hypervisor_info.eax >= EAX_MS_HV_SYSTEM_IDENTITY && self.interface() == HV_INTERFACE
+        {
+            let system_identity = self.read.cpuid1(EAX_MS_HV_SYSTEM_IDENTITY);
+            Some(HvSystemIdentity {
+                eax: system_identity.eax,
+                ebx: system_identity.ebx,
+                _ecx: system_identity.ecx,
+                _edx: system_identity.edx,
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Hypervisor Feature Identification - 0x40000003
+    pub fn hv_features(&self) -> Option<HvFeatures> {
+        if self.hypervisor_info.eax >= EAX_MS_HV_FEATURES && self.interface() == HV_INTERFACE {
+            let features = self.read.cpuid1(EAX_MS_HV_FEATURES);
+            Some(HvFeatures {
+                eax_ebx: HvPartitionPrivilegeMask::from_bits_retain(
+                    (features.ebx as u64) << 32 | (features.eax as u64),
+                ),
+                ecx: HvFeaturesFlagsEcx::from_bits_retain(features.ecx),
+                edx: HvFeaturesFlagsEdx::from_bits_retain(features.edx),
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Implementation Recommendations - 0x40000004
+    pub fn hv_implementation_recommendations(&self) -> Option<HvImplRecommendations> {
+        if self.hypervisor_info.eax >= EAX_MS_HV_IMPLEMENTATION_RECOMMENDATIONS
+            && self.interface() == HV_INTERFACE
+        {
+            let recommendations = self.read.cpuid1(EAX_MS_HV_IMPLEMENTATION_RECOMMENDATIONS);
+            Some(HvImplRecommendations {
+                eax: HvImplRecommendationsEax::from_bits_retain(recommendations.eax),
+                ebx: recommendations.ebx,
+                ecx: recommendations.ecx,
+                _edx: recommendations.edx,
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Hypervisor Implementation Limits - 0x40000005
+    pub fn hv_implementation_limits(&self) -> Option<HvImplLimits> {
+        if self.hypervisor_info.eax >= EAX_MS_HV_IMPLEMENTATION_LIMITS
+            && self.interface() == HV_INTERFACE
+        {
+            let limits = self.read.cpuid1(EAX_MS_HV_IMPLEMENTATION_LIMITS);
+            Some(HvImplLimits {
+                eax: limits.eax,
+                ebx: limits.ebx,
+                ecx: limits.ecx,
+                _edx: limits.edx,
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Implementation Hardware Features - 0x40000006
+    pub fn hv_implementation_hardware_features(&self) -> Option<HvImplHardwareFeatures> {
+        if self.hypervisor_info.eax >= EAX_MS_HV_IMPLEMENTATION_HARDWARE_FEATURES
+            && self.interface() == HV_INTERFACE
+        {
+            let impl_hw_features = self.read.cpuid1(EAX_MS_HV_IMPLEMENTATION_HARDWARE_FEATURES);
+            Some(HvImplHardwareFeatures {
+                eax: HvImplHardwareFeaturesEax::from_bits_retain(impl_hw_features.eax),
+                _ebx: impl_hw_features.ebx,
+                _ecx: impl_hw_features.ecx,
+                _edx: impl_hw_features.edx,
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Nested Hypervisor Feature Identification - 0x40000009
+    pub fn hv_nested_features(&self) -> Option<HvNestedFeatures> {
+        if self.hypervisor_info.eax >= EAX_MS_HV_NESTED_FEATURES && self.interface() == HV_INTERFACE
+        {
+            let nested_features = self.read.cpuid1(EAX_MS_HV_NESTED_FEATURES);
+            Some(HvNestedFeatures {
+                eax: HvNestedFeaturesEax::from_bits_retain(nested_features.eax),
+                _ebx: nested_features.ebx,
+                _ecx: nested_features.ecx,
+                edx: HvNestedFeaturesEdx::from_bits_retain(nested_features.edx),
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Hypervisor Nested Virtualization Features - 0x4000000A
+    pub fn hv_nested_virtualization_features(&self) -> Option<HvNestedVirtualizationFeatures> {
+        if self.hypervisor_info.eax >= EAX_MS_HV_NESTED_VIRTUALIZATION_FEATURES
+            && self.interface() == HV_INTERFACE
+        {
+            let nested_virtualization_features =
+                self.read.cpuid1(EAX_MS_HV_NESTED_VIRTUALIZATION_FEATURES);
+            Some(HvNestedVirtualizationFeatures {
+                eax: HvNestedVirtualizationFeaturesEax::from_bits_retain(
+                    nested_virtualization_features.eax,
+                ),
+                ebx: HvNestedVirtualizationFeaturesEbx::from_bits_retain(
+                    nested_virtualization_features.ebx,
+                ),
+                _ecx: nested_virtualization_features.ecx,
+                _edx: nested_virtualization_features.edx,
+            })
+        } else {
+            None
+        }
+    }
+
     /// TSC frequency in kHz.
     pub fn tsc_frequency(&self) -> Option<u32> {
         // vm aware tsc frequency retrieval:
         // # EAX: (Virtual) TSC frequency in kHz.
-        if self.res.eax >= 0x40000010 {
+        if self.hypervisor_info.eax >= 0x40000010 {
             let virt_tinfo = self.read.cpuid2(0x40000010, 0);
             Some(virt_tinfo.eax)
         } else {
@@ -6024,13 +6176,1038 @@ impl<R: CpuIdReader> HypervisorInfo<R> {
     /// (Virtual) Bus (local apic timer) frequency in kHz.
     pub fn apic_frequency(&self) -> Option<u32> {
         // # EBX: (Virtual) Bus (local apic timer) frequency in kHz.
-        if self.res.eax >= 0x40000010 {
+        if self.hypervisor_info.eax >= 0x40000010 {
             let virt_tinfo = self.read.cpuid2(0x40000010, 0);
             Some(virt_tinfo.ebx)
         } else {
             None
         }
     }
+}
+
+/// Hypervisor System Identity (LEAF=0x40000002)
+#[derive(Debug)]
+pub struct HvSystemIdentity {
+    eax: u32,
+    ebx: u32,
+    _ecx: u32,
+    _edx: u32,
+}
+
+impl HvSystemIdentity {
+    pub fn build_number(&self) -> u32 {
+        self.eax
+    }
+
+    pub fn major_version(&self) -> u32 {
+        get_bits(self.ebx, 16, 31)
+    }
+
+    pub fn minor_version(&self) -> u32 {
+        get_bits(self.ebx, 0, 15)
+    }
+}
+
+bitflags! {
+    #[derive(Debug)]
+    struct HvPartitionPrivilegeMask: u64 {
+        // Access to virtual MSRs
+        const ACCESS_VP_RUN_TIME_REG = 1;
+        const ACCESS_PARTITION_REFERENCE_COUNTER = 1 << 1;
+        const ACCESS_SYNIC_REGS = 1 << 2;
+        const ACCESS_SYNTHETIC_TIMER_REGS = 1 << 3;
+        const ACCESS_INTR_CTRL_REGS = 1 << 4;
+        const ACCESS_HYPERCALL_MSRS = 1 << 5;
+        const ACCESS_VP_INDEX = 1 << 6;
+        const ACCESS_RESET_REG = 1 << 7;
+        const ACCESS_STATS_REG = 1 << 8;
+        const ACCESS_PARTITION_REFERENCE_TSC = 1 << 9;
+        const ACCESS_GUEST_IDLE_REG = 1 << 10;
+        const ACCESS_FREQUENCY_REGS = 1 << 11;
+        const ACCESS_REENLIGHTENMENT_CONTROLS = 1 << 13;
+
+        // Access to hypercalls
+        const CREATE_PARTITIONS = 1 << 32;
+        const ACCESS_PARTITION_ID = 1 << 33;
+        const ACCESS_MEMORY_POOL = 1 << 34;
+        const POST_MESSAGES = 1 << 36;
+        const SIGNAL_EVENTS = 1 << 37;
+        const CREATE_PORT = 1 << 38;
+        const CONNECT_PORT = 1 << 39;
+        const ACCESS_STATS = 1 << 40;
+        const DEBUGGING = 1 << 43;
+        const CPU_MANAGEMENT = 1 << 44;
+        const ACCESS_VSM = 1 << 48;
+        const ACCESS_VP_REGISTERS = 1 << 49;
+        const ENABLE_EXTENDED_HYPERCALLS = 1 << 52;
+        const START_VIRTUAL_PROCESSOR = 1 << 53;
+    }
+}
+
+bitflags! {
+    #[derive(Debug)]
+    struct HvFeaturesFlagsEcx: u32 {
+        const INVARIANT_MPERF = 1 << 4;
+        const SUPERVISOR_SHADOW_STACK = 1 << 5;
+        const ARCHITECTURAL_PMU = 1 << 6;
+        const EXCEPTION_TRAP_INTERCEPT = 1 << 7;
+    }
+}
+
+bitflags! {
+    #[derive(Debug)]
+    struct HvFeaturesFlagsEdx: u32 {
+        const GUEST_DEBUGGING = 1;
+        const PERFORMANCE_MONITOR = 1 << 1;
+        const PHYSICAL_CPU_DYNAMIC_PARTITIONING_EVENTS = 1 << 2;
+        const PASSING_HYPERCALL_INPUT_PARAMETER_BLOCK_VIA_XMM_REGISTERS = 1 << 3;
+        const VIRTUAL_GUEST_IDLE_STATE = 1 << 4;
+        const HYPERVISOR_SLEEP_STATE = 1 << 5;
+        const QUERYING_NUMA_DISTANCES = 1 << 6;
+        const DETERMINING_TIMER_FREQUENCIES = 1 << 7;
+        const INJECTING_SYNTHETIC_MACHINE_CHECKS = 1 << 8;
+        const GUEST_CRASH_MSRS = 1 << 9;
+        const DEBUG_MSRS = 1 << 10;
+        const NPIEP = 1 << 11;
+        const DISABLE_HYPERVISOR = 1 << 12;
+        const EXTENDED_GVA_RANGES_FOR_FLUSH_VIRTUAL_ADDRESS_LIST = 1 << 13;
+        const RETURNING_HYPERCALL_OUTPUT_VIA_XMM_REGISTERS = 1 << 14;
+        const SINT_POLLING_MODE = 1 << 16;
+        const HYPERCALL_MSR_LOCK = 1 << 17;
+        const USE_DIRECT_SYNTHETIC_TIMERS = 1 << 18;
+        const PAT_REGISTER_AVAILABLE_FOR_VSM = 1 << 19;
+        const BNDCFGS_REGISTER_AVAILABLE_FOR_VSM = 1 << 20;
+        const SYNTHETIC_TIME_UNHALTED_TIMER = 1 << 22;
+        const INTEL_LAST_BRANCH_RECORD = 1 << 25;
+    }
+}
+
+/// EAX and EBX indicate which features are available to the partition based upon the current partition privileges (LEAF=0x40000003)
+#[derive(Debug)]
+pub struct HvFeatures {
+    eax_ebx: HvPartitionPrivilegeMask,
+    ecx: HvFeaturesFlagsEcx,
+    edx: HvFeaturesFlagsEdx,
+}
+
+impl HvFeatures {
+    check_flag!(
+        doc = "The partition has access to the synthetic MSR HV_X64_MSR_VP_RUNTIME",
+        has_access_to_vp_run_time_reg,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_VP_RUN_TIME_REG
+    );
+
+    check_flag!(
+        doc = "The partition has access to the partition-wide reference count MSR, HV_X64_MSR_TIME_REF_COUNT",
+        has_access_to_partition_reference_counter,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_PARTITION_REFERENCE_COUNTER
+    );
+
+    check_flag!(
+        doc = "The partition has access to the synthetic MSRs associated with the Synic (HV_X64_MSR_SCONTROL through HV_X64_MSR_EOM and HV_X64_MSR_SINT0 through HV_X64_MSR_SINT15)",
+        has_access_to_synic_regs,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_SYNIC_REGS
+    );
+
+    check_flag!(
+        doc = "The partition has access to the synthetic MSRs associated with the Synic (HV_X64_MSR_STIMER0_CONFIG through HV_X64_MSR_STIMER3_COUNT)",
+        has_access_to_synthetic_timer_regs,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_SYNTHETIC_TIMER_REGS
+    );
+
+    check_flag!(
+        doc = "The partition has access to the synthetic MSRs associated with the APIC (HV_X64_MSR_EOI, HV_X64_MSR_ICR and HV_X64_MSR_TPR)",
+        has_access_to_intr_ctrl_regs,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_INTR_CTRL_REGS
+    );
+
+    check_flag!(
+        doc = "The partition has access to the synthetic MSRs related to the hypercall interface (HV_X64_MSR_GUEST_OS_ID and HV_X64_MSR_HYPERCALL)",
+        has_access_to_hypercall_msrs,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_HYPERCALL_MSRS
+    );
+
+    check_flag!(
+        doc = "The partition has access to the synthetic MSR that returns the virtual processor index",
+        has_access_to_vp_index,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_VP_INDEX
+    );
+
+    check_flag!(
+        doc = "This partition has access to the synthetic MSR that resets the system",
+        has_access_to_reset_reg,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_RESET_REG
+    );
+
+    check_flag!(
+        doc = "This partition has access to the synthetic MSRs that allows the guest to map and unmap its own statistics pages",
+        has_access_to_stats_reg,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_STATS_REG
+    );
+
+    check_flag!(
+        doc = "The partition has access to the reference TSC",
+        has_access_to_partition_reference_tsc,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_PARTITION_REFERENCE_TSC
+    );
+
+    check_flag!(
+        doc = "The partition has access to the synthetic MSR that allows the guest to enter the guest idle state",
+        has_access_to_guest_idle_reg,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_GUEST_IDLE_REG
+    );
+
+    check_flag!(
+        doc = "The partition has access to the synthetic MSRs that supply the TSC and APIC frequencies, if supported",
+        has_access_to_frequency_regs,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_FREQUENCY_REGS
+    );
+
+    check_flag!(
+        doc = "The partition has access to reenlightenment controls",
+        has_access_to_reenlightenment_controls,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_REENLIGHTENMENT_CONTROLS
+    );
+
+    check_flag!(
+        doc = "The partition can invoke the hypercall HvCallCreatePartition. The partition also can make any other hypercall that is restricted to operating on children",
+        can_create_partitions,
+        eax_ebx,
+        HvPartitionPrivilegeMask::CREATE_PARTITIONS
+    );
+
+    check_flag!(
+        doc = "The partition can invoke the hypercall HvCallGetPartitionId to obtain its own partition ID",
+        has_access_to_partition_id,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_PARTITION_ID
+    );
+
+    check_flag!(
+        doc = "The partition can invoke the hypercalls HvCallDepositMemory, HvCallWithdrawMemory and HvCallGetMemoryBalance",
+        has_access_to_memory_pool,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_MEMORY_POOL
+    );
+
+    check_flag!(
+        doc = "The partition can invoke the hypercall HvCallPostMessage",
+        can_post_messages,
+        eax_ebx,
+        HvPartitionPrivilegeMask::POST_MESSAGES
+    );
+
+    check_flag!(
+        doc = "The partition can invoke the hypercall HvCallSignalEvent",
+        can_signal_events,
+        eax_ebx,
+        HvPartitionPrivilegeMask::SIGNAL_EVENTS
+    );
+
+    check_flag!(
+        doc = "The partition can invoke the hypercall HvCallCreatePort",
+        can_create_port,
+        eax_ebx,
+        HvPartitionPrivilegeMask::CREATE_PORT
+    );
+
+    check_flag!(
+        doc = "The partition can invoke the hypercall HvCallConnectPort",
+        can_connect_port,
+        eax_ebx,
+        HvPartitionPrivilegeMask::CONNECT_PORT
+    );
+
+    check_flag!(
+        doc = "The partition can invoke the hypercalls HvCallMapStatsPage and HvCallUnmapStatsPage",
+        has_access_to_stats,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_STATS
+    );
+
+    check_flag!(
+        doc = "The partition has access to debugging related synthetic MSRs and can invoke the hypercalls HvCallPostDebugData, HvCallRetrieveDebugData and HvCallResetDebugSession",
+        has_access_to_debugging,
+        eax_ebx,
+        HvPartitionPrivilegeMask::DEBUGGING
+    );
+
+    check_flag!(
+        doc = "The partition can invoke various hypercalls for CPU management",
+        has_access_to_cpu_management,
+        eax_ebx,
+        HvPartitionPrivilegeMask::CPU_MANAGEMENT
+    );
+
+    check_flag!(
+        doc = "The partition can use VSM",
+        has_access_to_vsm,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_VSM
+    );
+
+    check_flag!(
+        doc = "The partition can invoke the hypercalls HvCallSetVpRegisters and HvCallGetVpRegisters",
+        has_access_to_vp_registers,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ACCESS_VP_REGISTERS
+    );
+
+    check_flag!(
+        doc = "The partition can use the extended hypercall interface",
+        can_use_extended_hypercall_interface,
+        eax_ebx,
+        HvPartitionPrivilegeMask::ENABLE_EXTENDED_HYPERCALLS
+    );
+
+    check_flag!(
+        doc = "The partition can use HvCallStartVirtualProcessor to initialize virtual processors",
+        can_start_virtual_processor,
+        eax_ebx,
+        HvPartitionPrivilegeMask::START_VIRTUAL_PROCESSOR
+    );
+
+    check_flag!(
+        doc = "Invariant Mperf is available",
+        invariant_mperf_is_available,
+        ecx,
+        HvFeaturesFlagsEcx::INVARIANT_MPERF
+    );
+
+    check_flag!(
+        doc = "Supervisor shadow stack is available",
+        supervisor_shadow_stack_is_available,
+        ecx,
+        HvFeaturesFlagsEcx::SUPERVISOR_SHADOW_STACK
+    );
+
+    check_flag!(
+        doc = "Architectural PMU is available",
+        architectural_pmu_is_available,
+        ecx,
+        HvFeaturesFlagsEcx::ARCHITECTURAL_PMU
+    );
+
+    check_flag!(
+        doc = "Exception trap intercept is available",
+        exception_trap_intercept_is_available,
+        ecx,
+        HvFeaturesFlagsEcx::EXCEPTION_TRAP_INTERCEPT
+    );
+
+    check_flag!(
+        doc = "Guest debugging support is available",
+        guest_debugging_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::GUEST_DEBUGGING
+    );
+
+    check_flag!(
+        doc = "Performance Monitor support is available",
+        performance_monitor_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::PERFORMANCE_MONITOR
+    );
+
+    check_flag!(
+        doc = "Support for physical CPU dynamic partitioning events is available",
+        physical_cpu_dynamic_partitioning_events_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::PHYSICAL_CPU_DYNAMIC_PARTITIONING_EVENTS
+    );
+
+    check_flag!(
+        doc = "Support for passing hypercall input parameter block via XMM registers is available",
+        passing_hypercall_input_parameter_block_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::PASSING_HYPERCALL_INPUT_PARAMETER_BLOCK_VIA_XMM_REGISTERS
+    );
+
+    check_flag!(
+        doc = "Support for a virtual guest idle state is available",
+        virtual_guest_idle_state_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::VIRTUAL_GUEST_IDLE_STATE
+    );
+
+    check_flag!(
+        doc = "Support for hypervisor sleep state is available",
+        hypervisor_sleep_state_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::HYPERVISOR_SLEEP_STATE
+    );
+
+    check_flag!(
+        doc = "Support for querying NUMA distances is available",
+        querying_numa_distances_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::QUERYING_NUMA_DISTANCES
+    );
+
+    check_flag!(
+        doc = "Support for determining timer frequencies is available",
+        determining_timer_frequencies_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::DETERMINING_TIMER_FREQUENCIES
+    );
+
+    check_flag!(
+        doc = "Support for injecting synthetic machine checks is available",
+        injecting_synthetic_machine_checks_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::INJECTING_SYNTHETIC_MACHINE_CHECKS
+    );
+
+    check_flag!(
+        doc = "Support for guest crash MSRs is available",
+        guest_crash_msrs_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::GUEST_CRASH_MSRS
+    );
+
+    check_flag!(
+        doc = "Support for debug MSRs is available",
+        debug_msrs_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::DEBUG_MSRS
+    );
+
+    check_flag!(
+        doc = "Support for NPIEP is available",
+        npiep_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::NPIEP
+    );
+
+    check_flag!(
+        doc = "Disable hypervisor available",
+        disable_hypervisor_is_available,
+        edx,
+        HvFeaturesFlagsEdx::DISABLE_HYPERVISOR
+    );
+
+    check_flag!(
+        doc = "Extended GVA ranges for flush virtual address list available",
+        extended_gva_ranges_for_flus_virtual_address_list_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::EXTENDED_GVA_RANGES_FOR_FLUSH_VIRTUAL_ADDRESS_LIST
+    );
+
+    check_flag!(
+        doc = "Support for returning hypercall output via XMM registers is available",
+        returning_hypercall_output_via_xmm_registers_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::RETURNING_HYPERCALL_OUTPUT_VIA_XMM_REGISTERS
+    );
+
+    check_flag!(
+        doc = "SINT polling mode available",
+        sint_polling_mode_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::SINT_POLLING_MODE
+    );
+
+    check_flag!(
+        doc = "Hypercall MSR lock available",
+        hypercall_msr_lock_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::HYPERCALL_MSR_LOCK
+    );
+
+    check_flag!(
+        doc = "Use direct synthetic timers",
+        use_direct_synthetic_timers,
+        edx,
+        HvFeaturesFlagsEdx::USE_DIRECT_SYNTHETIC_TIMERS
+    );
+
+    check_flag!(
+        doc = "Support for PAT register available for VSM",
+        pat_register_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::PAT_REGISTER_AVAILABLE_FOR_VSM
+    );
+
+    check_flag!(
+        doc = "Support for bndcfgs register available for VSM",
+        bndcfgs_register_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::BNDCFGS_REGISTER_AVAILABLE_FOR_VSM
+    );
+
+    check_flag!(
+        doc = "Support for synthetic time unhalted timer available",
+        synthetic_time_unhalted_timer_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::SYNTHETIC_TIME_UNHALTED_TIMER
+    );
+
+    check_flag!(
+        doc = "Intel’s Last Branch Record (LBR) feature supported",
+        last_branch_record_support_is_available,
+        edx,
+        HvFeaturesFlagsEdx::INTEL_LAST_BRANCH_RECORD
+    );
+}
+
+bitflags! {
+    #[derive(Debug)]
+    struct HvImplRecommendationsEax: u32 {
+        const USE_HYPERCALL_FOR_ADDRESS_SPACE_SWITCHES = 1;
+        const USE_HYPERCALL_FOR_LOCAL_TLB_FLUSHES = 1 << 1;
+        const USE_HYPERCALL_FOR_REMOTE_TLB_FLUSHES = 1 << 2;
+        const USE_MSRS_FOR_ACCESSING_APIC_REGISTERS = 1 << 3;
+        const USE_MSR_TO_INITIATE_SYSTEM_RESET = 1 << 4;
+        const USE_RELAXED_TIMING = 1 << 5;
+        const USE_DMA_REMAPPING = 1 << 6;
+        const USE_INTERRUPT_REMAPPING = 1 << 7;
+        const DEPRECATE_AUTOEOI = 1 << 9;
+        const USE_SYNTHETIC_CLUSTER_IPI_HYPERCALL = 1 << 10;
+        const USE_NEWER_EX_PROCESSOR_MASKS_INTERFACE = 1 << 11;
+        const NESTED_HYPERVISOR = 1 << 12;
+        const USE_INT_FOR_MBEC_SYSTEM_CALLS = 1 << 13;
+        const USE_ENLIGHTENED_VMCS_INTERFACE = 1 << 14;
+        const USE_SYNCED_TIMELINE = 1 << 15;
+        const USE_DIRECT_LOCAL_FLUSH_ENTIRE = 1 << 17;
+        const NO_NON_ARCHITECTURAL_CORE_SHARING = 1 << 18;
+    }
+}
+
+/// Indicates which behaviors the hypervisor recommends the OS implement for optimal performance (LEAF=0x40000004)
+#[derive(Debug)]
+pub struct HvImplRecommendations {
+    eax: HvImplRecommendationsEax,
+    ebx: u32,
+    ecx: u32,
+    _edx: u32,
+}
+
+impl HvImplRecommendations {
+    check_flag!(
+        doc = "Recommend using hypercall for address space switches rather than MOV to CR3 instruction",
+        use_hypercall_for_address_space_switches,
+        eax,
+        HvImplRecommendationsEax::USE_HYPERCALL_FOR_ADDRESS_SPACE_SWITCHES
+    );
+
+    check_flag!(
+        doc = "Recommend using hypercall for local TLB flushes rather than INVLPG or MOV to CR3 instructions",
+        use_hypercall_for_local_tlb_flushes,
+        eax,
+        HvImplRecommendationsEax::USE_HYPERCALL_FOR_LOCAL_TLB_FLUSHES
+    );
+
+    check_flag!(
+        doc = "Recommend using hypercall for remote TLB flushes rather than inter-processor interrupts",
+        use_hypercall_for_remote_tlb_flushes,
+        eax,
+        HvImplRecommendationsEax::USE_HYPERCALL_FOR_REMOTE_TLB_FLUSHES
+    );
+
+    check_flag!(
+        doc = "Recommend using MSRs for accessing APIC registers EOI, ICR and TPR rather than their memory-mapped counterparts",
+        use_msrs_for_accessing_apic_registers,
+        eax,
+        HvImplRecommendationsEax::USE_MSRS_FOR_ACCESSING_APIC_REGISTERS
+    );
+
+    check_flag!(
+        doc = "Recommend using the hypervisor-provided MSR to initiate a system RESET",
+        use_msr_to_initiate_system_reset,
+        eax,
+        HvImplRecommendationsEax::USE_MSR_TO_INITIATE_SYSTEM_RESET
+    );
+
+    check_flag!(
+        doc = "Recommend using relaxed timing for this partition. If used, the VM should disable any watchdog timeouts that rely on the timely delivery of external interrupts",
+        use_relaxed_timing,
+        eax,
+        HvImplRecommendationsEax::USE_RELAXED_TIMING
+    );
+
+    check_flag!(
+        doc = "Recommend using DMA remapping",
+        use_dma_remapping,
+        eax,
+        HvImplRecommendationsEax::USE_DMA_REMAPPING
+    );
+
+    check_flag!(
+        doc = "Recommend using interrupt remapping",
+        use_interrupt_remapping,
+        eax,
+        HvImplRecommendationsEax::USE_INTERRUPT_REMAPPING
+    );
+
+    check_flag!(
+        doc = "Recommend deprecating AutoEOI",
+        deprecate_autoeoi,
+        eax,
+        HvImplRecommendationsEax::DEPRECATE_AUTOEOI
+    );
+
+    check_flag!(
+        doc = "Recommend using SyntheticClusterIpi hypercall",
+        use_synthetic_cluster_ipi_hypercall,
+        eax,
+        HvImplRecommendationsEax::USE_SYNTHETIC_CLUSTER_IPI_HYPERCALL
+    );
+
+    check_flag!(
+        doc = "Recommend using the newer ExProcessorMasks interface",
+        use_newer_ex_processor_masks_interface,
+        eax,
+        HvImplRecommendationsEax::USE_NEWER_EX_PROCESSOR_MASKS_INTERFACE
+    );
+
+    check_flag!(
+        doc = "Indicates that the hypervisor is nested within a Hyper-V partition",
+        hypervisor_nested_within_hyperv_partition,
+        eax,
+        HvImplRecommendationsEax::NESTED_HYPERVISOR
+    );
+
+    check_flag!(
+        doc = "Recommend using INT for MBEC system calls",
+        use_int_for_mbec_system_calls,
+        eax,
+        HvImplRecommendationsEax::USE_INT_FOR_MBEC_SYSTEM_CALLS
+    );
+
+    check_flag!(
+        doc = "Recommend a nested hypervisor using the enlightened VMCS interface. Also indicates that additional nested enlightenments may be available (see leaf 0x4000000A)",
+        use_enlightened_vmcs_interface,
+        eax,
+        HvImplRecommendationsEax::USE_ENLIGHTENED_VMCS_INTERFACE
+    );
+
+    check_flag!(
+        doc = "Indicates the partition should consume the QueryPerformanceCounter bias provided by the root partition",
+        use_synced_timeline,
+        eax,
+        HvImplRecommendationsEax::USE_SYNCED_TIMELINE
+    );
+
+    check_flag!(
+        doc = "Indicates the guest should toggle CR4.PGE to flush the entire TLB, as this is more performant than making a hypercall",
+        use_direct_local_flush_entire,
+        eax,
+        HvImplRecommendationsEax::USE_DIRECT_LOCAL_FLUSH_ENTIRE
+    );
+
+    check_flag!(
+        doc = "Indicates that core sharing is not possible. This can be used as an optimization to avoid the performance overhead of STIBP",
+        no_non_architectural_core_sharing,
+        eax,
+        HvImplRecommendationsEax::NO_NON_ARCHITECTURAL_CORE_SHARING
+    );
+
+    /// Recommended number of attempts to retry a spinlock failure before notifying the hypervisor about the failures. 0xFFFFFFFF indicates never notify
+    pub fn attempts_to_retry_a_spinlock_failure(&self) -> u32 {
+        self.ebx
+    }
+
+    /// Reports the physical address width (MAXPHYADDR) reported by the system’s physical processors.
+    /// If all bits contain 0, the feature is not supported. Note that the value reported is the actual number of physical address bits, and not the bit position used to represent that number.
+    pub fn implemented_physical_address_bits(&self) -> u32 {
+        get_bits(self.ecx, 0, 6)
+    }
+}
+
+/// Describes the scale limits supported in the current hypervisor implementation. If any value is zero, the hypervisor does not expose the corresponding information (LEAF=0x40000005)
+#[derive(Debug)]
+pub struct HvImplLimits {
+    eax: u32,
+    ebx: u32,
+    ecx: u32,
+    _edx: u32,
+}
+
+impl HvImplLimits {
+    pub fn max_virtual_processors(&self) -> u32 {
+        self.eax
+    }
+
+    pub fn max_logical_processors(&self) -> u32 {
+        self.ebx
+    }
+
+    pub fn max_interrupt_vectors(&self) -> u32 {
+        self.ecx
+    }
+}
+
+bitflags! {
+    #[derive(Debug)]
+    struct HvImplHardwareFeaturesEax: u32 {
+        const APIC_OVERLAY_ASSIST = 1;
+        const MSR_BITMAPS = 1 << 1;
+        const ARCHITECTURAL_PERFORMANCE_COUNTERS = 1 << 2;
+        const SECOND_LEVEL_ADDRESS_TRANSLATION = 1 << 3;
+        const DMA_REMAPPING = 1 << 4;
+        const INTERRUPT_REMAPPING = 1 << 5;
+        const MEMORY_PATROL_SCRUBBER = 1 << 6;
+        const DMA_PROTECTION = 1 << 7;
+        const HPET = 1 << 8;
+        const SYNTHETIC_TIMERS_ARE_VOLATILE = 1 << 9;
+        const PHYSICAL_DESTINATION_MODE_REQUIRED = 1 << 14;
+        const USE_VMFUNC_FOR_ALIAS_MAP_SWITCH = 1 << 15;
+        const HARDWARE_MEMORY_ZEROING = 1 << 16;
+        const UNRESTRICTED_GUEST = 1 << 17;
+        const RESOURCE_ALLOCATION = 1 << 18;
+        const RESOURCE_MONITORING = 1 << 19;
+        const GUEST_VIRTUAL_PMU = 1 << 20;
+        const GUEST_VIRTUAL_LBR = 1 << 21;
+        const GUEST_VIRTUAL_IPT = 1 << 22;
+        const APIC_EMULATION = 1 << 23;
+        const ACPI_WDAT_TABLE = 1 << 24;
+    }
+}
+
+/// Indicates which hardware-specific features have been detected and are currently in use by the hypervisor (LEAF=0x40000006)
+#[derive(Debug)]
+pub struct HvImplHardwareFeatures {
+    eax: HvImplHardwareFeaturesEax,
+    _ebx: u32,
+    _ecx: u32,
+    _edx: u32,
+}
+
+impl HvImplHardwareFeatures {
+    check_flag!(
+        doc = "Support for APIC overlay assist is detected and in use",
+        apic_overlay_assist_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::APIC_OVERLAY_ASSIST
+    );
+
+    check_flag!(
+        doc = "Support for MSR bitmaps is detected and in use",
+        msr_bitmaps_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::MSR_BITMAPS
+    );
+
+    check_flag!(
+        doc = "Support for architectural performance counters is detected and in use",
+        architectural_performance_counters_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::ARCHITECTURAL_PERFORMANCE_COUNTERS
+    );
+
+    check_flag!(
+        doc = "Support for second level address translation is detected and in use",
+        second_level_address_translation_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::SECOND_LEVEL_ADDRESS_TRANSLATION
+    );
+
+    check_flag!(
+        doc = "Support for DMA remapping is detected and in use",
+        dma_remapping_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::DMA_REMAPPING
+    );
+
+    check_flag!(
+        doc = "Support for interrupt remapping is detected and in use",
+        interrupt_remapping_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::INTERRUPT_REMAPPING
+    );
+
+    check_flag!(
+        doc = "Indicates that a memory patrol scrubber is present in the hardware",
+        memory_patrol_scrubber_present,
+        eax,
+        HvImplHardwareFeaturesEax::MEMORY_PATROL_SCRUBBER
+    );
+
+    check_flag!(
+        doc = "DMA protection is in use",
+        dma_protection_in_use,
+        eax,
+        HvImplHardwareFeaturesEax::DMA_PROTECTION
+    );
+
+    check_flag!(
+        doc = "HPET is requested",
+        hpet_requested,
+        eax,
+        HvImplHardwareFeaturesEax::HPET
+    );
+
+    check_flag!(
+        doc = "Synthetic timers are volatile",
+        synthetic_timers_are_volatile,
+        eax,
+        HvImplHardwareFeaturesEax::SYNTHETIC_TIMERS_ARE_VOLATILE
+    );
+
+    /// The hypervisor level of the current guest - '0' if non-nested.
+    pub fn guest_hypervisor_level(&self) -> u32 {
+        get_bits(self.eax.bits(), 10, 13)
+    }
+
+    check_flag!(
+        doc = "Physical destination mode required",
+        physical_destination_mode_required,
+        eax,
+        HvImplHardwareFeaturesEax::PHYSICAL_DESTINATION_MODE_REQUIRED
+    );
+
+    check_flag!(
+        doc = "Use VMFUNC for alias map switch",
+        use_vmfunc_for_alias_map_switch,
+        eax,
+        HvImplHardwareFeaturesEax::USE_VMFUNC_FOR_ALIAS_MAP_SWITCH
+    );
+
+    check_flag!(
+        doc = "Support for hardware memory zeroing is present",
+        hardware_memory_zeroing_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::HARDWARE_MEMORY_ZEROING
+    );
+
+    check_flag!(
+        doc = "Support for Unrestricted Guest is present",
+        unrestricted_guest_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::UNRESTRICTED_GUEST
+    );
+
+    check_flag!(
+        doc = "Support for resource allocation (RDT-A, PQOS-A) is present",
+        resource_allocation_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::RESOURCE_ALLOCATION
+    );
+
+    check_flag!(
+        doc = "Support for resource monitoring (RDT-M, PQOS-M) is present",
+        resource_monitoring_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::RESOURCE_MONITORING
+    );
+
+    check_flag!(
+        doc = "Support for guest virtual PMU is present",
+        guest_virtual_pmu_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::GUEST_VIRTUAL_PMU
+    );
+
+    check_flag!(
+        doc = "Support for guest virtual LBR is present",
+        guest_virtual_lbr_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::GUEST_VIRTUAL_LBR
+    );
+
+    check_flag!(
+        doc = "Support for guest virtual IPT is present",
+        guest_virtual_ipt_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::GUEST_VIRTUAL_IPT
+    );
+
+    check_flag!(
+        doc = "Support for APIC emulation is present",
+        apic_emulation_support_is_available,
+        eax,
+        HvImplHardwareFeaturesEax::APIC_EMULATION
+    );
+
+    check_flag!(
+        doc = "ACPI WDAT table is detected and in use by the hypervisor",
+        acpi_wdat_table_is_present,
+        eax,
+        HvImplHardwareFeaturesEax::ACPI_WDAT_TABLE
+    );
+}
+
+bitflags! {
+    #[derive(Debug)]
+    struct HvNestedFeaturesEax: u32 {
+        const ACCESS_SYNIC_REGS = 1 << 2;
+        const ACCESS_INTR_CTRL_REGS = 1 << 4;
+        const ACCESS_HYPERCALL_MSRS = 1 << 5;
+        const ACCESS_VP_INDEX = 1 << 6;
+        const ACCESS_REENLIGHTENMENT_CONTROLS = 1 << 12;
+    }
+}
+
+bitflags! {
+    #[derive(Debug)]
+    struct HvNestedFeaturesEdx: u32 {
+        const XMM_REGISTERS_FOR_FAST_HYPERCALL = 1 << 4;
+        const FAST_HYPERCALL_OUTPUT_AVAILABLE = 1 << 15;
+        const SINT_POLLING_MODE_AVAILABLE = 1 << 17;
+    }
+}
+
+/// Describes the features exposed to the partition by the hypervisor when running nested. EAX describes access to virtual MSRs. EDX describes access to hypercalls (LEAF=0x40000009)
+#[derive(Debug)]
+pub struct HvNestedFeatures {
+    eax: HvNestedFeaturesEax,
+    _ebx: u32,
+    _ecx: u32,
+    edx: HvNestedFeaturesEdx,
+}
+
+impl HvNestedFeatures {
+    check_flag!(
+        doc = "Access synic regs",
+        access_synic_regs_is_available,
+        eax,
+        HvNestedFeaturesEax::ACCESS_SYNIC_REGS
+    );
+
+    check_flag!(
+        doc = "Access intr ctrl regs",
+        access_intr_ctrl_regs_is_available,
+        eax,
+        HvNestedFeaturesEax::ACCESS_INTR_CTRL_REGS
+    );
+
+    check_flag!(
+        doc = "Access hypercall MSRs",
+        access_hypercall_msrs_is_available,
+        eax,
+        HvNestedFeaturesEax::ACCESS_HYPERCALL_MSRS
+    );
+
+    check_flag!(
+        doc = "Access VP index",
+        access_vp_index_is_available,
+        eax,
+        HvNestedFeaturesEax::ACCESS_VP_INDEX
+    );
+
+    check_flag!(
+        doc = "Access reenlightenment controls",
+        access_reenlightenment_controls_is_available,
+        eax,
+        HvNestedFeaturesEax::ACCESS_REENLIGHTENMENT_CONTROLS
+    );
+
+    check_flag!(
+        doc = "XMM registers for fast hypercall available",
+        xmm_registers_for_fast_hypercall_available,
+        edx,
+        HvNestedFeaturesEdx::XMM_REGISTERS_FOR_FAST_HYPERCALL
+    );
+
+    check_flag!(
+        doc = "Fast hypercall output available",
+        fast_hypercall_output_available,
+        edx,
+        HvNestedFeaturesEdx::FAST_HYPERCALL_OUTPUT_AVAILABLE
+    );
+
+    check_flag!(
+        doc = "SINT polling mode available",
+        sint_polling_mode_available,
+        edx,
+        HvNestedFeaturesEdx::SINT_POLLING_MODE_AVAILABLE
+    );
+}
+
+bitflags! {
+    #[derive(Debug)]
+    struct HvNestedVirtualizationFeaturesEax: u32 {
+        const DIRECT_VIRTUAL_FLUSH_HYPERCALLS = 1 << 17;
+        const FLUSH_GUEST_PHYSICAL_ADDRESS_SPACE_AND_LIST = 1 << 18;
+        const ENLIGHTENED_MSR_BITMAP = 1 << 19;
+        const COMBINING_VIRTUALIZATION_EXCEPTIONS = 1 << 20;
+        const NON_ZERO_VALUE_OF_GUEST_IA32_DEBUG_CTRL_FIELD = 1 << 21;
+        const ENLIGHTENED_TLB_ON_AMD_PLATFORMS = 1 << 22;
+    }
+}
+
+bitflags! {
+    #[derive(Debug)]
+    struct HvNestedVirtualizationFeaturesEbx: u32 {
+        const GUEST_PERF_GLOBAL_CTRL_AND_HOST_PERF_GLOBAL_CTRL_FIELDS = 1;
+    }
+}
+
+/// Indicates which nested virtualization optimizations are available to a nested hypervisor (LEAF=0x4000000A)
+#[derive(Debug)]
+pub struct HvNestedVirtualizationFeatures {
+    eax: HvNestedVirtualizationFeaturesEax,
+    ebx: HvNestedVirtualizationFeaturesEbx,
+    _ecx: u32,
+    _edx: u32,
+}
+
+impl HvNestedVirtualizationFeatures {
+    pub fn enlightened_vmcs_version(&self) -> u32 {
+        get_bits(self.eax.bits(), 0, 15)
+    }
+
+    check_flag!(
+        doc = "Indicates support for direct virtual flush hypercalls",
+        direct_virtual_flush_hypercalls_support_is_available,
+        eax,
+        HvNestedVirtualizationFeaturesEax::DIRECT_VIRTUAL_FLUSH_HYPERCALLS
+    );
+
+    check_flag!(
+        doc = "Indicates support for the HvCallFlushGuestPhysicalAddressSpace and HvCallFlushGuestPhysicalAddressList hypercalls (on x64 platforms)",
+        flush_guest_physical_address_space_and_list_is_available,
+        eax,
+        HvNestedVirtualizationFeaturesEax::FLUSH_GUEST_PHYSICAL_ADDRESS_SPACE_AND_LIST
+    );
+
+    check_flag!(
+        doc = "Indicates support for using an enlightened MSR bitmap",
+        enlightened_msr_bitmap_support_is_available,
+        eax,
+        HvNestedVirtualizationFeaturesEax::ENLIGHTENED_MSR_BITMAP
+    );
+
+    check_flag!(
+        doc = "Indicates support for combining virtualization exceptions in the page fault exception class",
+        combining_virtualization_exceptions_support_is_available,
+        eax,
+        HvNestedVirtualizationFeaturesEax::COMBINING_VIRTUALIZATION_EXCEPTIONS
+    );
+
+    check_flag!(
+        doc = "Indicates support for non-zero value of the 0x00002802 (GuestIa32DebugCtl) field in the VMCS",
+        non_zero_value_of_guest_ia32_debug_ctrl_support_is_available,
+        eax,
+        HvNestedVirtualizationFeaturesEax::NON_ZERO_VALUE_OF_GUEST_IA32_DEBUG_CTRL_FIELD
+    );
+
+    check_flag!(
+        doc = "Indicates support for the enlightened TLB on AMD platforms. ASID flushes do not affect TLB entries derived from the NPT. Hypercalls must be used to invalidate NPT TLB entries. Also indicates support for the HvCallFlushGuestPhysicalAddressSpace and HvCallFlushGuestPhysicalAddressList hypercalls",
+        enlightened_tlb_on_amd_platforms,
+        eax,
+        HvNestedVirtualizationFeaturesEax::ENLIGHTENED_TLB_ON_AMD_PLATFORMS
+    );
+
+    check_flag!(
+        doc = "Indicates support for the GuestPerfGlobalCtrl and HostPerfGlobalCtrl fields in the enlightened VMCS",
+        guestperfglobalctrl_and_hostperfglobalctrl_fields_support_is_available,
+        ebx,
+        HvNestedVirtualizationFeaturesEbx::GUEST_PERF_GLOBAL_CTRL_AND_HOST_PERF_GLOBAL_CTRL_FIELDS
+    );
 }
 
 #[cfg(doctest)]
