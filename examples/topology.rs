@@ -146,10 +146,7 @@ fn get_processor_limits() -> (u8, u8) {
             }
         }
 
-        return (
-            max_logical_processor_ids as u8,
-            smt_max_cores_for_package as u8,
-        );
+        return (max_logical_processor_ids, smt_max_cores_for_package);
     }
 
     unreachable!("Example doesn't support this CPU")
